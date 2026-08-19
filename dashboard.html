@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MotoFix — Services System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <div class="app">
+      <!-- ============ SIDEBAR ============ -->
+      <aside class="sidebar" id="sidebar">
+        <div class="brand">
+          <div class="brand-icon">🏍</div>
+          <div class="brand-text">
+            <div class="brand-name">MOTO<span>FIX</span></div>
+            <div class="brand-sub">SERVICES SYSTEM</div>
+          </div>
+        </div>
+
+        <nav class="nav">
+          <div class="nav-label">Navigation</div>
+
+          <button class="nav-item active" data-page="dashboard">
+            <span class="nav-ico">▦</span> Dashboard
+            <span class="nav-chevron">›</span>
+          </button>
+          <button class="nav-item" data-page="appointments">
+            <span class="nav-ico">🗓</span> Appointments
+          </button>
+          <button class="nav-item" data-page="services">
+            <span class="nav-ico">🔧</span> Services &amp; Types
+          </button>
+          <button class="nav-item" data-page="customization">
+            <span class="nav-ico">⚙</span> Customization
+          </button>
+          <button class="nav-item" data-page="inventory">
+            <span class="nav-ico">📦</span> Inventory &amp; Parts
+          </button>
+          <button class="nav-item" data-page="billing">
+            <span class="nav-ico">🧾</span> Billing &amp; Reports
+          </button>
+          <button class="nav-item" data-page="jobs">
+            <span class="nav-ico">📋</span> Mechanic Jobs
+          </button>
+          <button class="nav-item" data-page="users">
+            <span class="nav-ico">👥</span> User Management
+          </button>
+        </nav>
+
+        <div class="sidebar-footer">
+          <div class="avatar avatar-lg">CR</div>
+          <div>
+            <div class="footer-name">Carlos Reyes</div>
+            <div class="footer-role">Administrator</div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- ============ MAIN ============ -->
+      <div class="main">
+        <!-- TOPBAR -->
+        <header class="topbar">
+          <div class="topbar-left">
+            <button
+              class="icon-btn"
+              id="menuToggle"
+              type="button"
+              aria-label="Toggle sidebar"
+              aria-expanded="true"
+            >
+              ☰
+            </button>
+            <div>
+              <h1 id="pageTitle">Dashboard</h1>
+              <p id="pageSubtitle">Welcome back, Carlos</p>
+            </div>
+          </div>
+          <div class="topbar-right">
+            <button class="icon-btn bell">🔔<span class="dot"></span></button>
+            <div class="user-menu" id="userMenu">
+              <button
+                class="user-trigger"
+                id="userMenuToggle"
+                type="button"
+                aria-expanded="false"
+                aria-haspopup="true"
+              >
+                <div class="avatar">CR</div>
+                <span class="caret">⌄</span>
+              </button>
+              <div class="user-dropdown" id="userDropdown" role="menu">
+                <div class="user-dropdown-info">
+                  <strong>Carlos Reyes</strong>
+                  <span>admin@motofix.com</span>
+                </div>
+                <button
+                  class="sign-out"
+                  id="signOutBtn"
+                  type="button"
+                  role="menuitem"
+                >
+                  <span aria-hidden="true">↪</span> Sign Out
+                </button>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <main class="content" id="content">
+          <!-- ================= DASHBOARD ================= -->
+          <section class="page active" id="page-dashboard">
+            <div class="stat-grid">
+              <div class="stat-card">
+                <div class="stat-top">
+                  <span class="stat-title">Total Revenue (Jul)</span>
+                  <span class="stat-icon icon-orange">$</span>
+                </div>
+                <div class="stat-value">₱12,891.20</div>
+                <div class="stat-desc">Paid invoices</div>
+                <div class="stat-trend up">↗ +12% vs last month</div>
+              </div>
+
+              <div class="stat-card">
+                <div class="stat-top">
+                  <span class="stat-title">Active Jobs</span>
+                  <span class="stat-icon icon-blue">🔧</span>
+                </div>
+                <div class="stat-value">4</div>
+                <div class="stat-desc">Pending + in progress</div>
+              </div>
+
+              <div class="stat-card">
+                <div class="stat-top">
+                  <span class="stat-title">Low Stock Alerts</span>
+                  <span class="stat-icon icon-amber">📦</span>
+                </div>
+                <div class="stat-value">0</div>
+                <div class="stat-desc">Parts to reorder</div>
+              </div>
+
+              <div class="stat-card">
+                <div class="stat-top">
+                  <span class="stat-title">Total Customers</span>
+                  <span class="stat-icon icon-green">👥</span>
+                </div>
+                <div class="stat-value">3</div>
+                <div class="stat-desc">Registered accounts</div>
+                <div class="stat-trend up">↗ +8% vs last month</div>
+              </div>
+            </div>
+
+            <div class="chart-row">
+              <div class="panel">
+                <div class="panel-head">
+                  <div>
+                    <h3>Monthly Revenue</h3>
+                    <p class="muted">Feb – Jul 2026</p>
+                  </div>
+                  <span class="panel-ico">📊</span>
+                </div>
+                <div class="bar-chart" id="revenueChart"></div>
+              </div>
+
+              <div class="panel">
+                <div class="panel-head">
+                  <div>
+                    <h3>Service Mix</h3>
+                    <p class="muted">By category — all time</p>
+                  </div>
+                </div>
+                <div class="pie-wrap">
+                  <div class="pie" id="serviceMixPie"></div>
+                  <ul class="legend" id="serviceMixLegend"></ul>
+                </div>
+              </div>
+            </div>
+
+            <div class="panel table-panel">
+              <div class="panel-head">
+                <h3>Recent Appointments</h3>
+                <a href="#" class="link-arrow" data-page="appointments"
+                  >View All →</a
+                >
+              </div>
+              <div class="table-scroll">
+                <table class="data-table" id="dashAppointmentsTable"></table>
+              </div>
+            </div>
+          </section>
+
+          <!-- ================= APPOINTMENTS ================= -->
+          <section class="page" id="page-appointments">
+            <div class="toolbar">
+              <div class="search-box">
+                <span>🔍</span>
+                <input
+                  type="text"
+                  id="apptSearch"
+                  placeholder="Search appointments..."
+                />
+              </div>
+              <div class="filter-pills" id="apptFilters">
+                <button class="pill active" data-filter="All">All</button>
+                <button class="pill" data-filter="Pending">Pending</button>
+                <button class="pill" data-filter="Confirmed">Confirmed</button>
+                <button class="pill" data-filter="In Progress">
+                  In Progress
+                </button>
+                <button class="pill" data-filter="Completed">Completed</button>
+                <button class="pill" data-filter="Cancelled">Cancelled</button>
+              </div>
+              <button class="btn-primary" id="newApptBtn">
+                + New Appointment
+              </button>
+            </div>
+
+            <div class="panel table-panel">
+              <div class="table-scroll">
+                <table class="data-table" id="apptTable"></table>
+              </div>
+            </div>
+          </section>
+
+          <!-- ================= SERVICES & TYPES ================= -->
+          <section class="page" id="page-services">
+            <div class="toolbar">
+              <div class="search-box">
+                <span>🔍</span>
+                <input
+                  type="text"
+                  id="svcSearch"
+                  placeholder="Search services..."
+                />
+              </div>
+              <div class="filter-pills" id="svcFilters"></div>
+            </div>
+
+            <div class="card-grid" id="servicesGrid"></div>
+          </section>
+
+          <!-- ================= CUSTOMIZATION ================= -->
+          <section class="page" id="page-customization">
+            <h3 class="section-heading">Registered Motorcycles</h3>
+            <div class="stack-list" id="bikeList"></div>
+          </section>
+
+          <!-- ================= INVENTORY & PARTS ================= -->
+          <section class="page" id="page-inventory">
+            <div class="toolbar">
+              <div class="search-box">
+                <span>🔍</span>
+                <input
+                  type="text"
+                  id="invSearch"
+                  placeholder="Search parts, SKU..."
+                />
+              </div>
+              <div class="filter-pills" id="invFilters"></div>
+            </div>
+
+            <div class="panel table-panel">
+              <div class="table-scroll">
+                <table class="data-table" id="invTable"></table>
+              </div>
+            </div>
+          </section>
+
+          <!-- ================= BILLING & REPORTS ================= -->
+          <section class="page" id="page-billing">
+            <div class="tab-row">
+              <button class="tab active" data-tab="invoices">Invoices</button>
+              <button class="tab" data-tab="revenue">Revenue Report</button>
+            </div>
+
+            <div class="tab-panel active" id="tab-invoices">
+              <div class="toolbar toolbar-simple">
+                <span class="muted" id="invoiceCount">1 invoice total</span>
+                <button class="btn-primary" id="newInvoiceBtn">
+                  + New Invoice
+                </button>
+              </div>
+              <div class="panel table-panel">
+                <div class="table-scroll">
+                  <table class="data-table" id="invoiceTable"></table>
+                </div>
+              </div>
+            </div>
+
+            <div class="tab-panel" id="tab-revenue">
+              <div class="stat-grid">
+                <div class="stat-card">
+                  <div class="stat-top">
+                    <span class="stat-title">Total Revenue</span
+                    ><span class="stat-icon icon-orange">$</span>
+                  </div>
+                  <div class="stat-value">₱12,891.20</div>
+                  <div class="stat-desc">All time, paid invoices</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-top">
+                    <span class="stat-title">VAT Collected</span
+                    ><span class="stat-icon icon-blue">%</span>
+                  </div>
+                  <div class="stat-value">₱1,381.20</div>
+                  <div class="stat-desc">12% VAT on paid invoices</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-top">
+                    <span class="stat-title">Avg. Invoice Value</span
+                    ><span class="stat-icon icon-green">Σ</span>
+                  </div>
+                  <div class="stat-value">₱12,891.20</div>
+                  <div class="stat-desc">Based on 1 invoice</div>
+                </div>
+              </div>
+              <div class="panel">
+                <div class="panel-head"><h3>Monthly Revenue</h3></div>
+                <div class="bar-chart" id="revenueChart2"></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ================= MECHANIC JOBS ================= -->
+          <section class="page" id="page-jobs">
+            <div class="stack-list" id="jobsList"></div>
+          </section>
+
+          <!-- ================= USER MANAGEMENT ================= -->
+          <section class="page" id="page-users">
+            <div class="toolbar">
+              <div class="filter-pills" id="userFilters">
+                <button class="pill active" data-filter="All">All Users</button>
+                <button class="pill" data-filter="Admin">Admin</button>
+                <button class="pill" data-filter="Mechanic">Mechanic</button>
+                <button class="pill" data-filter="Customer">Customer</button>
+              </div>
+              <button class="btn-primary" id="addUserBtn">+ Add User</button>
+            </div>
+            <div class="card-grid users-grid" id="usersGrid"></div>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <!-- ============ MODAL ============ -->
+    <div class="modal-backdrop" id="modalBackdrop">
+      <div class="modal">
+        <div class="modal-head">
+          <h3 id="modalTitle">Title</h3>
+          <button class="icon-btn" id="modalClose">✕</button>
+        </div>
+        <div class="modal-body" id="modalBody"></div>
+      </div>
+    </div>
+
+    <script src="js/script.js"></script>
+  </body>
+</html>
