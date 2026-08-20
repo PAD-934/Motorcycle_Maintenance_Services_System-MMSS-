@@ -122,9 +122,20 @@ async function handleLogin(forcedRole) {
 
   const role = forcedRole || result.role;
 
+
+  // Nabago to eto ung pinalagay sakin para maka connect ung customer UI sa login mo
+  // Ung connection ng dashboard ng admin papunta sa login/signup napalitan napunta sakin
+  // ikaw na bahala mag ayos eto lang namang if(result.ok) ung napalitan e. YOUR TURN
+
+
   if (result.ok || forcedRole) {
-    if (role === "admin") {
-      window.location.href = "dashboard.html";
+    // Save login state to localStorage
+    localStorage.setItem("isLoggedIn", "true");
+    localStorage.setItem("userEmail", email);
+    localStorage.setItem("userRole", role);
+
+    if (role === "admin" || role === "customer" || role === "mechanic") {
+      window.location.href = "CUSTOMER UI/HTML/Dashboard_Customer.html";
       return;
     }
 

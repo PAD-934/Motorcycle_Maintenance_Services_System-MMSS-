@@ -1,0 +1,311 @@
+/* Main Content Styles */
+
+.CM {
+   flex: 1 1 0%;
+    padding: 24px 28px;
+    width: 100%;
+    box-sizing: border-box; /* Ensures padding doesn't push width past 100% */
+}
+
+.parent_main {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+/* FIRST SUB PARENT */
+.first_widget_sub_parent {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+}
+
+.motorcycle_widget, .appointments_widget, .job_widget, .expenses_widget {
+    background: #111113;
+    border: 1px solid #27272a;
+    border-radius: 12px;
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.motorcycle_widget_subparent, .expenses_widget_subparent, .appointments_widget_subparent, .jobs_widget_subparent {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.mws_label, .aws_label, .jws_label, .ews_label {
+    font-size: 13px;
+    color: #a1a1aa;
+    font-weight: 500;
+}
+
+.mws_icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: rgba(249, 115, 22, 0.094);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.aws_icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: rgba(59, 130, 246, 0.094);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.jws_icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: rgba(245, 158, 11, 0.094);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ews_icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: rgba(34, 197, 94, 0.094);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mws_numeral, .aws_numeral, .jws_numeral, .ews_numeral {
+    font-family: "Bowler Condensed", sans-serif;
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    color: #fafafa;
+}
+
+/* SECOND SUB PARENT */
+.second_widget_sub_parent {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+
+/* Dashboard Button Main Styles */
+
+.service-btn, .parts-btn, .transaction-btn {
+    padding: 18px 16px;
+    background: #111113;
+    border: 1px solid #27272a;
+    border-radius: 12px;
+    cursor: pointer;
+    text-align: left;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+    font-family: var(--font-body, "DM Sans", sans-serif);
+    display: flex;
+    flex-direction: column;
+}
+
+/* Updated Hover States */
+.service-btn:hover {
+    background: rgba(249, 115, 22, 0.03);
+    border-color: rgba(249, 115, 22, 0.314);
+}
+
+.parts-btn:hover {
+    background: rgba(59, 130, 246, 0.03);
+    border-color: rgba(59, 130, 246, 0.314)
+}
+
+.transaction-btn:hover {
+    background: rgba(34, 197, 94, 0.03);
+    border-color: rgba(34, 197, 94, 0.314);
+}
+
+/* BUTTON ICON STYLES */
+
+.service_icon_parent {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: rgba(249, 115, 22, 0.094);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 10px;
+}
+
+.parts_icon_parent {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: rgba(59, 130, 246, 0.094);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 10px;
+}
+
+.transaction_icon_parent {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: rgba(34, 197, 94, 0.094);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 10px;
+}
+
+/* BUTTON LABEL AND SUBLABEL STYLES */
+
+.service_label, .parts_label, .transaction_label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #fafafa;
+    margin-bottom: 3px;
+}
+
+.service_sub_label, .parts_sub_label, .transaction_sub_label {
+    font-size: 12px;
+    color: #71717a;
+}
+
+/* THIRD DIV SUBPARENT STYLES */
+
+.third_widget_sub_parent, .fourth_widget_sub_parent {
+    background: #111113;
+    border: 1px solid #27272a;
+    border-radius: 12px;
+}
+
+.third_sub_parent_label {
+    padding: 18px 22px;
+    border-bottom: 1px solid #27272a;
+    font-family: "Barlow Condensed", sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.motorcycle_list_parent, .appoinments_list_parent {
+    display: flex;
+    flex-direction: column;
+}
+
+.moto_label_parent {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 22px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.moto_label_subparent {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.third_div_moto_icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    background: rgba(249, 115, 22, 0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.third_div_moto_label, .appointments_list_label {
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.third_div_moto_sublabel, .appointments_list_sublabel {
+    font-size: 12px;
+    color: #71717a;
+}
+
+.motorcycle_list_subparent, .appointments_list_subparent {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 22px;
+    border-bottom: 1px solid #27272a;
+}
+
+.moto_km_parent {
+    text-align: right;
+}
+
+.moto_km {
+    font-size: 13px;
+    color: rgb(249, 115, 22);
+    font-family: "JetBrains Mono", monospace;
+}
+
+.moto_mods {
+    font-size: 11px;
+    color: #71717a;
+}
+
+.fourth_widget_label_parent {
+    padding: 18px 22px;
+    border-bottom: 1px solid #27272a;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.fourth_widget_label {
+    font-family: "Barlow Condensed", sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.fourth_widget_view_appointment-btn {
+    font-size: 13px;
+    color: rgb(249, 115, 22);
+    background: none;
+    border-width: medium;
+    border-style: none;
+    border-color: currentcolor;
+    border-image: none;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.appointments_list_status_and_date {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+}
+
+.appointments_list_status {
+    font-size: 11px;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 4px;
+    color: rgb(59, 130, 246);
+    background: rgba(59, 130, 246, 0.12);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.pending {
+    color: rgb(245, 158, 11);
+    background: rgba(245, 158, 11, 0.12);
+}
+
+.appointments_list_date {
+    font-size: 11px;
+    color: #71717a;
+}

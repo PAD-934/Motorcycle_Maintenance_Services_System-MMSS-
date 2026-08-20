@@ -1,0 +1,389 @@
+/* Design For All */
+* {
+    font-family: "DM sans", sans-serif;
+}
+
+
+/* Main Body Design */
+body {
+    background-color: #09090b;
+    color: #fafafa;
+    -webkit-font-smoothing: antialiased;
+    margin: 0;
+    padding: 0;
+}
+
+/* Customer Header Styles */
+.CH {
+    background-color: #111113;
+    border-bottom: #27272a solid 1.5px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    padding: 0px 24px;
+    gap: 16px;
+    position: sticky;
+    top: 0px;
+    z-index: 30;
+}
+
+/* Header and main frame will stick to sidebar */
+.CH, .CM {
+    margin-left: 240px; 
+    width: calc(100% - 240px); /* Keeps it contained inside the remaining viewport */
+    box-sizing: border-box;
+    transition: margin-left 0.25s ease, width 0.25s ease;
+}
+
+/* Header Text Styles */
+
+.middle_header_div {
+    flex: 1 1 0%;
+}
+
+.middle_header_label {
+    font-family: "Barlow Condensed" ,sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: var(--color-text);
+}
+
+.middle_header_sub-label {
+    font-size: 12px;
+    color: #71717a;
+}
+
+/* Header Right Side Group */
+
+.notification_btn {
+    position: relative;
+    background: none;
+    border-width: medium;
+    border-style: none;
+    border-color: currentcolor;
+    border-image: none;
+    cursor: pointer;
+    color: #a1a1aa;
+    padding: 4px;
+}
+
+.orange_circle {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 5px;
+    height: 5px;
+    border-radius: 4px;
+    background: rgb(249, 115, 22);
+    border: 1px solid #111113;
+}
+
+/* Header User Options */
+
+.user_options {
+    position: relative;
+}
+
+.user_options-btn {
+    background: none;
+    border-width: medium;
+    border-style: none;
+    border-color: currentcolor;
+    border-image: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.header_user_icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 16px;
+    background: rgba(249, 115, 22, 0.133);
+    border: 1px solid rgba(249, 115, 22, 0.267);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.header_user_initials {
+    font-family: "Barlow Condensed", sans-serif;
+    font-size: 12.16px;
+    font-weight: 700;
+    color: rgb(249, 115, 22);
+    letter-spacing: 1px;
+}
+
+/* Popup User Options Styles */
+
+.popup_user_options {
+    position: absolute;
+    top: 100%;
+    right: 0px;
+    margin-top: 8px;
+    width: 180px;
+    background: #18181b;
+    border: 1px solid #27272a;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: rgba(0, 0, 0, 0.4) 0px 8px 24px;
+
+    /* Hidden by default */
+    display: none; 
+    z-index: 100;
+}
+
+.popup_user_options.show {
+    display: block;
+}
+
+.popup_user_info {
+    padding: 12px 14px;
+    border-bottom: 1px solid #27272a;
+}
+
+.popup_user_name {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.popup_user_email {
+    font-size: 11px;
+    color: #71717a;
+}
+
+/* popup sign-out styles */
+
+.popup_signout-btn {
+    width: 100%;
+    padding: 10px 14px;
+    background: none;
+    border-width: medium;
+    border-style: none;
+    border-color: currentcolor;
+    border-image: none;
+    cursor: pointer;
+    color: rgb(239, 68, 68);
+    font-size: 13px;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: "DM sans", sans-serif;
+}
+
+/* Customer Sidebar styles */
+
+.CS {
+    position: fixed;
+    top: 0px;
+    left: 0px;
+    width: 239px;
+    height: 100vh;
+    background: #111113;
+    border-right: 1px solid #27272a;
+    display: flex;
+    flex-direction: column;
+    z-index: 50;
+    transition: left 0.25s;
+}
+
+/* Sidebar slides to left */
+.CS.closed {
+    left: -240px;
+}
+
+body.sidebar-closed .CH, 
+body.sidebar-closed .CM {
+    margin-left: 0px; /* Expands when sidebar closes */
+    width: 100%;
+}
+
+/* Dimmed Screen When The Sidebar Is Open */
+
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.5); /* Dimming effect */
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.25s ease, visibility 0.25s ease;
+    z-index: 40; /* Just below the sidebar (z-index: 50) */
+}
+
+.overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* MENU SIDEBAR ICON STYLES */
+
+.sidebar_menu {
+    background: none;
+    border-width: medium;
+    border-style: none;
+    border-color: currentcolor;
+    border-image: none;
+    cursor: pointer;
+    color: var(--color-text-2);
+    padding: 4px;
+}
+
+/* LOGO PART OF THE SIDEBAR */
+
+.logo_parent {
+    padding: 20px 20px 16px;
+    border-bottom: 1px solid #27272a;
+}
+
+.logo_sub_parent {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.logo_icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, rgb(249, 115, 22), rgb(251, 146, 60));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.logo_name {
+    font-family: "Barlow Condensed", sans-serif;
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: 1px;
+}
+
+.logo_type {
+    font-size: 10px;
+    color: #71717a;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+/* SIDEBAR MAIN NAVIGATION LINKS */
+
+.Sidebar_main {
+    flex: 1 1 0%;
+    overflow-y: auto;
+    padding: 12px;
+}
+
+.navigation_label {
+    font-size: 10px;
+    color: #71717a;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 4px 8px 8px;
+    margin-top: 4px;
+}
+
+/* NAV BUTTON STYLES */
+
+/* REUSABLE BASE STYLE FOR ALL NAV BUTTONS */
+.nav-link {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 10px;
+    border-radius: 8px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: #a1a1aa;
+    font-size: 13px;
+    font-weight: 400;
+    text-align: left;
+    margin-bottom: 2px;
+    transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+    font-family: "DM sans", sans-serif;
+}
+
+/* HOVER EFFECT FOR INACTIVE BUTTONS */
+.nav-link:hover:not(.active) {
+    background-color: #18181b;
+    color: #fafafa;
+}
+
+/* ACTIVE STATE STYLE (The Green Design) */
+.nav-link.active {
+    background: rgba(34, 197, 94, 0.094);
+    color: rgb(34, 197, 94);
+    font-weight: 600;
+}
+
+/* Hide arrows by default on all nav links */
+.nav-link .nav-arrow {
+    display: none;
+}
+
+/* Show arrow only when the nav link is active */
+.nav-link.active .nav-arrow {
+    display: block;
+}
+
+/* STYLES FOR SIDEBAR FOOTER */
+
+.Sidebar_footer {
+    padding: 16px;
+    border-top: 1px solid #27272a;
+}
+
+.footer_sub_parent {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.footer_icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 18px;
+    background: rgba(34, 197, 94, 0.133);
+    border: 1px solid rgba(34, 197, 94, 0.267);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.footer_initials {
+    font-family: "Barlow Condensed", sans-serif;
+    font-size: 13.68px;
+    font-weight: 700;
+    color: rgb(34, 197, 94);
+    letter-spacing: 1px;
+}
+
+.footer_userinfo {
+    flex: 1 1 0%;
+    min-width: 0px;
+}
+
+.footer_username {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.footer_usertype {
+    font-size: 11px;
+    color: rgb(34, 197, 94);
+    font-weight: 500;
+}

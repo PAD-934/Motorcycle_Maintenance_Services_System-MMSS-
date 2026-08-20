@@ -1,0 +1,145 @@
+/* Transactions / Invoices View Styling */
+.transactions-container {
+    padding: 24px;
+    color: #f8fafc;
+    font-family: inherit;
+}
+
+.transactions-header {
+    margin-bottom: 24px;
+}
+
+.transactions-header h2 {
+    font-size: 24px;
+    font-weight: 700;
+    color: #ffffff;
+    margin-bottom: 4px;
+}
+
+.transactions-header p {
+    font-size: 14px;
+    color: #94a3b8;
+}
+
+.transactions-filters {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.filter-tab {
+    background-color: transparent;
+    border: 1px solid #334155;
+    color: #94a3b8;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.filter-tab.active {
+    border: 1px solid rgb(249, 115, 22);
+    background: rgba(249, 115, 22, 0.12);
+    color: rgb(249, 115, 22);
+}
+
+.transactions-count {
+    font-size: 13px;
+    color: #64748b;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Table layout */
+.transactions-table-wrapper {
+    background: #111113;
+    border: 1px solid #27272a;
+    border-radius: 12px;
+    overflow-x: auto;
+}
+
+.transactions-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 14px;
+}
+
+.transactions-table th {
+    background: #111113;
+    color: #94a3b8;
+    font-weight: 600;
+    padding: 14px 16px;
+    border-bottom: 1px solid #27272a;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.transactions-table td {
+    padding: 16px;
+    border-bottom: 1px solid #1e293b;
+    color: #e2e8f0;
+    vertical-align: middle;
+}
+
+.transactions-table tr:last-child td {
+    border-bottom: none;
+}
+
+.transactions-table tr:hover td {
+    background: #1e293b30;
+}
+
+/* Status badges */
+.badge-status {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.badge-status.completed {
+    background: rgba(34, 197, 94, 0.15);
+    color: #4ade80;
+    border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.badge-status.pending {
+    background: rgba(234, 179, 8, 0.15);
+    color: #facc15;
+    border: 1px solid rgba(234, 179, 8, 0.3);
+}
+
+/* Empty state */
+.transactions-empty {
+    text-align: center;
+    padding: 48px 16px;
+    color: #64748b;
+}
+
+.transactions-empty p {
+    font-size: 15px;
+    margin-top: 8px;
+}
+
+/* Detailed Modal or Expanded View */
+.receipt-details-btn {
+    border: 1px solid rgb(249, 115, 22);
+    background: rgba(249, 115, 22, 0.12);
+    color: rgb(249, 115, 22);
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    transition: background 0.2s;
+}
+
+.receipt-details-btn:hover {
+    background: #475569;
+}

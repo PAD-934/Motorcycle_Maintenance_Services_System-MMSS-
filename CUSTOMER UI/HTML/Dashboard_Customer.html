@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- GOOGLE FONTS -->
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap');
+    </style>
+
+    <!-- CSS STYLES -->
+    <link rel="stylesheet" href="../STYLES/DC_style.css">
+    <link rel="stylesheet" href="../STYLES/Universal_style.css">
+    <link rel="stylesheet" href="../STYLES/SC_Style.css">
+    <link rel="stylesheet" href="../STYLES/MB_style.css">
+    <link rel="stylesheet" href="../STYLES/PC_style.css">
+    <link rel="stylesheet" href="../STYLES/TC_style.css">
+
+    <!-- SCRIPTS -->
+    <script type="module" src="../JAVASCRIPTS/Customer.js"></script>
+    
+    <title>MotoFix Customer Dashboard</title>
+</head>
+<body>
+    <!-- SIDEBAR LAYOUT -->
+    <aside id="sidebar" class="CS">
+
+        <!-- LOGO -->
+        <div class="logo_parent">
+            <div class="logo_sub_parent">
+
+                <!-- SHOPS ICON -->
+                <div class="logo_icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-bike" aria-hidden="true"><circle cx="18.5" cy="17.5" r="3.5"></circle><circle cx="5.5" cy="17.5" r="3.5"></circle><circle cx="15" cy="5" r="1"></circle><path d="M12 17.5V14l-3-3 4-3 2 3h2"></path></svg>
+                </div>
+
+                <!-- SHOPS BUSINESS NAME -->
+                <div class="logo_title">
+                    <div class="logo_name">MOTO<span style="color: rgb(249, 115, 22); font-family: Barlow Condensed, sans-serif;">FIX</span></div>
+                    <div class="logo_type">SERVICES SYSTEM</div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- MAIN NAVIGATION LINKS -->
+        <nav class="Sidebar_main">
+            <!-- NAV LABEL -->
+            <div class="navigation_label">Navigation</div>
+
+            <!-- DASHBOARD BUTTON -->
+            <button class="nav-link active">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-layout-dashboard" aria-hidden="true"><rect width="7" height="9" x="3" y="3" rx="1"></rect><rect width="7" height="5" x="14" y="3" rx="1"></rect><rect width="7" height="9" x="14" y="12" rx="1"></rect><rect width="7" height="5" x="3" y="16" rx="1"></rect></svg>
+                Dashboard
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-right nav-arrow" aria-hidden="true" style="margin-left: auto;"><path d="m9 18 6-6-6-6"></path></svg>
+            </button>
+
+            <!-- SERVICE BUTTON -->
+            <button class="nav-link">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-calendar" aria-hidden="true"><path d="M8 2v4"></path><path d="M16 2v4"></path><rect width="18" height="18" x="3" y="4" rx="2"></rect><path d="M3 10h18"></path></svg>
+                Book a Service 
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-right nav-arrow" aria-hidden="true" style="margin-left: auto;"><path d="m9 18 6-6-6-6"></path></svg>
+            </button>
+
+            <!-- APPOINTMENTS BUTTON -->
+            <button class="nav-link">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-clipboard-list" aria-hidden="true"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"></rect><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><path d="M12 11h4"></path><path d="M12 16h4"></path><path d="M8 11h.01"></path><path d="M8 16h.01"></path></svg>
+                My Appointments
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-right nav-arrow" aria-hidden="true" style="margin-left: auto;"><path d="m9 18 6-6-6-6"></path></svg>
+            </button>
+
+            <!-- MOTORCYCLE BUTTON -->
+            <button class="nav-link">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-bike" aria-hidden="true"><circle cx="18.5" cy="17.5" r="3.5"></circle><circle cx="5.5" cy="17.5" r="3.5"></circle><circle cx="15" cy="5" r="1"></circle><path d="M12 17.5V14l-3-3 4-3 2 3h2"></path></svg>
+                My Motorcycles
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-right nav-arrow" aria-hidden="true" style="margin-left: auto;"><path d="m9 18 6-6-6-6"></path></svg>
+            </button>
+            
+            <!-- SHOP PARTS BUTTON -->
+            <button class="nav-link">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-package" aria-hidden="true"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"></path><path d="M12 22V12"></path><polyline points="3.29 7 12 12 20.71 7"></polyline><path d="m7.5 4.27 9 5.15"></path></svg>
+                Parts & Shop
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-right nav-arrow" aria-hidden="true" style="margin-left: auto;"><path d="m9 18 6-6-6-6"></path></svg>
+            </button>
+
+            <!-- TRANSACTION BUTTON -->
+             <button class="nav-link">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-credit-card" aria-hidden="true"><rect width="20" height="14" x="2" y="5" rx="2"></rect><line x1="2" x2="22" y1="10" y2="10"></line></svg>
+                My Transactions
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-right nav-arrow" aria-hidden="true" style="margin-left: auto;"><path d="m9 18 6-6-6-6"></path></svg>
+             </button>
+        </nav>
+
+        <!-- USER INFO -->
+        <div class="Sidebar_footer">
+            <div class="footer_sub_parent">
+                <div class="footer_icon">
+                    <span class="footer_initials">US</span>
+                </div>
+                <div class="footer_userinfo">
+                    <div class="footer_username">User Name</div>
+                    <div class="footer_usertype">Customer</div>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Dimming Overlay -->
+    <div id="overlay" class="overlay active"></div>
+
+    <!-- HEADER LAYOUT -->
+    <header class="CH">
+
+        <!-- SIDE NAVBAR BUTTON -->
+        <button id="toggle-btn" class="sidebar_menu">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-menu" aria-hidden="true"><path d="M4 5h16"></path><path d="M4 12h16"></path><path d="M4 19h16"></path></svg>
+        </button>
+
+        <!-- MIDDLE HEADER DIV -->
+         <div class="middle_header_div">
+            <div class="middle_header_label">
+                Dashboard
+            </div>
+            <div class="middle_header_sub-label">
+                Welcome back, User
+            </div>
+         </div>
+
+         <!-- HEADER NOTIFICATION BELL -->
+          <button class="notification_btn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-bell" aria-hidden="true"><path d="M10.268 21a2 2 0 0 0 3.464 0"></path><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"></path></svg>
+            <span class="orange_circle"></span>
+          </button>
+
+          <!-- USER INFO PART (SIGNOUT OPTION) -->
+           <div class="user_options">
+                <button class="user_options-btn">
+                    <!-- USER ICON -->
+                    <div class="header_user_icon">
+                        <span class="header_user_initials">US</span>
+                    </div>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-down" aria-hidden="true" style="color: #71717a;"><path d="m6 9 6 6 6-6"></path></svg>
+                </button>
+
+                <!-- POPUP USER INFO -->
+                <div class="popup_user_options">
+                    <div class="popup_user_info">
+                        <div class="popup_user_name">Your Username</div>
+                        <div class="popup_user_email">Username@email.com</div>
+                    </div>
+                    <button class="popup_signout-btn" id="logout-btn">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-log-out" aria-hidden="true"><path d="m16 17 5-5-5-5"></path><path d="M21 12H9"></path><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path></svg>
+                        Sign Out
+                    </button>
+                </div>
+           </div>
+    </header>
+
+
+    <!-- MAIN LAYOUT -->
+    <main class="CM">
+        <!-- ORIGINAL DASHBOARD VIEW -->
+        <div id="dashboard-view" class="parent_main">
+
+            <!-- FIRST DIV SUBPARENT -->
+            <div class="first_widget_sub_parent">
+                <!-- first widget -->
+                <div class="motorcycle_widget">
+                    <div class="motorcycle_widget_subparent">
+                        <span class="mws_label">My Motorcycles</span>
+                        <div class="mws_icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-bike" aria-hidden="true" style="color: rgb(249, 115, 22);"><circle cx="18.5" cy="17.5" r="3.5"></circle><circle cx="5.5" cy="17.5" r="3.5"></circle><circle cx="15" cy="5" r="1"></circle><path d="M12 17.5V14l-3-3 4-3 2 3h2"></path></svg>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="mws_numeral">2</div>
+                    </div>
+                </div>
+
+                <!-- second widget -->
+                <div class="appointments_widget">
+                    <div class="appointments_widget_subparent">
+                        <span class="aws_label">Appointments</span>
+                        <div class="aws_icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-calendar" aria-hidden="true" style="color: rgb(59, 130, 246);"><path d="M8 2v4"></path><path d="M16 2v4"></path><rect width="18" height="18" x="3" y="4" rx="2"></rect><path d="M3 10h18"></path></svg>
+                        </div>
+                    </div>
+                    <div class="aws_numeral">2</div>
+                </div>
+
+                <!-- third widget -->
+                <div class="job_widget">
+                    <div class="jobs_widget_subparent">
+                        <span class="jws_label">Pending Jobs</span>
+                        <div class="jws_icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-wrench" aria-hidden="true" style="color: rgb(245, 158, 11);"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.106-3.105c.32-.322.863-.22.983.218a6 6 0 0 1-8.259 7.057l-7.91 7.91a1 1 0 0 1-2.999-3l7.91-7.91a6 6 0 0 1 7.057-8.259c.438.12.54.662.219.984z"></path></svg>
+                        </div>
+                    </div>
+                    <div class="jws_numeral">2</div>
+                </div>
+
+                <!-- fourth widget -->
+                <div class="expenses_widget">
+                    <div class="expenses_widget_subparent">
+                        <span class="ews_label">Total Spent</span>
+                        <div class="ews_icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-credit-card" aria-hidden="true" style="color: rgb(34, 197, 94);"><rect width="20" height="14" x="2" y="5" rx="2"></rect><line x1="2" x2="22" y1="10" y2="10"></line></svg>
+                        </div>
+                    </div>
+                    <div class="ews_numeral">₱0.00</div>
+                </div>
+            </div>
+
+            <!-- SECOND DIV SUBPARENT -->
+            <div class="second_widget_sub_parent">
+
+                <!-- DASHBOARD SERVICE BUTTON -->
+                <button class="service-btn" id="dash-book-service-btn">
+                    <div class="service_icon_parent">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-calendar" aria-hidden="true" style="color: rgb(249, 115, 22);"><path d="M8 2v4"></path><path d="M16 2v4"></path><rect width="18" height="18" x="3" y="4" rx="2"></rect><path d="M3 10h18"></path></svg>
+                    </div>
+                    <div class="service_label">Book a Service</div>
+                    <div class="service_sub_label">Schedule a new appointment</div>
+                </button>
+
+                <!-- DASHBOARD PARTS BUTTON -->
+                <button class="parts-btn" id="dash-view-parts-btn">
+                    <div class="parts_icon_parent">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-package" aria-hidden="true" style="color: rgb(59, 130, 246);"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"></path><path d="M12 22V12"></path><polyline points="3.29 7 12 12 20.71 7"></polyline><path d="m7.5 4.27 9 5.15"></path></svg>
+                    </div>
+                    <div class="parts_label">View Parts</div>
+                    <div class="parts_sub_label">Browse & select parts</div>
+                </button>
+                
+                <!-- DASHBOARD TRANSACTION BUTTON -->
+                <button class="transaction-btn" id="dash-transactions-btn">
+                    <div class="transaction_icon_parent">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-file-text" aria-hidden="true" style="color: rgb(34, 197, 94);"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"></path><path d="M14 2v5a1 1 0 0 0 1 1h5"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></svg>
+                    </div>
+                    <div class="transaction_label">My Transactions</div>
+                    <div class="transaction_sub_label">View Transaction History</div>
+                </button>
+            </div>
+
+            <!-- THIRD DIV SUBPARENT -->
+             <div class="third_widget_sub_parent">
+                <div class="third_sub_parent_label">My Motorcycles</div>
+                <div class="motorcycle_list_parent">
+                    <div class="motorcycle_list_subparent">
+                        <div class="moto_label_parent">
+                            <div class="moto_label_subparent">
+                                <div class="third_div_moto_icon">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-bike" aria-hidden="true" style="color: rgb(249, 115, 22);"><circle cx="18.5" cy="17.5" r="3.5"></circle><circle cx="5.5" cy="17.5" r="3.5"></circle><circle cx="15" cy="5" r="1"></circle><path d="M12 17.5V14l-3-3 4-3 2 3h2"></path></svg>
+                                </div>
+                                <div>
+                                    <div class="third_div_moto_label">2022 Honda PCX 160</div>
+                                    <div class="third_div_moto_sublabel">Pearl White · ABC 1234</div>
+                                </div>
+                            </div>
+                        </div>
+    
+                        <div class="moto_km_parent">
+                            <div class="moto_km">12,450 km</div>
+                            <div class="moto_mods">2 mods</div>
+                        </div>
+                    </div>
+
+                    <div class="motorcycle_list_subparent">
+                        <div class="moto_label_parent">
+                            <div class="moto_label_subparent">
+                                <div class="third_div_moto_icon">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-bike" aria-hidden="true" style="color: rgb(249, 115, 22);"><circle cx="18.5" cy="17.5" r="3.5"></circle><circle cx="5.5" cy="17.5" r="3.5"></circle><circle cx="15" cy="5" r="1"></circle><path d="M12 17.5V14l-3-3 4-3 2 3h2"></path></svg>
+                                </div>
+                                <div>
+                                    <div class="third_div_moto_label">2021 Yamaha NMAX 155</div>
+                                    <div class="third_div_moto_sublabel">Matte Black · XYZ 5678</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="moto_km_parent">
+                            <div class="moto_km">28,300 km</div>
+                        </div>
+                    </div>
+                </div>
+             </div>
+
+             <div class="fourth_widget_sub_parent">
+                <div class="fourth_widget_label_parent">
+                    <div class="fourth_widget_label">My Appointments</div>
+                    <button class="fourth_widget_view_appointment-btn">View All →</button>
+                </div>
+
+                <div class="appoinments_list_parent">
+                    <div class="appointments_list_subparent">
+                        <div>
+                            <div class="appointments_list_label">Basic Oil Change, Brake System Service</div>
+                            <div class="appointments_list_sublabel">Honda PCX 160 · Mechanic: Ramon Santos</div>
+                        </div>
+                        <div class="appointments_list_status_and_date">
+                            <span class="appointments_list_status">Confirmed</span>
+                            <span class="appointments_list_date">2026-07-24 09:00</span>
+                        </div>
+                    </div>
+
+                    <div class="appointments_list_subparent">
+                        <div>
+                            <div class="appointments_list_label">Suspension Setup, Performance Exhaust Install</div>
+                            <div class="appointments_list_sublabel">Yamaha NMAX 155 · Awaiting mechanic</div>
+                        </div>
+                        <div class="appointments_list_status_and_date">
+                            <span class="appointments_list_status pending">Pending</span>
+                            <span class="appointments_list_date">2026-07-28 14:00</span>
+                        </div>
+                    </div>
+                </div>
+             </div>
+        </div>
+
+        <!-- NEW BOOK A SERVICE / APPOINTMENTS PAGE VIEW (IN-DOM INTEGRATION) -->
+        <div id="service-page-view" class="sc-main-container" style="display: none;">
+            
+            <!-- SEARCH AND FILTER CONTROLS BAR -->
+            <div class="sc-controls-bar">
+                <div class="sc-search-wrapper">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-search"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
+                    <input type="text" id="sc-search-input" placeholder="Search appointments..." class="sc-search-input">
+                </div>
+                <div class="sc-filter-buttons">
+                    <button class="sc-filter-btn active" data-filter="All">All</button>
+                    <button class="sc-filter-btn" data-filter="Pending">Pending</button>
+                    <button class="sc-filter-btn" data-filter="Confirmed">Confirmed</button>
+                    <button class="sc-filter-btn" data-filter="In Progress">In Progress</button>
+                    <button class="sc-filter-btn" data-filter="Completed">Completed</button>
+                    <button class="sc-filter-btn" data-filter="Cancelled">Cancelled</button>
+                </div>
+                <button class="sc-new-appointment-btn" id="sc-open-modal-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-plus"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>
+                    New Appointment
+                </button>
+            </div>
+
+            <!-- APPOINTMENTS TABLE DATA VIEW -->
+            <div class="sc-table-container">
+                <table class="sc-appointments-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>CUSTOMER</th>
+                            <th>MOTORCYCLE</th>
+                            <th>SERVICES</th>
+                            <th>DATE / TIME</th>
+                            <th>MECHANIC</th>
+                            <th>STATUS</th>
+                            <th>ACTIONS</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sc-appointments-tbody">
+                        <tr data-status="Confirmed">
+                            <td class="sc-id-col">A1</td>
+                            <td>
+                                <div class="sc-customer-info">
+                                    <div class="sc-avatar">MT</div>
+                                    <div>
+                                        <div class="sc-cust-name">Miguel Torres</div>
+                                        <div class="sc-cust-phone">+63 912 100 0001</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>2022 Honda PCX 160</td>
+                            <td>
+                                <div class="sc-service-tags">Basic Oil Change<br>Brake System Service</div>
+                            </td>
+                            <td>
+                                <div class="sc-datetime">2026-07-24<br><span>09:00</span></div>
+                            </td>
+                            <td>Ramon Santos</td>
+                            <td><span class="sc-status-badge sc-confirmed">CONFIRMED</span></td>
+                            <td></td>
+                        </tr>
+                        <tr data-status="Pending">
+                            <td class="sc-id-col">A4</td>
+                            <td>
+                                <div class="sc-customer-info">
+                                    <div class="sc-avatar">MT</div>
+                                    <div>
+                                        <div class="sc-cust-name">Miguel Torres</div>
+                                        <div class="sc-cust-phone">+63 912 100 0001</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>2021 Yamaha NMAX 155</td>
+                            <td>
+                                <div class="sc-service-tags">Suspension Setup<br>Performance Exhaust Install</div>
+                            </td>
+                            <td>
+                                <div class="sc-datetime">2026-07-28<br><span>14:00</span></div>
+                            </td>
+                            <td><span class="sc-unassigned">Unassigned</span></td>
+                            <td><span class="sc-status-badge sc-pending">PENDING</span></td>
+                            <td></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- MODAL: NEW APPOINTMENT -->
+            <div id="sc-modal-overlay" class="sc-modal-overlay" style="display: none;">
+                <div class="sc-modal-card">
+                    <div class="sc-modal-header">
+                        <h2>New Appointment</h2>
+                        <button class="sc-modal-close" id="sc-close-modal-btn">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+                        </button>
+                    </div>
+
+                    <div class="sc-modal-body">
+                        <!-- MOTORCYCLE SELECT -->
+                        <div class="sc-form-group">
+                            <label>MOTORCYCLE</label>
+                            <div class="sc-select-row">
+                                <select id="sc-motorcycle-select" class="sc-input-field">
+                                    <option value="2022 Honda PCX 160 — ABC 1234">2022 Honda PCX 160 — ABC 1234</option>
+                                    <option value="2021 Yamaha NMAX 155 — XYZ 5678">2021 Yamaha NMAX 155 — XYZ 5678</option>
+                                </select>
+                                <button type="button" id="sc-add-motorbike-btn" class="sc-secondary-btn">+ Add Motorbike</button>
+                            </div>
+                        </div>
+
+                        <!-- SERVICES SELECTION CHECKBOXES -->
+                        <div class="sc-form-group">
+                            <label>SERVICES</label>
+                            <div class="sc-services-box">
+                                <label class="sc-service-item">
+                                    <div class="sc-service-info">
+                                        <input type="checkbox" name="service" value="Checkup" data-price="250.00">
+                                        <span>Checkup</span>
+                                        <span class="sc-price">₱250.00</span>
+                                    </div>
+                                </label>
+                                <label class="sc-service-item">
+                                    <div class="sc-service-info">
+                                        <input type="checkbox" name="service" value="Tire Replacement" data-price="600.00">
+                                        <span>Tire Replacement</span>
+                                        <span class="sc-price">₱600.00</span>
+                                    </div>
+                                </label>
+                                <label class="sc-service-item">
+                                    <div class="sc-service-info">
+                                        <input type="checkbox" name="service" value="Engine Overhaul" data-price="8500.00">
+                                        <span>Engine Overhaul</span>
+                                        <span class="sc-price">₱8,500.00</span>
+                                    </div>
+                                </label>
+                                <label class="sc-service-item">
+                                    <div class="sc-service-info">
+                                        <input type="checkbox" name="service" value="Electrical Diagnostics" data-price="500.00">
+                                        <span>Electrical Diagnostics</span>
+                                        <span class="sc-price">₱500.00</span>
+                                    </div>
+                                </label>
+                                <label class="sc-service-item">
+                                    <div class="sc-service-info">
+                                        <input type="checkbox" name="service" value="Suspension Setup" data-price="1500.00">
+                                        <span>Suspension Setup</span>
+                                        <span class="sc-price">₱1,500.00</span>
+                                    </div>
+                                </label>
+                                <label class="sc-service-item">
+                                    <div class="sc-service-info">
+                                        <input type="checkbox" name="service" value="Custom Paint Job" data-price="4500.00">
+                                        <span>Custom Paint Job</span>
+                                        <span class="sc-price">₱4,500.00</span>
+                                    </div>
+                                </label>
+                                <label class="sc-service-item">
+                                    <div class="sc-service-info">
+                                        <input type="checkbox" name="service" value="Performance Exhaust Install" data-price="2200.00">
+                                        <span>Performance Exhaust Install</span>
+                                        <span class="sc-price">₱2,200.00</span>
+                                    </div>
+                                </label>
+                                <label class="sc-service-item">
+                                    <div class="sc-service-info">
+                                        <input type="checkbox" name="service" value="Chain & Sprocket Kit" data-price="950.00">
+                                        <span>Chain & Sprocket Kit</span>
+                                        <span class="sc-price">₱950.00</span>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- SELECT MECHANIC OPTION -->
+                        <div class="sc-form-group">
+                            <label>SELECT MECHANIC</label>
+                            <select id="sc-mechanic-select" class="sc-input-field">
+                                <option value="Unassigned">-- Select Mechanic (Optional) --</option>
+                                <option value="Ramon Santos">Ramon Santos (Senior Technician)</option>
+                                <option value="Jake Reyes">Jake Reyes (Engine Specialist)</option>
+                            </select>
+                        </div>
+
+                        <!-- DATE & TIME -->
+                        <div class="sc-form-row">
+                            <div class="sc-form-group half">
+                                <label>DATE</label>
+                                <input type="date" id="sc-date-input" class="sc-input-field">
+                            </div>
+                            <div class="sc-form-group half">
+                                <label>TIME</label>
+                                <select id="sc-time-input" class="sc-input-field">
+                                    <option value="09:00 AM">09:00 AM</option>
+                                    <option value="11:00 AM">11:00 AM</option>
+                                    <option value="02:00 PM">02:00 PM</option>
+                                    <option value="04:00 PM">04:00 PM</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- NOTES -->
+                        <div class="sc-form-group">
+                            <label>NOTES</label>
+                            <textarea id="sc-notes-input" class="sc-textarea-field" placeholder="Any special requests or concerns..."></textarea>
+                        </div>
+
+                        <!-- SUBMIT BUTTON -->
+                        <button type="button" id="sc-submit-appointment" class="sc-submit-btn">Book Appointment</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MODAL: ADD MOTORBIKE -->
+            <div id="sc-bike-modal-overlay" class="sc-modal-overlay" style="display: none;">
+                <div class="sc-modal-card" style="max-width: 400px;">
+                    <div class="sc-modal-header">
+                        <h2>Add Motorbike</h2>
+                        <button class="sc-modal-close" id="sc-close-bike-modal-btn">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+                        </button>
+                    </div>
+                    <div class="sc-modal-body">
+                        <div class="sc-form-group">
+                            <label>MOTORCYCLE MODEL / YEAR</label>
+                            <input type="text" id="sc-new-bike-model" class="sc-input-field" placeholder="e.g. 2023 Honda Click 125i">
+                        </div>
+                        <div class="sc-form-group">
+                            <label>PLATE NUMBER / DETAILS</label>
+                            <input type="text" id="sc-new-bike-plate" class="sc-input-field" placeholder="e.g. ZZZ 9999 · Matte Grey">
+                        </div>
+                        <button type="button" id="sc-save-bike-btn" class="sc-submit-btn">Save Motorbike</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MY MOTORCYCLES PAGE VIEW -->
+        <div id="motorcycles-page-view" class="mc-main-container" style="display: none;">
+            
+            <!-- TOP CONTROLS / ADD BIKE BUTTON -->
+            <div class="mc-header-bar">
+                <div class="mc-section-title">Registered Motorcycles</div>
+                <button class="mc-add-bike-btn" id="open-register-bike-modal">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-plus"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>
+                    Add Bike
+                </button>
+            </div>
+
+            <!-- LAYOUT WRAPPER (LIST + DETAILS PANEL) -->
+            <div class="mc-content-layout">
+                
+                <!-- MOTORCYCLE LIST CARDS -->
+                <div class="mc-list-column" id="motorcycles-list">
+                    <!-- Bike Card 1 -->
+                    <div class="mc-bike-card" data-bike-id="1">
+                        <div class="mc-bike-info">
+                            <div class="mc-bike-title">2022 Honda PCX 160</div>
+                            <div class="mc-bike-sub">Pearl White · ABC 1234</div>
+                            <div class="mc-tags-row">
+                                <span class="mc-tag">Aftermarket exhaust</span>
+                                <span class="mc-tag">LED headlights</span>
+                            </div>
+                        </div>
+                        <div class="mc-bike-meta">
+                            <div class="mc-odometer-val">12,450 km</div>
+                            <div class="mc-odometer-label">odometer</div>
+                        </div>
+                    </div>
+
+                    <!-- Bike Card 2 -->
+                    <div class="mc-bike-card" data-bike-id="2">
+                        <div class="mc-bike-info">
+                            <div class="mc-bike-title">2021 Yamaha NMAX 155</div>
+                            <div class="mc-bike-sub">Matte Black · XYZ 5678</div>
+                        </div>
+                        <div class="mc-bike-meta">
+                            <div class="mc-odometer-val">28,300 km</div>
+                            <div class="mc-odometer-label">odometer</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BIKE DETAILS & CUSTOMIZATIONS PANEL (HIDDEN BY DEFAULT) -->
+                <div class="mc-details-panel" id="bike-details-panel" style="display: none;">
+                    <div class="mc-details-header">
+                        <h2>Bike Details & Customizations</h2>
+                        <button class="mc-close-panel-btn" id="close-bike-details">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+                        </button>
+                    </div>
+
+                    <div class="mc-details-body">
+                        <!-- Spec Grid -->
+                        <div class="mc-specs-grid">
+                            <div class="mc-spec-box"><span class="spec-lbl">MAKE</span><span id="detail-make" class="spec-val">Honda</span></div>
+                            <div class="mc-spec-box"><span class="spec-lbl">MODEL</span><span id="detail-model" class="spec-val">PCX 160</span></div>
+                            <div class="mc-spec-box"><span class="spec-lbl">YEAR</span><span id="detail-year" class="spec-val">2022</span></div>
+                            <div class="mc-spec-box"><span class="spec-lbl">COLOR</span><span id="detail-color" class="spec-val">Pearl White</span></div>
+                            <div class="mc-spec-box"><span class="spec-lbl">PLATE NO.</span><span id="detail-plate" class="spec-val">ABC 1234</span></div>
+                            <div class="mc-spec-box"><span class="spec-lbl">MILEAGE</span><span id="detail-mileage" class="spec-val">12,450 km</span></div>
+                        </div>
+
+                        <!-- Existing Customizations -->
+                        <div class="mc-section-block">
+                            <label>Existing Customizations</label>
+                            <div class="mc-tags-row" id="detail-customizations">
+                                <span class="mc-tag">Aftermarket exhaust</span>
+                                <span class="mc-tag">LED headlights</span>
+                            </div>
+                        </div>
+
+                        <!-- Available Customization Services -->
+                        <div class="mc-section-block">
+                            <label>Available Customization Services</label>
+                            <div class="mc-services-list">
+                                <div class="mc-service-row">
+                                    <div>
+                                        <div class="svc-name">Custom Paint Job</div>
+                                        <div class="svc-desc">Full custom paint with clear coat</div>
+                                    </div>
+                                    <div class="svc-price">₱4,500.00</div>
+                                </div>
+                                <div class="mc-service-row">
+                                    <div>
+                                        <div class="svc-name">Performance Exhaust Install</div>
+                                        <div class="svc-desc">Aftermarket exhaust system fitting</div>
+                                    </div>
+                                    <div class="svc-price">₱2,200.00</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- MODAL: REGISTER MOTORCYCLE -->
+            <div id="register-bike-modal" class="mc-modal-overlay" style="display: none;">
+                <div class="mc-modal-card">
+                    <div class="mc-modal-header">
+                        <h2>Register Motorcycle</h2>
+                        <button class="mc-modal-close-btn" id="close-register-modal">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+                        </button>
+                    </div>
+                    <div class="mc-modal-body">
+                        <p>To register a new motorcycle, please visit the shop in person with your OR/CR, or contact us at <span class="mc-highlight-email">motofix@shop.com</span> for remote registration assistance.</p>
+                        <button type="button" class="mc-got-it-btn" id="got-it-bike-modal">Got it</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- PARTS AND SHOP -->
+        <div id="parts-page-view" style="display: none;" class="parts-main-container">
+            <!-- Header -->
+            <div class="parts-header-bar">
+                <div>
+                    <div class="parts-section-title">Parts & Shop</div>
+                    <div class="parts-section-sub">Parts catalog and stock shop</div>
+                </div>
+            </div>
+
+            <!-- Controls Bar: Search & Category Chips (Wraps gracefully on smaller screens) -->
+            <div class="parts-controls-bar">
+                <div class="parts-search-box">
+                    <span class="parts-search-icon"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-search" aria-hidden="true" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--color-text-3);"><path d="m21 21-4.34-4.34"></path><circle cx="11" cy="11" r="8"></circle></svg></span>
+                    <input type="text" id="parts-search-input" class="parts-search-input" placeholder="Search parts, SKU...">
+                </div>
+                <div class="parts-filters-row" id="category-filters">
+                    <button class="parts-filter-chip active" data-category="All">All</button>
+                    <button class="parts-filter-chip" data-category="Fluids">Fluids</button>
+                    <button class="parts-filter-chip" data-category="Filters">Filters</button>
+                    <button class="parts-filter-chip" data-category="Ignition">Ignition</button>
+                    <button class="parts-filter-chip" data-category="Brakes">Brakes</button>
+                    <button class="parts-filter-chip" data-category="Drivetrain">Drivetrain</button>
+                    <button class="parts-filter-chip" data-category="Engine">Engine</button>
+                    <button class="parts-filter-chip" data-category="Electrical">Electrical</button>
+                </div>
+            </div>
+
+            <!-- Main Content Layout (Table + Slide-out Selection Panel) -->
+            <div class="parts-content-layout">
+                
+                <!-- Table Column -->
+                <div class="parts-table-column">
+                    <table class="parts-table">
+                        <thead>
+                            <tr>
+                                <th>Part Name</th>
+                                <th>SKU</th>
+                                <th>Brand</th>
+                                <th>Category</th>
+                                <th>Stock</th>
+                                <th>Unit Price</th>
+                                <th>Source</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="parts-table-body">
+                            <!-- Dynamic Rows Populated via JS -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Right Popup Panel (Parts Selection / Cart) -->
+                <div class="parts-details-panel" id="parts-details-panel">
+                    <div class="parts-panel-header">
+                        <h3>🛒 Parts Selection</h3>
+                        <button class="parts-panel-close" id="close-parts-panel">✕</button>
+                    </div>
+                    <div class="parts-panel-body" id="cart-items-container">
+                        <!-- Dynamically injected cart rows -->
+                    </div>
+                    <div class="parts-panel-footer">
+                        <div class="parts-subtotal-row">
+                            <span class="subtotal-label">Parts Subtotal</span>
+                            <span class="subtotal-val" id="cart-subtotal">₱0.00</span>
+                        </div>
+                        <p class="subtotal-note">Excludes customer-supplied parts</p>
+                        <button class="parts-submit-btn" id="add-to-appointment-btn">Add to Appointment</button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- TRANSACTIONS / INVOICES VIEW -->
+        <div id="transactions-view" class="view-section" style="display: none;">
+            <div class="transactions-container">
+                <div class="transactions-header">
+                    <h2>My Transactions & Invoices</h2>
+                    <p>Review your past bookings, selected parts, mechanics, and payment records.</p>
+                </div>
+
+                <div class="transactions-filters">
+                    <button class="filter-tab active" data-filter="all">All Transactions</button>
+                    <button class="filter-tab" data-filter="completed">Completed</button>
+                    <button class="filter-tab" data-filter="pending">Pending</button>
+                </div>
+
+                <div class="transactions-count" id="invoice-count-label">0 invoices total</div>
+
+                <div class="transactions-table-wrapper">
+                    <table class="transactions-table">
+                        <thead>
+                            <tr>
+                                <th>Invoice #</th>
+                                <th>Service / Package</th>
+                                <th>Mechanic</th>
+                                <th>Parts Added / Client Parts</th>
+                                <th>Total Amount</th>
+                                <th>Status</th>
+                                <th>Date</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="transactions-table-body">
+                            <!-- Dynamically populated via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+</html>
