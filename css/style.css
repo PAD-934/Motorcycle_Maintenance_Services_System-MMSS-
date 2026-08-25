@@ -83,7 +83,11 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
+  color: #fff;
+}
+.brand-icon svg {
+  width: 20px;
+  height: 20px;
 }
 .brand-name {
   font-family: var(--font-display);
