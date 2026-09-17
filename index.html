@@ -3,10 +3,224 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="refresh" content="0; url=login.html" />
-    <title>Redirecting to Login</title>
+    <link rel="stylesheet" href="/css/homepage.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <script src="/js/navigation.js" defer></script>
+    <title>MotoFix — Professional Motorcycle Services & Parts</title>
   </head>
   <body>
-    <p>Redirecting to <a href="login.html">login</a>...</p>
+
+    <!-- Header Navigation -->
+    <header>
+        <div class="logo_sub_parent">
+            <!-- SHOPS ICON -->
+            <div class="logo_icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-bike" aria-hidden="true"><circle cx="18.5" cy="17.5" r="3.5"></circle><circle cx="5.5" cy="17.5" r="3.5"></circle><circle cx="15" cy="5" r="1"></circle><path d="M12 17.5V14l-3-3 4-3 2 3h2"></path></svg>
+            </div>
+            <!-- SHOPS BUSINESS NAME -->
+            <div class="logo_title">
+                <div class="logo_name">MOTO<span style="color: rgb(249, 115, 22); font-family: Barlow Condensed, sans-serif;">FIX</span></div>
+                <div class="logo_type">SERVICES SYSTEM</div>
+            </div>
+        </div>
+
+        <!-- nav buttons -->
+        <div class="nav_parent">
+            <div class="nav_parent sub_nav_parent">
+                <a href="#services" class="link">Services</a>
+                <a href="#how_it_works" class="link">How it works</a>
+                <a href="#contacts" class="link">Contact Us</a>
+            </div>
+            <a href="login.html" class="nav-btn nav-signin-btn">Sign In / Get Started</a>
+        </div>
+    </header>
+
+    <!-- Paragraph "Hero" Section -->
+    <section class="hero">
+        <h1>Your Ultimate Ride, Peak Performance</h1>
+        <p>Welcome to <strong>MotoFix</strong> your premier digital destination for elite motorcycle maintenance, expert repair services, and high-grade performance parts. Whether you're fine-tuning a custom build or booking routine care, we keep your engine running at its absolute best.</p>
+        <a href="login.html" class="nav-btn">Access Your Portal</a>
+    </section>
+
+    <!-- Services / Features Overview -->
+    <section class="features">
+        <h2>What We Offer</h2>
+        <div class="card-grid">
+            <div class="card">
+                <h3>Expert Maintenance</h3>
+                <p>Schedule precise tune-ups, diagnostic checks, and comprehensive servicing handled by seasoned mechanics.</p>
+            </div>
+            <div class="card">
+                <h3>Quality Parts Catalog</h3>
+                <p>Browse a specialized inventory of aftermarket components, custom gear, and essential replacement parts.</p>
+            </div>
+            <div class="card">
+                <h3>Seamless Booking</h3>
+                <p>Manage appointments, track repair statuses, and handle transactions all through a dedicated customer dashboard.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contributors Section -->
+    <section class="contributors">
+        <h2>Project Contributors</h2>
+        <p style="color: #bbb; margin-bottom: 30px; font-size: 14px;">MotoFix is engineered with dedication and precision by our core development team.</p>
+        <div class="card-grid">
+            <div class="card">
+                <h3>John Dwyne C. Vocal&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;Paul Allen Diaz</h3>
+                <p>Lead Developer & System Architect</p>
+            </div>
+            <div class="card">
+                <h3>Development Team</h3>
+                <p>UI/UX Design, Routing, & Backend Logic</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Types of Services Section -->
+    <section class="services" id="services">
+        <h2>Types of Services</h2>
+        <p style="color: #bbb; margin-bottom: 30px; font-size: 14px;">MotoFix is a digital-first motorcycle shop management system engineered to streamline vehicle maintenance, parts retail, and shop operations.</p>
+        <div class="card-grid">
+            <div class="card">
+                <h3>Engine Overhaul</h3>
+                <p>Complete cylinder head and block restoration, Includes deep-cleaning components, replacing all standard gaskets, valves, piston rings, and executing blueprint clearance checks.</p>
+            </div>
+
+            <div class="card">
+                <h3>Electrical Diagnostics</h3>
+                <p>Full-spectrum mapping of wire harness resistance, stator output verification, battery load profiling, ECU diagnostic readouts, and complete sensor-by-sensor fault tracing.</p>
+            </div>
+
+            <div class="card">
+                <h3>Suspension Calibration</h3>
+                <p>Complete front fork and rear shock disassembly includes cartridge cleaning, seals and dust wipers renewal, fresh fluid flush tuned to rider weight, and sag setting.</p>
+            </div>
+
+            <div class="card">
+                <h3>Performance Exhaust</h3>
+                <p>Integration of aftermarket high-flow header pipes. and slip-on exhaust mufflers. Includes oxygen sensor relocation, exhaust flange sealing, and gas leakage integrity testing.</p>
+            </div>
+
+            <div class="card">
+                <h3>Chain & Drive Kit</h3>
+                <p>Comprehensive driveline renewal. Features dual sprocket extraction (hardened), high-tensile O-ring chain installation, precise alignment setup, and laser slack tensioning.</p>
+            </div>
+
+            <div class="card">
+                <h3>Fuel Injector Tuning</h3>
+                <p>Ultrasonic cleaning of fuel injector nozzles, precise flow-bench pattern verification, fuel rail pressure testing, and custom map calibration on the throttle body assembly.</p>
+            </div>
+
+            <div class="card">
+                <h3>Basic Oil Change</h3>
+                <p>Replace the engine oil and filter to protect internal parts and keep the motorcycle running smoothly. Service takes about 45 minutes.</p>
+            </div>
+
+            <div class="card">
+                <h3>Full Tune-Up</h3>
+                <p>Replace spark plugs, Inspect the air filter, clean the carburetor, and adjust the chain for smoother performance. Service takes about two hours.</p>
+            </div>
+
+            <div class="card">
+                <h3>Brake System Service</h3>
+                <p>Service the brake pads, flush the fluid, and inspect the rotors to restore reliable stopping power. Service takes about 1.5 hours.</p>
+            </div>
+
+            <div class="card">
+                <h3>Tire Replacement</h3>
+                <p>Mount and balance a front or rear tire to improve handling and rider safety. Service takes about one hour</p>
+            </div>
+        </div>
+        <h2>Parts Service</h2>
+        <p>MotoFix bridges the gap between digital convenience and hands-on mechanical service through an on-site parts workflow:</p>
+        <div class="card-grid">
+            <div class="card">
+                <h3>Online Parts Browsing</h3>
+                <p>Customers can check the shop's inventory online before visiting, allowing them to see if specific replacement parts or custom components are currently in stock.</p>
+            </div>
+
+            <div class="card">
+                <h3>Service Appointment Bundling</h3>
+                <p>When booking a maintenance slot, customers can attach desired parts requests to their appointment so the shop prepares them ahead of their visit.</p>
+            </div>
+
+            <div class="card">
+                <h3>In-Shop Diagnosis & Add-ons</h3>
+                <p>If a mechanic identifies a broken or worn-out part during the physical inspection, they can log the required replacement part directly into the active repair ticket.</p>
+            </div>
+
+            <div class="card">
+                <h3>In-Person Installation & Settlement</h3>
+                <p>Because MotoFix operates as a physical service center, there is no home delivery. All parts are claimed, professionally installed by mechanics, and settled directly at the shop counter.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section class="how_it_works" id="how_it_works">
+        <h2>How it Works</h2>
+        <div class="card-grid">
+            <div class="card">
+                <div class="card_sub_parent">
+                    <p class="card_step_font">// STEP 01</p>
+                    <svg fill="#ff6600" viewBox="0 0 32 32" version="1.1" xmlns="http://www.w3.org/2000/svg" stroke="#ff6600"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path d="M31.449 6.748c-0.337-0.155-0.737-0.096-1.017 0.152l-5.041 4.528-4.551-4.669 4.506-5.204c0.245-0.283 0.305-0.673 0.152-1.016s-0.489-0.553-0.86-0.553h-0.271c-2.785 0-7.593 0.239-9.739 2.417l-0.433 0.43c-2.29 2.337-2.697 6.168-1.49 9.081l-11.54 11.778c-1.556 1.578-1.556 4.135 0 5.713l1.409 1.428c0.778 0.788 1.798 1.183 2.818 1.183s2.040-0.395 2.817-1.183l11.71-11.804c1.107 0.599 2.625 0.989 3.899 0.989 2.043 0 3.98-0.824 5.454-2.32l0.427-0.433c2.331-2.364 2.296-7.416 2.306-9.638 0.001-0.378-0.216-0.721-0.554-0.878zM28.302 15.906l-0.371 0.433c-1.117 1.134-2.578 1.677-4.114 1.677-0.76 0-1.784-0.143-2.476-0.431-0.625-0.259-1.206-0.634-1.725-1.107l-12.818 12.925c-0.376 0.382-0.876 0.592-1.408 0.592s-1.032-0.21-1.409-0.592l-1.408-1.427c-0.777-0.788-0.777-2.070-0.001-2.857l12.524-12.777c-0.42-0.611-0.706-1.278-0.877-1.968h-0.001c-0.482-1.95-0.201-4.644 1.313-6.189l0.431-0.435c1.298-1.317 4.67-1.707 6.537-1.822l-3.668 4.236c-0.328 0.379-0.311 0.95 0.038 1.309l5.798 5.948c0.352 0.362 0.92 0.383 1.299 0.047l4.082-3.676c-0.122 1.98-0.506 4.856-1.748 6.115z"></path> </g></svg>
+                </div>
+                <h3>SELECT YOUR SERVICE</h3>
+                <p>Choose routine maintenance, order custom parts, or schedule diagnostic checks directly through the portal.</p>
+            </div>
+            
+            <div class="card">
+                <div class="card_sub_parent">
+                    <p class="card_step_font">// STEP 02</p>
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="#000000"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path d="M10 4H6C4.89543 4 4 4.89543 4 6V14C4 15.1046 4.89543 16 6 16H18C19.1046 16 20 15.1046 20 14V13" stroke="#ff6600" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path> <path d="M17.4641 5C18.2043 5 18.8506 5.40213 19.1964 5.99984M17.4641 5C16.7239 5 16.0776 5.40212 15.7318 5.99983M17.4641 5V3M17.4641 11V8.96675M20.9282 5L19.1964 5.99984M14 9L15.7318 8.00017M20.9282 9L19.1965 8.0002M14 5L15.7318 5.99983M15.7318 8.00017C15.5615 7.70596 15.4641 7.36436 15.4641 7C15.4641 6.63564 15.5615 6.29404 15.7318 5.99983M15.7318 8.00017C16.1255 8.68075 16.7977 8.98015 17.4641 8.96675M17.4641 8.96675C18.1521 8.95291 18.8338 8.60565 19.1965 8.0002M19.1965 8.0002C19.3645 7.71972 19.4641 7.38383 19.4641 7C19.4641 6.63565 19.3667 6.29405 19.1964 5.99984" stroke="#ff6600" stroke-width="2" stroke-linecap="round"></path> <path d="M12 16V20" stroke="#ff6600" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path> <path d="M8 20H16" stroke="#ff6600" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path> </g></svg>
+                </div>
+                <h3>CONFIRM & DIAGNOSE</h3>
+                <p>Bring your bike in or request pickup. Our seasoned mechanics run a full diagnostic before any wrench turns.</p>
+            </div>
+
+            <div class="card">
+                <div class="card_sub_parent">
+                    <p class="card_step_font">// STEP 03</p>
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fill-rule="evenodd" clip-rule="evenodd" d="M5 1C4.44772 1 4 1.44772 4 2V22C4 22.5523 4.44772 23 5 23C5.55228 23 6 22.5523 6 22V15.693L18.8542 10.8727C20.5846 10.2238 20.5846 7.77627 18.8542 7.12739L6 2.30705V2C6 1.44772 5.55228 1 5 1ZM6 4.44305V13.557L17.6526 9.18732C17.8256 9.12243 17.8256 8.87767 17.6526 8.81278L6 4.44305Z" fill="#ff6600"></path> </g></svg>
+                </div>
+                <h3>RIDE OUT</h3>
+                <p>We complete the work, run final checks, and get you back on the road - fast, clean, no surprises.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contacts section -->
+    
+    <section class="contacts" id="contacts">
+        <h2>Contact Us</h2>
+        <div class="card-grid">
+            <div class="card">
+                <h3>GET IN TOUCH</h3>
+                <p>Have questions about a custom build, parts availability, or booking a service slot? Reach out directly.</p>
+                <h3>LOCATION</h3>
+                <p>100 Performance Way, Suite B</p>
+                <h3>SOCIAL MEDIA LINKS</h3>
+                <a class="FB_links" href="https://www.facebook.com/johndwyne.vocal.9/">FB - JOHN DWYNE C. VOCAL</a><br> 
+                <a class="FB_links" href="https://www.facebook.com/reberto11">FB - ROBERT TARROZA</a><br>
+                <a class="FB_links" href="https://www.facebook.com/kerby.lacerna.313">FB - KERBY LACERNA</a><br>
+                <a href="https://www.facebook.com/rusty.mahait.02" class="FB_links">FB - RUSTY MAHAIT</a><br>
+                <a href="https://www.facebook.com/paulallen.diaz" class="FB_links">FB - PAUL ALLEN DIAZ</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <p>&copy; 2026 MotoFix. All rights reserved.</p>
+    </footer>
+
+    <button id="backToTopBtn" class="back-to-top" aria-label="Back to top">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ff6600" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-up">
+            <path d="m18 15-6-6-6 6"/>
+        </svg>
+    </button>
   </body>
 </html>

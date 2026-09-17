@@ -38,6 +38,22 @@
   padding: 0;
 }
 
+/* ===================== CUSTOM SCROLLBAR ===================== */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--panel-border);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-faint);
+}
+
 body {
   background: var(--bg);
   color: var(--text);
@@ -64,9 +80,35 @@ body {
   height: 100vh;
   overflow-y: auto;
   transition: margin-left 0.25s ease;
+  z-index: 40;
 }
+
 .sidebar.collapsed {
   margin-left: -268px;
+}
+
+/* ===================== SIDEBAR BACKDROP OVERLAY ===================== */
+.sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5); /* Clean, subtle dark tint for desktop */
+  z-index: 35;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.25s ease, visibility 0.25s ease;
+}
+
+/* Add blur for mobile screens */
+@media (max-width: 860px) {
+  .sidebar-backdrop {
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(3px);
+  }
+}
+
+.sidebar-backdrop.active {
+  opacity: 1;
+  visibility: visible;
 }
 
 .brand {
@@ -366,7 +408,7 @@ body {
 /* ===================== STAT CARDS ===================== */
 .stat-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 18px;
   margin-bottom: 22px;
 }
@@ -763,7 +805,7 @@ body {
   font-size: 13.5px;
   font-weight: 700;
   padding: 11px 18px;
-  border-radius: 10px;
+  border-radius: 5px;
   cursor: pointer;
   white-space: nowrap;
 }
@@ -1052,6 +1094,17 @@ body {
   display: block;
 }
 
+/* ====================== layout for the master-admin sections =====================*/
+
+.master_mechanic_admin_parent {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  gap: 40px;
+  padding: 0px 20px 0px 20px;
+}
+
 /* ===================== MODAL ===================== */
 .modal-backdrop {
   position: fixed;
@@ -1112,6 +1165,21 @@ body {
   border-radius: 8px;
   font-family: var(--font-body);
   font-size: 13px;
+}
+
+.btn-secondary{
+  background: rgba(255, 255, 255, 0.08); 
+  color: #ffffff; 
+  border: 1px solid rgba(255, 255, 255, 0.15); 
+  padding: 8px 16px; 
+  border-radius: 6px; 
+  font-size: 13px; 
+  font-weight: 500; 
+  cursor: pointer; 
+  display: inline-flex; 
+  align-items: center; 
+  gap: 8px; 
+  transition: background 0.2s;
 }
 
 /* ===================== RESPONSIVE ===================== */

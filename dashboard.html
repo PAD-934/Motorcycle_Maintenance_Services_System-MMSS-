@@ -9,10 +9,15 @@
       href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
+    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css" />
   </head>
   <body>
     <div class="app">
+
+      <!-- ============ SIDEBAR BACKDROP DIM ============ -->
+      <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
       <!-- ============ SIDEBAR ============ -->
       <aside class="sidebar" id="sidebar">
         <div class="brand">
@@ -64,6 +69,26 @@
           </button>
           <button class="nav-item" data-page="users">
             <span class="nav-ico">👥</span> User Management
+          </button>
+
+          <!-- =========================================================================
+               DEVELOPER NOTE FOR INCOMING CODER: ADMIN ROLE SPLIT & DASHBOARD CONNECTIONS
+               1. Admin roles are now split into: `admin-store` and `master-admin`.
+               2. Master Admin shares the standard admin layout/dashboard but unlocks this 
+                  hidden control button in the sidebar to CRUD user accounts/employees.
+               3. The user management views visible to admin-store are merged into the 
+                  master-admin side, keeping the preferred high-quality design layout.
+               4. Dashboard connections between Admin, Mechanic, and Customer dashboards 
+                  should route through session storage user roles upon sign-in.
+                5. The signup page is not dynamic yet. You need to make it dynamic so that it has
+                a function otherwise its not complete. Also connect the signup to the login and
+                local storage.
+                6. I know there are some functions that are missing so while working keep observing
+                and if you think that is wrong you can change it to fix it.
+               ========================================================================= -->
+          <div class="nav-label" id="masterAdminLabel" style="display: none; margin-top: 12px;">Master Control</div>
+          <button id="masterPortalNavItem" class="nav-item" data-page="master-mechanics" style="display: none; color: var(--orange); border: 1px dashed var(--orange-dim); background: var(--orange-soft);">
+            <span class="nav-ico">🛡</span> Employee Manager
           </button>
         </nav>
 
@@ -253,6 +278,9 @@
                 />
               </div>
               <div class="filter-pills" id="svcFilters"></div>
+
+              <!-- add new service button -->
+              <button class="btn-primary" id="openAddServiceBtn">+ Add New Service</button>
             </div>
 
             <div class="card-grid" id="servicesGrid"></div>
@@ -260,7 +288,24 @@
 
           <!-- ================= CUSTOMIZATION ================= -->
           <section class="page" id="page-customization">
-            <h3 class="section-heading">Registered Motorcycles</h3>
+            <!-- Toolbar for filtering, searching, and adding new custom builds -->
+            <div class="toolbar">
+              <div class="search-box">
+                <span>🔍</span>
+                <input
+                  type="text"
+                  id="customSearch"
+                  placeholder="Search bike profiles, plates, mods..."
+                />
+              </div>
+              <div class="filter-pills" id="customFilters">
+                <button class="pill active" data-filter="All">All Bikes</button>
+                <button class="pill" data-filter="Customized">Customized</button>
+                <button class="pill" data-filter="Stock">Stock Setup</button>
+              </div>
+              <button class="btn-primary" id="openAddCustomModalBtn">+ Add Custom Build</button>
+            </div>
+
             <div class="stack-list" id="bikeList"></div>
           </section>
 
@@ -276,6 +321,9 @@
                 />
               </div>
               <div class="filter-pills" id="invFilters"></div>
+
+              <!-- add new parts button -->
+              <button class="btn-primary" id="openAddPartBtn">+ Add New Part</button>
             </div>
 
             <div class="panel table-panel">
@@ -295,9 +343,6 @@
             <div class="tab-panel active" id="tab-invoices">
               <div class="toolbar toolbar-simple">
                 <span class="muted" id="invoiceCount">1 invoice total</span>
-                <button class="btn-primary" id="newInvoiceBtn">
-                  + New Invoice
-                </button>
               </div>
               <div class="panel table-panel">
                 <div class="table-scroll">
@@ -307,35 +352,55 @@
             </div>
 
             <div class="tab-panel" id="tab-revenue">
+              <div class="toolbar toolbar-simple" style="margin-bottom: 16px;">
+                <span class="muted">Download Complete Revenue Analytics & Tax Records</span>
+                <div style="display: flex; gap: 8px;">
+                  <button class="btn-primary" onclick="downloadRevenueReport('pdf')" style="background: #ef4444; font-size: 13px; padding: 6px 14px;">📄 Download PDF</button>
+                  <button class="btn-primary" onclick="downloadRevenueReport('docx')" style="background: #3b82f6; font-size: 13px; padding: 6px 14px;">📝 Download DOCX</button>
+                </div>
+              </div>
+
+              <!-- Stat Cards with added IDs for JavaScript binding -->
               <div class="stat-grid">
                 <div class="stat-card">
                   <div class="stat-top">
-                    <span class="stat-title">Total Revenue</span
-                    ><span class="stat-icon icon-orange">$</span>
+                    <span class="stat-title">Total Revenue</span>
+                    <span class="stat-icon icon-orange">₱</span>
                   </div>
-                  <div class="stat-value">₱12,891.20</div>
+                  <div class="stat-value" id="rev-total-val">₱0.00</div>
                   <div class="stat-desc">All time, paid invoices</div>
                 </div>
                 <div class="stat-card">
                   <div class="stat-top">
-                    <span class="stat-title">VAT Collected</span
-                    ><span class="stat-icon icon-blue">%</span>
+                    <span class="stat-title">VAT Collected</span>
+                    <span class="stat-icon icon-blue">%</span>
                   </div>
-                  <div class="stat-value">₱1,381.20</div>
+                  <div class="stat-value" id="rev-vat-val">₱0.00</div>
                   <div class="stat-desc">12% VAT on paid invoices</div>
                 </div>
                 <div class="stat-card">
                   <div class="stat-top">
-                    <span class="stat-title">Avg. Invoice Value</span
-                    ><span class="stat-icon icon-green">Σ</span>
+                    <span class="stat-title">Avg. Invoice Value</span>
+                    <span class="stat-icon icon-green">Σ</span>
                   </div>
-                  <div class="stat-value">₱12,891.20</div>
-                  <div class="stat-desc">Based on 1 invoice</div>
+                  <div class="stat-value" id="rev-aov-val">₱0.00</div>
+                  <div class="stat-desc" id="rev-aov-desc">Based on 0 invoices</div>
                 </div>
               </div>
-              <div class="panel">
-                <div class="panel-head"><h3>Monthly Revenue</h3></div>
-                <div class="bar-chart" id="revenueChart2"></div>
+
+              <!-- Side-by-Side Panels for Chart and Category Breakdown -->
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px;">
+                <div class="panel">
+                  <div class="panel-head"><h3>Monthly Revenue</h3></div>
+                  <div class="bar-chart" id="revenueChart2"></div>
+                </div>
+                <div class="panel">
+                  <div class="panel-head"><h3>Service Category Breakdown</h3></div>
+                  <div id="category-breakdown-container" style="padding: 16px;">
+                    <!-- Dynamically populated via script_5.js -->
+                    <span class="muted">No service breakdown data available.</span>
+                  </div>
+                </div>
               </div>
             </div>
           </section>
@@ -344,6 +409,9 @@
           <section class="page" id="page-jobs">
             <div class="stack-list" id="jobsList"></div>
           </section>
+
+          <!-- ETONG USER MANAGEMENT NATO MALILIPAT TO DOON SA MASTER MECHANIC ACCOUNT MANAGER KINEME SA BABA KASI IISA LANG SILA -->
+          <!-- SECURITY DIN TO PARA YUNG HEAD ADMIN OR MASTER ADMIN LANG ANG MAY KAKAYANAN MAG MANAGE NG ACCOUNTS GETS?  -->
 
           <!-- ================= USER MANAGEMENT ================= -->
           <section class="page" id="page-users">
@@ -358,6 +426,27 @@
             </div>
             <div class="card-grid users-grid" id="usersGrid"></div>
           </section>
+
+          <div class="master_mechanic_admin_parent">
+            <!-- ================= MASTER MECHANIC ACCOUNT MANAGER ================= -->
+            <section class="page" id="page-master-mechanics">
+              <div class="toolbar toolbar-simple">
+                <div>
+                  <h3 class="section-heading" style="margin-bottom: 2px;">Master Employee Management</h3>
+                  <p class="muted">Add, view, and manage authorized shop mechanics and admins credentials.</p>
+                </div>
+                <button class="btn-primary" id="openAddMechanicModalBtn">+ Add Employee Account</button>
+              </div>
+  
+              <div class="panel table-panel">
+                <div class="table-scroll">
+                  <table class="data-table" id="masterMechanicsTable">
+                    <!-- Will be populated dynamically via JavaScript -->
+                  </table>
+                </div>
+              </div>
+            </section>
+          </div>
         </main>
       </div>
     </div>
@@ -373,8 +462,7 @@
       </div>
     </div>
 
-    <!--Testing Comment-->
-
     <script src="js/script.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   </body>
 </html>

@@ -71,6 +71,11 @@ body {
 }
 
 /* ===== Brand ===== */
+.brand_link_to_homepage {
+  text-decoration: none;
+  color: inherit;
+}
+
 .brand-block {
   display: flex;
   flex-direction: column;

@@ -1,7 +1,5 @@
 /* =========================================================
    MOTOFIX LOGIN — client-side form handling
-   Swap the fake `authenticate()` call for a real API request
-   (fetch to your backend) whenever you're ready to connect it.
 ========================================================= */
 
 const $ = (sel) => document.querySelector(sel);
@@ -28,21 +26,6 @@ $("#togglePw").addEventListener("click", () => {
   const isHidden = passwordInput.type === "password";
   passwordInput.type = isHidden ? "text" : "password";
   $("#togglePw").textContent = isHidden ? "🙈" : "👁";
-});
-
-/* ---------- Quick demo login buttons ---------- */
-document.querySelectorAll(".demo-btn").forEach((btn) => {
-  btn.addEventListener("click", () => {
-    emailInput.value = btn.dataset.email;
-    passwordInput.value = btn.dataset.password;
-    clearErrors();
-    showToast(
-      `Filled demo credentials for ${capitalize(btn.dataset.role)}`,
-      "success",
-    );
-    // Auto-submit the demo login:
-    handleLogin(btn.dataset.role);
-  });
 });
 
 /* ---------- Validation ---------- */
@@ -82,24 +65,43 @@ function validate() {
   return valid;
 }
 
-/* ---------- Fake authenticate (replace with real API call) ---------- */
+/* ==========================================================================
+   TODO: CHANGE LATER FOR DYNAMIC FUNCTION
+   When connecting to your database, replace this temporary mock function 
+   with a real fetch() API call to your backend endpoint (e.g., /api/login).
+   
+   Example backend integration structure:
+   --------------------------------------------------------------------------
+   return fetch("/api/login", {
+     method: "POST",
+     headers: { "Content-Type": "application/json" },
+     body: JSON.stringify({ email, password })
+   })
+   .then(res => res.json())
+   .then(data => ({ ok: data.success, role: data.role }))
+   .catch(() => ({ ok: false, role: null }));
+   --------------------------------------------------------------------------
+========================================================================== */
 function authenticate(email, password) {
-  // TODO: replace with a real request, e.g.
-  // return fetch("/api/login", { method:"POST", body: JSON.stringify({email,password}) })
-  //   .then(res => res.json());
   return new Promise((resolve) => {
     setTimeout(() => {
+
+      // ANDITO YUNG MGA ACCOUNTS PARA MAKAPASOK SA MGA UI
+
+      // Hardcoded accounts for design review (CHANGE LATER FOR DYNAMIC FUNCTION)
       const knownUsers = {
-        "admin@motofix.com": "admin",
-        "mechanic1@motofix.com": "mechanic",
-        "mechanic2@motofix.com": "mechanic",
-        "jose@email.com": "customer",
-        "miguel@email.com": "customer",
-        "ana@email.com": "customer",
+        "master@motofix.com": "master_admin", // New Master Admin role
+        "admin@motofix.com": "admin",         // Regular Store Admin
+        "mechanic1@motofix.com": "mechanic",    // Mechanic
+        "jose@email.com": "customer"          // Customer
       };
+      
       const role = knownUsers[email.toLowerCase()] || null;
-      resolve({ ok: !!role, role });
-    }, 700);
+      // Simple mock password check for visual testing
+      const passwordValid = password.length >= 6; 
+
+      resolve({ ok: !!role && passwordValid, role });
+    }, 600);
   });
 }
 
@@ -107,7 +109,7 @@ function capitalize(s) {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-async function handleLogin(forcedRole) {
+async function handleLogin() {
   if (!validate()) return;
 
   signInBtn.disabled = true;
@@ -120,39 +122,28 @@ async function handleLogin(forcedRole) {
   signInBtn.disabled = false;
   signInBtn.textContent = "Sign In";
 
-  const role = forcedRole || result.role;
-
-  // Nabago to eto ung pinalagay sakin para maka connect ung customer UI sa login mo
-  // Ung connection ng dashboard ng admin papunta sa login/signup napalitan napunta sakin
-  // ikaw na bahala mag ayos eto lang namang if(result.ok) ung napalitan e. YOUR TURN
-
-  if (result.ok || forcedRole) {
-    // Save login state to localStorage
+  if (result.ok) {
+    // Save login state & role to localStorage for dashboard permission checks
     localStorage.setItem("isLoggedIn", "true");
     localStorage.setItem("userEmail", email);
-    localStorage.setItem("userRole", role);
+    localStorage.setItem("userRole", result.role);
 
-    if (role === "customer") {
-      window.location.href = "CUSTOMER UI/HTML/Dashboard_Customer.html";
-      return;
-    }
+    showToast(`Welcome back! Redirecting to ${capitalize(result.role)} dashboard…`, "success");
 
-    if (role === "admin") {
-      window.location.href = "dashboard.html";
-      return;
-    }
+    // Dynamic routing based on database/verified role
+    setTimeout(() => {
+      if (result.role === "master_admin") {
+        window.location.href = "dashboard.html"; // Hidden secure portal
+        return;
+      } else if (result.role === "customer") {
+        window.location.href = "CUSTOMER UI/HTML/Dashboard_Customer.html";
+      } else if (result.role === "admin") {
+        window.location.href = "dashboard.html";
+      } else if (result.role === "mechanic") {
+        window.location.href = "CUSTOMER UI/HTML/mechanic.html";
+      }
+    }, 800);
 
-    if (role === "mechanic") {
-      window.location.href = "CUSTOMER UI/HTML/mechanic.html";
-      return;
-    }
-
-    showToast(
-      `Welcome back! Redirecting to ${capitalize(role)} dashboard…`,
-      "success",
-    );
-    // TODO: redirect to the right dashboard once your pages exist, e.g.
-    // setTimeout(() => { window.location.href = `${role}-dashboard.html`; }, 900);
   } else {
     showToast("Invalid email or password.", "error");
     passwordInput.classList.add("invalid");
@@ -171,20 +162,13 @@ $("#forgotLink").addEventListener("click", (e) => {
   if (email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     showToast(`Password reset link sent to ${email}`, "success");
   } else {
-    showToast(
-      "Enter your email above first, then click Forgot Password.",
-      "error",
-    );
+    showToast("Enter your email above first, then click Forgot Password.", "error");
     emailInput.focus();
   }
-  // TODO: replace with real navigation, e.g.
-  // window.location.href = "forgot-password.html";
 });
 
-/* ---------- Sign up ---------- */
+/* ---------- Sign up redirection ---------- */
 $("#signupLink").addEventListener("click", (e) => {
   e.preventDefault();
-  // TODO: replace with real navigation, e.g.
-  // window.location.href = "signup.html";
-  showToast("Redirecting to Sign Up…", "success");
+  window.location.href = "signup.html";
 });

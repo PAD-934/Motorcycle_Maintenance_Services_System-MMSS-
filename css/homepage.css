@@ -1,0 +1,222 @@
+body {
+    margin: 0;
+    font-family: 'JetBrains Mono', monospace;
+    background-color: #121212;
+    color: #ffffff;
+    background-color: #121212;
+    background-image: radial-gradient(rgba(255, 102, 0, 0.200) 1px, transparent 1px);
+    background-size: 24px 24px; /* Creates a faint orange dot matrix pattern */
+}
+ h1, h2, h3, .logo {
+    font-family: 'Barlow Condensed', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 50px;
+    background-color: #1a1a1a;
+}
+.logo_sub_parent {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.logo_icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, rgb(249, 115, 22), rgb(251, 146, 60));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.logo_name {
+    font-family: "Barlow Condensed", sans-serif;
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: 1px;
+}
+
+.logo_type {
+    font-size: 10px;
+    color: #71717a;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.nav_parent {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-evenly;
+    gap: 15px;
+}
+
+.sub_nav_parent {
+    gap: 15px;
+    padding-right: 15px;
+    padding-bottom: 10px;
+    padding-top: 10px;
+    border-right-style: solid;
+    border-right-width: 1px;
+    border-right-color: #ff6600;
+}
+
+.link {
+    text-decoration: none;
+    color: #a5a5af;
+    font-size: 14px;
+    transition: color 0.3s;
+}
+.link:hover {
+    color: #ff6600;
+}
+
+.nav-signin-btn {
+    background-color: #1a1a1a !important;
+    font-family: "Barlow Condensed", sans-serif !important;
+    font-size: 18   px !important;
+    padding: 0px 0px !important;
+    transition: color 0.3s;
+}
+.nav-signin-btn:hover {
+    color: #ff6600;
+    transition: color 0.3s;
+}
+.nav-btn {
+    background-color: #ff6600;
+    color: white;
+    padding: 10px 20px;
+    text-decoration: none;
+    border-radius: 5px;
+    font-weight: bold;
+    font-family: 'JetBrains Mono', monospace;
+    transition: background 0.3s;
+}
+.nav-btn:hover {
+    background-color: #e55c00e1;
+}
+.hero {
+    text-align: center;
+    padding: 100px 20px;
+    background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('/images/hero-bg.png') no-repeat center center/cover;
+}
+.hero h1 {
+    font-size: 56px;
+    margin-bottom: 20px;
+    color: #ff6600;
+}
+.hero p {
+    font-size: 16px;
+    max-width: 700px;
+    margin: 0 auto 30px auto;
+    color: #cccccc;
+    line-height: 1.6;
+}
+.features, .contributors, .services, .how_it_works, .contacts {
+    padding: 60px 20px;
+    max-width: 1000px;
+    margin: 0 auto;
+    text-align: center;
+    border-bottom: solid #8a8989e1 1px;
+}
+.features h2, .contributors h2, .services h2, .how_it_works h2, .contacts h2 {
+    font-size: 36px;
+    margin-bottom: 40px;
+    border-bottom: 2px solid #333;
+    display: inline-block;
+    padding-bottom: 10px;
+    color: #ffffff;
+}
+.card-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+.card {
+    background-color: #1a1a1a;
+    padding: 30px;
+    border-radius: 8px;
+    border: 1px solid #333;
+    text-align: left;
+    flex: 1 1 300px;
+    box-shadow: 0 0 10px rgba(255, 102, 0, 0.644), 0 4px 20px rgba(0, 0, 0, 0.336);
+}
+.card_sub_parent {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+}
+.card h3 {
+    color: #ff6600;
+    margin-top: 0;
+    font-size: 22px;
+}
+.card p {
+    font-size: 14px;
+    color: #bbb;
+    line-height: 1.5;
+}
+.card_step_font {
+    color: #ff6600 !important;
+}
+.FB_links {
+    text-decoration: none;
+    color: #bbb;
+}
+svg {
+    height: 20px;
+    width: 20px;
+}
+footer {
+    text-align: center;
+    padding: 20px;
+    background-color: #1a1a1a;
+    color: #777;
+    font-size: 14px;
+    border-top: 1px solid #333;
+}
+
+/* Back to Top Button Styling */
+.back-to-top {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 45px;
+    height: 45px;
+    background-color: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5), 0 0 10px rgba(255, 102, 0, 0.2);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s, visibility 0.3s, background-color 0.3s, transform 0.3s;
+    z-index: 1000;
+}
+
+/* Show button when active class is added */
+.back-to-top.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+.back-to-top:hover {
+    background-color: #252528;
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.7), 0 0 15px rgba(255, 102, 0, 0.4);
+}
+
+.back-to-top svg {
+    width: 22px;
+    height: 22px;
+}
