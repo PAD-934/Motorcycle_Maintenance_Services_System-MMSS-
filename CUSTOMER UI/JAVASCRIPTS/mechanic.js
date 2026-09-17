@@ -7,12 +7,23 @@
   }
 
   /* ---------------- Data ---------------- */
-  const CURRENT_USER = {
-    name: "Ramon Santos",
-    email: "mechanic1@motofix.com",
-    role: "Mechanic",
-    initials: "RS",
+  const mechanicProfiles = {
+    "mechanic1@motofix.com": {
+      name: "Ramon Santos",
+      email: "mechanic1@motofix.com",
+      role: "Mechanic",
+      initials: "RS",
+    },
+    "mechanic2@motofix.com": {
+      name: "Jake Reyes",
+      email: "mechanic2@motofix.com",
+      role: "Mechanic",
+      initials: "JR",
+    },
   };
+  const CURRENT_USER =
+    mechanicProfiles[(localStorage.getItem("userEmail") || "").toLowerCase()] ||
+    mechanicProfiles["mechanic1@motofix.com"];
   const TODAY = "2026-07-22";
 
   const STATUS_ORDER = ["pending", "confirmed", "in_progress", "completed"];
@@ -73,6 +84,135 @@
         "Engine overhauled, new piston rings, gaskets replaced. Test ride confirmed fix.",
     },
   ];
+
+  function normalizeMechanicStatus(status) {
+    const value = (status || "Pending").toString();
+    const map = {
+      Pending: "pending",
+      Confirmed: "confirmed",
+      "In Progress": "in_progress",
+      "Work Finished (unpaid)": "completed",
+      "Complete transaction": "completed",
+      Cancelled: "cancelled",
+      cancelled: "cancelled",
+    };
+    return map[value] || value.toLowerCase().replace(/\s+/g, "_");
+  }
+
+  function syncJobsFromSharedAppointments() {
+    try {
+      const stored = JSON.parse(
+        localStorage.getItem("motofix_appointments") || "[]",
+      );
+      if (!Array.isArray(stored)) return;
+
+      jobs = stored
+        .filter((appointment) => appointment.mechanic === CURRENT_USER.name)
+        .map((appointment) => ({
+          id: appointment.id || "A1",
+          customer: appointment.customer || "Customer",
+          phone: appointment.phone || "N/A",
+          initials:
+            appointment.initials ||
+            (appointment.customer || "C")
+              .split(" ")
+              .map((part) => part[0])
+              .join("")
+              .slice(0, 2)
+              .toUpperCase(),
+          motorcycle:
+            appointment.bike || appointment.motorcycle || "Unknown Motorcycle",
+          plate: appointment.plate || null,
+          services: Array.isArray(appointment.services)
+            ? appointment.services
+            : [appointment.services || "Service"],
+          date: appointment.date || "",
+          time: appointment.time || "",
+          status: normalizeMechanicStatus(appointment.status),
+          mechanic: appointment.mechanic || "Unassigned",
+          notes: appointment.notes || null,
+          labor: appointment.labor || null,
+          record: appointment.record || null,
+          createdAt: appointment.createdAt || null,
+          parts: Array.isArray(appointment.parts) ? appointment.parts : [],
+        }));
+    } catch (error) {
+      console.error(
+        "Unable to sync mechanic jobs from shared appointments:",
+        error,
+      );
+    }
+  }
+
+  function persistMechanicStatus(jobId, status) {
+    const appointments = JSON.parse(
+      localStorage.getItem("motofix_appointments") || "[]",
+    );
+    const appointment = appointments.find((item) => item.id === jobId);
+    if (!appointment) return;
+
+    const labels = {
+      pending: "Pending",
+      confirmed: "Confirmed",
+      in_progress: "In Progress",
+      completed: "Complete transaction",
+      cancelled: "Cancelled",
+    };
+    appointment.status = labels[status] || status;
+    localStorage.setItem("motofix_appointments", JSON.stringify(appointments));
+
+    const notifications = JSON.parse(
+      localStorage.getItem("motofix_notifications") || "[]",
+    );
+    notifications.unshift({
+      id: `N${Date.now()}`,
+      title: "Appointment status updated",
+      message: `${appointment.id} is now ${appointment.status}.`,
+      audiences: ["customer", "admin", "master_admin"],
+      createdAt: new Date().toISOString(),
+      readBy: [],
+    });
+    localStorage.setItem(
+      "motofix_notifications",
+      JSON.stringify(notifications.slice(0, 100)),
+    );
+  }
+
+  function renderMechanicNotifications() {
+    const panel = document.getElementById("notifPanel");
+    const dot = document.getElementById("bellDot");
+    if (!panel) return;
+    const notifications = JSON.parse(
+      localStorage.getItem("motofix_notifications") || "[]",
+    ).filter(
+      (notification) =>
+        notification.audiences?.includes("mechanic") ||
+        notification.audiences?.includes(`mechanic:${CURRENT_USER.name}`),
+    );
+    panel.innerHTML = `<div class="notif-head">Notifications</div>${
+      notifications.length
+        ? notifications
+            .slice(0, 8)
+            .map(
+              (notification) => `
+      <div class="notif-item"><div class="t">${escapeHtml(notification.title)}</div><div class="d">${escapeHtml(notification.message)}</div></div>
+    `,
+            )
+            .join("")
+        : '<div class="notif-item"><div class="d">No new notifications.</div></div>'
+    }`;
+    if (dot) dot.style.display = notifications.length ? "block" : "none";
+  }
+
+  window.addEventListener("storage", (event) => {
+    if (event.key === "motofix_notifications") renderMechanicNotifications();
+    if (event.key === "motofix_appointments") {
+      syncJobsFromSharedAppointments();
+      renderAppointments();
+      renderDashboard();
+      renderJobs();
+    }
+  });
 
   const parts = [
     {
@@ -173,8 +313,11 @@
     },
   ];
 
-  let apptStatusFilter = "all";
+  let apptStatusFilter = "pending";
   let apptSearchTerm = "";
+  let jobsSearchTerm = "";
+  let jobsStatusFilter = "all";
+  let jobsScheduleFilter = "all";
   let invCatFilter = "All";
   let invSearchTerm = "";
 
@@ -316,10 +459,35 @@
       statCard("Labor Earned", laborEarned, ICONS.cash, "amber", true),
     ].join("");
 
-    document.getElementById("jobsCount").textContent = mine.length;
-    document.getElementById("jobsTableBody").innerHTML = mine
-      .map(
-        (j) => `
+    const today = new Date().toISOString().slice(0, 10);
+    const query = jobsSearchTerm.trim().toLowerCase();
+    const visibleJobs = mine.filter((job) => {
+      const searchable = [
+        job.customer,
+        job.motorcycle,
+        ...(job.services || []),
+        job.id,
+      ]
+        .join(" ")
+        .toLowerCase();
+      const matchesSearch = !query || searchable.includes(query);
+      const matchesStatus =
+        jobsStatusFilter === "all" || job.status === jobsStatusFilter;
+      const matchesSchedule =
+        jobsScheduleFilter === "all" ||
+        (jobsScheduleFilter === "today" && job.date === today) ||
+        (jobsScheduleFilter === "upcoming" && job.date >= today) ||
+        (jobsScheduleFilter === "past" && job.date < today);
+      return matchesSearch && matchesStatus && matchesSchedule;
+    });
+
+    document.getElementById("jobsCount").textContent = visibleJobs.length;
+    document.getElementById("jobsFilterSummary").textContent =
+      `${visibleJobs.length} of ${mine.length} assigned jobs`;
+    document.getElementById("jobsTableBody").innerHTML = visibleJobs.length
+      ? visibleJobs
+          .map(
+            (j) => `
       <tr>
         <td>
           <div class="cust-cell">
@@ -332,10 +500,19 @@
         <td><div class="dt-cell"><div class="d">${j.date}</div><div class="t">${j.time}</div></div></td>
         <td>${badge(j.status)}</td>
         <td class="${j.notes ? "note-warn" : "note-dim"}">${j.notes ? escapeHtml(j.notes) : "—"}</td>
+        <td><button class="job-details-btn" type="button" data-job-details="${j.id}">View Details</button></td>
       </tr>
     `,
-      )
-      .join("");
+          )
+          .join("")
+      : `<tr><td colspan="7" class="jobs-empty-row">No jobs match the selected filters.</td></tr>`;
+
+    document.querySelectorAll("[data-job-details]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const job = jobs.find((item) => item.id === button.dataset.jobDetails);
+        if (job) openJobDetails(job);
+      });
+    });
 
     const records = mine.filter((j) => j.status === "completed" && j.record);
     const recBox = document.getElementById("jobRecords");
@@ -365,6 +542,47 @@
         )
         .join("");
     }
+  }
+
+  function openJobDetails(job) {
+    const existing = document.getElementById("jobDetailsModal");
+    if (existing) existing.remove();
+    const bookedAt = job.createdAt
+      ? new Date(job.createdAt).toLocaleString("en-PH", {
+          dateStyle: "medium",
+          timeStyle: "short",
+        })
+      : "Not available for this legacy booking";
+    const parts = job.parts?.length
+      ? job.parts
+          .map((part) => `${escapeHtml(part.name)} x${part.quantity || 1}`)
+          .join(", ")
+      : "No parts requested";
+    const modal = document.createElement("div");
+    modal.id = "jobDetailsModal";
+    modal.className = "job-details-backdrop";
+    modal.innerHTML = `
+      <section class="job-details-modal" role="dialog" aria-modal="true" aria-labelledby="jobDetailsTitle">
+        <div class="job-details-head"><div><div class="job-details-kicker">Appointment ${escapeHtml(job.id)}</div><h2 id="jobDetailsTitle">${escapeHtml(job.customer)}</h2></div><button class="job-details-close" type="button" aria-label="Close details">&times;</button></div>
+        <div class="job-details-grid">
+          <div><span>Customer</span><strong>${escapeHtml(job.customer)}</strong><small>${escapeHtml(job.phone)}</small></div>
+          <div><span>Assigned mechanic</span><strong>${escapeHtml(job.mechanic)}</strong></div>
+          <div><span>Motorcycle</span><strong>${escapeHtml(job.motorcycle)}</strong></div>
+          <div><span>Appointment status</span><strong>${badge(job.status)}</strong></div>
+          <div><span>Scheduled date</span><strong>${escapeHtml(job.date || "Not set")}</strong></div>
+          <div><span>Scheduled time</span><strong>${escapeHtml(job.time || "Not set")}</strong></div>
+          <div class="full"><span>Booked by customer</span><strong>${escapeHtml(bookedAt)}</strong></div>
+          <div class="full"><span>Service requested</span><strong>${job.services.map((service) => escapeHtml(service)).join(", ")}</strong></div>
+          <div class="full"><span>Parts requested</span><strong>${parts}</strong></div>
+          <div class="full"><span>Notes</span><strong>${escapeHtml(job.notes || "No notes provided")}</strong></div>
+        </div>
+      </section>`;
+    document.body.appendChild(modal);
+    const close = () => modal.remove();
+    modal.querySelector(".job-details-close").addEventListener("click", close);
+    modal.addEventListener("click", (event) => {
+      if (event.target === modal) close();
+    });
   }
 
   function renderAppointments() {
@@ -397,12 +615,6 @@
 
     body.innerHTML = list
       .map((j) => {
-        const next = nextStatus(j.status);
-        const action = next
-          ? `<button class="btn btn-advance" data-advance="${j.id}">Advance</button>`
-          : j.status === "cancelled"
-            ? `<span class="dash">—</span>`
-            : `<span class="dash">—</span>`;
         return `
         <tr>
           <td class="sku-tag">${j.id}</td>
@@ -417,28 +629,9 @@
           <td><div class="dt-cell"><div class="d">${j.date}</div><div class="t">${j.time}</div></div></td>
           <td>${escapeHtml(j.mechanic)}</td>
           <td>${badge(j.status)}</td>
-          <td>${action}</td>
         </tr>`;
       })
       .join("");
-
-    body.querySelectorAll("[data-advance]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const id = btn.getAttribute("data-advance");
-        const job = jobs.find((j) => j.id === id);
-        if (!job) return;
-        const nxt = nextStatus(job.status);
-        if (nxt) {
-          job.status = nxt;
-          if (nxt === "completed" && !job.labor) {
-            job.labor = 0;
-          }
-          renderAppointments();
-          renderDashboard();
-          renderJobs();
-        }
-      });
-    });
   }
 
   function renderInventory() {
@@ -500,7 +693,10 @@
     inventory: "view-inventory",
   };
   const titles = {
-    dashboard: ["Dashboard", "Welcome back, Ramon"],
+    dashboard: [
+      "Dashboard",
+      `Welcome back, ${CURRENT_USER.name.split(" ")[0]}`,
+    ],
     jobs: ["My Jobs", "Your assigned work queue"],
     appointments: ["Appointments", "Manage service scheduling"],
     inventory: ["Inventory & Parts", "Parts catalog and stock management"],
@@ -567,6 +763,7 @@
   const bellBtn = document.getElementById("bellBtn");
   const notifPanel = document.getElementById("notifPanel");
   const bellDot = document.getElementById("bellDot");
+  renderMechanicNotifications();
   bellBtn.addEventListener("click", (e) => {
     e.stopPropagation();
     notifPanel.classList.toggle("show");
@@ -589,13 +786,30 @@
       .querySelectorAll("#apptFilters .pill")
       .forEach((p) => p.classList.remove("active"));
     pill.classList.add("active");
-    apptStatusFilter = pill.dataset.status;
+    apptStatusFilter = pill.dataset.status || "all";
     renderAppointments();
   });
   document.getElementById("apptSearch").addEventListener("input", (e) => {
     apptSearchTerm = e.target.value;
     renderAppointments();
   });
+
+  document.getElementById("jobsSearch").addEventListener("input", (e) => {
+    jobsSearchTerm = e.target.value;
+    renderJobs();
+  });
+  document
+    .getElementById("jobsStatusFilter")
+    .addEventListener("change", (e) => {
+      jobsStatusFilter = e.target.value;
+      renderJobs();
+    });
+  document
+    .getElementById("jobsScheduleFilter")
+    .addEventListener("change", (e) => {
+      jobsScheduleFilter = e.target.value;
+      renderJobs();
+    });
 
   /* ---------------- Inventory filters ---------------- */
   document.getElementById("invFilters").addEventListener("click", (e) => {
@@ -614,7 +828,11 @@
   });
 
   /* ---------------- Init ---------------- */
+  syncJobsFromSharedAppointments();
   document.getElementById("sideAvatar").textContent = CURRENT_USER.initials;
   document.getElementById("sideName").textContent = CURRENT_USER.name;
+  document.getElementById("topAvatar").textContent = CURRENT_USER.initials;
+  document.getElementById("userDisplayName").textContent = CURRENT_USER.name;
+  document.getElementById("userDisplayEmail").textContent = CURRENT_USER.email;
   goTo("dashboard");
 })();

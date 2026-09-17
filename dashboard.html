@@ -9,12 +9,14 @@
       href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
-    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link
+      href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=JetBrains+Mono:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="css/style.css" />
   </head>
   <body>
     <div class="app">
-
       <!-- ============ SIDEBAR BACKDROP DIM ============ -->
       <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 
@@ -86,8 +88,24 @@
                 6. I know there are some functions that are missing so while working keep observing
                 and if you think that is wrong you can change it to fix it.
                ========================================================================= -->
-          <div class="nav-label" id="masterAdminLabel" style="display: none; margin-top: 12px;">Master Control</div>
-          <button id="masterPortalNavItem" class="nav-item" data-page="master-mechanics" style="display: none; color: var(--orange); border: 1px dashed var(--orange-dim); background: var(--orange-soft);">
+          <div
+            class="nav-label"
+            id="masterAdminLabel"
+            style="display: none; margin-top: 12px"
+          >
+            Master Control
+          </div>
+          <button
+            id="masterPortalNavItem"
+            class="nav-item"
+            data-page="master-mechanics"
+            style="
+              display: none;
+              color: var(--orange);
+              border: 1px dashed var(--orange-dim);
+              background: var(--orange-soft);
+            "
+          >
             <span class="nav-ico">🛡</span> Employee Manager
           </button>
         </nav>
@@ -121,7 +139,13 @@
             </div>
           </div>
           <div class="topbar-right">
-            <button class="icon-btn bell">🔔<span class="dot"></span></button>
+            <button
+              class="icon-btn bell"
+              id="adminBellBtn"
+              aria-label="Notifications"
+            >
+              🔔<span class="dot"></span>
+            </button>
             <div class="user-menu" id="userMenu">
               <button
                 class="user-trigger"
@@ -280,7 +304,9 @@
               <div class="filter-pills" id="svcFilters"></div>
 
               <!-- add new service button -->
-              <button class="btn-primary" id="openAddServiceBtn">+ Add New Service</button>
+              <button class="btn-primary" id="openAddServiceBtn">
+                + Add New Service
+              </button>
             </div>
 
             <div class="card-grid" id="servicesGrid"></div>
@@ -300,10 +326,14 @@
               </div>
               <div class="filter-pills" id="customFilters">
                 <button class="pill active" data-filter="All">All Bikes</button>
-                <button class="pill" data-filter="Customized">Customized</button>
+                <button class="pill" data-filter="Customized">
+                  Customized
+                </button>
                 <button class="pill" data-filter="Stock">Stock Setup</button>
               </div>
-              <button class="btn-primary" id="openAddCustomModalBtn">+ Add Custom Build</button>
+              <button class="btn-primary" id="openAddCustomModalBtn">
+                + Add Custom Build
+              </button>
             </div>
 
             <div class="stack-list" id="bikeList"></div>
@@ -323,7 +353,9 @@
               <div class="filter-pills" id="invFilters"></div>
 
               <!-- add new parts button -->
-              <button class="btn-primary" id="openAddPartBtn">+ Add New Part</button>
+              <button class="btn-primary" id="openAddPartBtn">
+                + Add New Part
+              </button>
             </div>
 
             <div class="panel table-panel">
@@ -352,11 +384,33 @@
             </div>
 
             <div class="tab-panel" id="tab-revenue">
-              <div class="toolbar toolbar-simple" style="margin-bottom: 16px;">
-                <span class="muted">Download Complete Revenue Analytics & Tax Records</span>
-                <div style="display: flex; gap: 8px;">
-                  <button class="btn-primary" onclick="downloadRevenueReport('pdf')" style="background: #ef4444; font-size: 13px; padding: 6px 14px;">📄 Download PDF</button>
-                  <button class="btn-primary" onclick="downloadRevenueReport('docx')" style="background: #3b82f6; font-size: 13px; padding: 6px 14px;">📝 Download DOCX</button>
+              <div class="toolbar toolbar-simple" style="margin-bottom: 16px">
+                <span class="muted"
+                  >Download Complete Revenue Analytics & Tax Records</span
+                >
+                <div style="display: flex; gap: 8px">
+                  <button
+                    class="btn-primary"
+                    onclick="downloadRevenueReport('pdf')"
+                    style="
+                      background: #ef4444;
+                      font-size: 13px;
+                      padding: 6px 14px;
+                    "
+                  >
+                    📄 Download PDF
+                  </button>
+                  <button
+                    class="btn-primary"
+                    onclick="downloadRevenueReport('docx')"
+                    style="
+                      background: #3b82f6;
+                      font-size: 13px;
+                      padding: 6px 14px;
+                    "
+                  >
+                    📝 Download DOCX
+                  </button>
                 </div>
               </div>
 
@@ -384,21 +438,34 @@
                     <span class="stat-icon icon-green">Σ</span>
                   </div>
                   <div class="stat-value" id="rev-aov-val">₱0.00</div>
-                  <div class="stat-desc" id="rev-aov-desc">Based on 0 invoices</div>
+                  <div class="stat-desc" id="rev-aov-desc">
+                    Based on 0 invoices
+                  </div>
                 </div>
               </div>
 
               <!-- Side-by-Side Panels for Chart and Category Breakdown -->
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px;">
+              <div
+                style="
+                  display: grid;
+                  grid-template-columns: 1fr 1fr;
+                  gap: 16px;
+                  margin-top: 16px;
+                "
+              >
                 <div class="panel">
                   <div class="panel-head"><h3>Monthly Revenue</h3></div>
                   <div class="bar-chart" id="revenueChart2"></div>
                 </div>
                 <div class="panel">
-                  <div class="panel-head"><h3>Service Category Breakdown</h3></div>
-                  <div id="category-breakdown-container" style="padding: 16px;">
+                  <div class="panel-head">
+                    <h3>Service Category Breakdown</h3>
+                  </div>
+                  <div id="category-breakdown-container" style="padding: 16px">
                     <!-- Dynamically populated via script_5.js -->
-                    <span class="muted">No service breakdown data available.</span>
+                    <span class="muted"
+                      >No service breakdown data available.</span
+                    >
                   </div>
                 </div>
               </div>
@@ -407,6 +474,28 @@
 
           <!-- ================= MECHANIC JOBS ================= -->
           <section class="page" id="page-jobs">
+            <div class="toolbar jobs-admin-toolbar">
+              <div class="search-box">
+                <span>🔍</span>
+                <input
+                  type="search"
+                  id="jobsAdminSearch"
+                  placeholder="Search customer, motorcycle, mechanic..."
+                />
+              </div>
+              <div class="filter-pills" id="jobsAdminFilters">
+                <button class="pill active" data-status="All">All</button>
+                <button class="pill" data-status="Pending">Pending</button>
+                <button class="pill" data-status="In Progress">
+                  In Progress
+                </button>
+                <button class="pill" data-status="Completed">Completed</button>
+                <button class="pill" data-status="Cancelled">Cancelled</button>
+              </div>
+              <span class="jobs-admin-summary muted" id="jobsAdminSummary"
+                >All mechanic jobs</span
+              >
+            </div>
             <div class="stack-list" id="jobsList"></div>
           </section>
 
@@ -432,12 +521,19 @@
             <section class="page" id="page-master-mechanics">
               <div class="toolbar toolbar-simple">
                 <div>
-                  <h3 class="section-heading" style="margin-bottom: 2px;">Master Employee Management</h3>
-                  <p class="muted">Add, view, and manage authorized shop mechanics and admins credentials.</p>
+                  <h3 class="section-heading" style="margin-bottom: 2px">
+                    Master Employee Management
+                  </h3>
+                  <p class="muted">
+                    Add, view, and manage authorized shop mechanics and admins
+                    credentials.
+                  </p>
                 </div>
-                <button class="btn-primary" id="openAddMechanicModalBtn">+ Add Employee Account</button>
+                <button class="btn-primary" id="openAddMechanicModalBtn">
+                  + Add Employee Account
+                </button>
               </div>
-  
+
               <div class="panel table-panel">
                 <div class="table-scroll">
                   <table class="data-table" id="masterMechanicsTable">

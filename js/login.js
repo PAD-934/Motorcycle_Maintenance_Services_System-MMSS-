@@ -92,13 +92,17 @@ function authenticate(email, password) {
       const knownUsers = {
         "master@motofix.com": "master_admin", // New Master Admin role
         "admin@motofix.com": "admin",         // Regular Store Admin
-        "mechanic1@motofix.com": "mechanic",    // Mechanic
-        "jose@email.com": "customer"          // Customer
+        "mechanic1@motofix.com": "mechanic",    // Mechanic1 name Ramon Santos
+        "mechanic2@motofix.com": "mechanic",    // Mechanic2 name Jake Reyes
+        "jose@email.com": "customer",          // Customer name Jose Bautista
+        "ana@email.com": "customer",            // Customer name Ana Flores
+        "miguel@email.com": "customer"          // Customer name Miguel Torres
       };
-      
-      const role = knownUsers[email.toLowerCase()] || null;
+
+      const normalizedEmail = String(email || "").trim().toLowerCase();
+      const role = knownUsers[normalizedEmail] || null;
       // Simple mock password check for visual testing
-      const passwordValid = password.length >= 6; 
+      const passwordValid = typeof password === "string" && password.length >= 6;
 
       resolve({ ok: !!role && passwordValid, role });
     }, 600);
@@ -115,7 +119,7 @@ async function handleLogin() {
   signInBtn.disabled = true;
   signInBtn.textContent = "Signing in...";
 
-  const email = emailInput.value.trim();
+  const email = emailInput.value.trim().toLowerCase();
   const password = passwordInput.value;
   const result = await authenticate(email, password);
 

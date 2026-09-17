@@ -180,7 +180,7 @@
             </div>
 
             <button class="user-trigger" id="userTrigger">
-              <div class="avatar">RS</div>
+              <div class="avatar" id="topAvatar">RS</div>
               <svg
                 class="chev"
                 viewBox="0 0 24 24"
@@ -194,8 +194,10 @@
               </svg>
             </button>
             <div class="dropdown" id="userDropdown">
-              <div class="dd-name">Ramon Santos</div>
-              <div class="dd-email">mechanic1@motofix.com</div>
+              <div class="dd-name" id="userDisplayName">Ramon Santos</div>
+              <div class="dd-email" id="userDisplayEmail">
+                mechanic1@motofix.com
+              </div>
               <hr />
               <button class="signout" id="signOutBtn">
                 <svg
@@ -228,6 +230,52 @@
           <!-- MY JOBS -->
           <section class="view" id="view-jobs">
             <div class="stat-grid" id="jobsStats"></div>
+            <div class="jobs-toolbar" aria-label="Filter mechanic jobs">
+              <div class="search-box jobs-search-box">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <circle cx="11" cy="11" r="7"></circle>
+                  <path d="M21 21l-4.3-4.3"></path>
+                </svg>
+                <input
+                  id="jobsSearch"
+                  type="search"
+                  placeholder="Search customer, motorcycle, or service..."
+                />
+              </div>
+              <select
+                id="jobsStatusFilter"
+                class="jobs-filter-select"
+                aria-label="Filter jobs by status"
+              >
+                <option value="all">All statuses</option>
+                <option value="pending">Pending</option>
+                <option value="confirmed">Confirmed</option>
+                <option value="in_progress">In Progress</option>
+                <option value="completed">Completed</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+              <select
+                id="jobsScheduleFilter"
+                class="jobs-filter-select"
+                aria-label="Filter jobs by schedule"
+              >
+                <option value="all">All schedules</option>
+                <option value="today">Today</option>
+                <option value="upcoming">Upcoming</option>
+                <option value="past">Past</option>
+              </select>
+              <span class="jobs-filter-summary" id="jobsFilterSummary"
+                >All assigned jobs</span
+              >
+            </div>
             <div class="panel">
               <div class="panel-head">
                 <span>My Assigned Appointments</span>
@@ -243,6 +291,7 @@
                       <th>Date</th>
                       <th>Status</th>
                       <th>Notes</th>
+                      <th>Details</th>
                     </tr>
                   </thead>
                   <tbody id="jobsTableBody"></tbody>
@@ -277,8 +326,10 @@
                 />
               </div>
               <div class="pill-group" id="apptFilters">
-                <button class="pill active" data-status="all">All</button>
-                <button class="pill" data-status="pending">Pending</button>
+                <button class="pill" data-status="all">All</button>
+                <button class="pill active" data-status="pending">
+                  Pending
+                </button>
                 <button class="pill" data-status="confirmed">Confirmed</button>
                 <button class="pill" data-status="in_progress">
                   In Progress
@@ -299,7 +350,6 @@
                       <th>Date / Time</th>
                       <th>Mechanic</th>
                       <th>Status</th>
-                      <th>Actions</th>
                     </tr>
                   </thead>
                   <tbody id="apptTableBody"></tbody>

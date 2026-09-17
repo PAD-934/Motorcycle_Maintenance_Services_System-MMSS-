@@ -26,7 +26,10 @@ const DATA = {
     },
     jobs: { title: "Mechanic Jobs", sub: "Job transaction records" },
     users: { title: "User Management", sub: "Customers, mechanics & admins" },
-    "master-mechanics": { title: "Master Control", sub: "Mechanic Account Manager" },
+    "master-mechanics": {
+      title: "Master Control",
+      sub: "Mechanic Account Manager",
+    },
   },
 
   revenue: [
@@ -68,7 +71,7 @@ const DATA = {
       services: ["Full Tune-Up"],
       date: "2026-07-24",
       time: "11:00",
-      mechanic: "Dante Cruz",
+      mechanic: "Jake Reyes",
       status: "In Progress",
     },
     {
@@ -374,7 +377,7 @@ const DATA = {
       id: "J2",
       customer: "Jose Bautista",
       bike: "2023 Kawasaki Dominar 400",
-      mechanic: "Dante Cruz",
+      mechanic: "Jake Reyes",
       initials: "DC",
       parts: 3,
       cost: 1275,
@@ -401,7 +404,7 @@ const DATA = {
       initials: "RS",
     },
     {
-      name: "Dante Cruz",
+      name: "Jake Reyes",
       role: "Mechanic",
       email: "mechanic2@motofix.com",
       phone: "+63 912 000 0003",
@@ -435,9 +438,27 @@ const DATA = {
   ],
 
   masterEmployees: [
-    { id: 1, name: "Carlos Reyes", role: "Admin", email: "admin@motofix.com", status: "Active" },
-    { id: 2, name: "Ramon Santos", role: "Mechanic", email: "mechanic1@motofix.com", status: "Active" },
-    { id: 3, name: "Dante Cruz", role: "Mechanic", email: "mechanic2@motofix.com", status: "Active" }
+    {
+      id: 1,
+      name: "Carlos Reyes",
+      role: "Admin",
+      email: "admin@motofix.com",
+      status: "Active",
+    },
+    {
+      id: 2,
+      name: "Ramon Santos",
+      role: "Mechanic",
+      email: "mechanic1@motofix.com",
+      status: "Active",
+    },
+    {
+      id: 3,
+      name: "Jake Reyes",
+      role: "Mechanic",
+      email: "mechanic2@motofix.com",
+      status: "Active",
+    },
   ],
 };
 
@@ -493,6 +514,48 @@ function avatarInitials(name) {
     .toUpperCase();
 }
 
+function renderAdminNotifications() {
+  const button = document.getElementById("adminBellBtn");
+  if (!button) return;
+  const role = localStorage.getItem("userRole") || "admin";
+  const notifications = JSON.parse(
+    localStorage.getItem("motofix_notifications") || "[]",
+  ).filter((notification) => notification.audiences?.includes(role));
+  let panel = document.getElementById("adminNotifPanel");
+  if (!panel) {
+    panel = document.createElement("div");
+    panel.id = "adminNotifPanel";
+    panel.style.cssText =
+      "position:fixed;top:64px;right:24px;width:320px;max-height:380px;overflow:auto;background:#131313;border:1px solid #232323;border-radius:12px;box-shadow:0 16px 40px rgba(0,0,0,.45);padding:8px;z-index:100;display:none;";
+    document.body.appendChild(panel);
+  }
+  panel.innerHTML = `<div style="padding:10px 12px;font-weight:700;border-bottom:1px solid #232323;">Notifications</div>${
+    notifications.length
+      ? notifications
+          .slice(0, 8)
+          .map(
+            (notification) =>
+              `<div style="padding:11px 12px;border-bottom:1px solid #1c1c1c;"><strong style="display:block;font-size:13px;">${notification.title}</strong><span style="display:block;margin-top:3px;color:#9a9a9a;font-size:12px;">${notification.message}</span></div>`,
+          )
+          .join("")
+      : '<div style="padding:14px 12px;color:#9a9a9a;font-size:12px;">No new notifications.</div>'
+  }`;
+  const dot = button.querySelector(".dot");
+  if (dot) dot.style.display = notifications.length ? "block" : "none";
+  button.onclick = (event) => {
+    event.stopPropagation();
+    panel.style.display = panel.style.display === "none" ? "block" : "none";
+  };
+  document.addEventListener(
+    "click",
+    (event) => {
+      if (!panel.contains(event.target) && !button.contains(event.target))
+        panel.style.display = "none";
+    },
+    { once: true },
+  );
+}
+
 /* ===================== NAVIGATION ===================== */
 function goToPage(page) {
   $$(".nav-item").forEach((b) =>
@@ -540,20 +603,22 @@ function updateSidebarState() {
 
 function toggleSidebar() {
   const isMobile = window.innerWidth <= 860;
-  
+
   if (isMobile) {
     sidebar.classList.toggle("open");
   } else {
     sidebar.classList.toggle("collapsed");
   }
 
-  // Handle backdrop for both mobile and desktop
+  // Keep desktop dashboards readable while the sidebar is open.
   if (sidebarBackdrop) {
     if (isMobile) {
-      sidebarBackdrop.classList.toggle("active", sidebar.classList.contains("open"));
+      sidebarBackdrop.classList.toggle(
+        "active",
+        sidebar.classList.contains("open"),
+      );
     } else {
-      // On desktop, show backdrop when sidebar is NOT collapsed (i.e. fully open)
-      sidebarBackdrop.classList.toggle("active", !sidebar.classList.contains("collapsed"));
+      sidebarBackdrop.classList.remove("active");
     }
   }
 
@@ -599,14 +664,12 @@ if (sidebar) {
 
 window.addEventListener("resize", () => {
   updateSidebarState();
-  
-  // Clean up backdrop state smoothly on resize
+
+  // Only mobile uses a scrim; desktop keeps the dashboard unobstructed.
   if (sidebarBackdrop) {
     const isMobile = window.innerWidth <= 860;
-    const isOpen = isMobile 
-      ? sidebar.classList.contains("open") 
-      : !sidebar.classList.contains("collapsed");
-      
+    const isOpen = isMobile ? sidebar.classList.contains("open") : false;
+
     if (!isOpen) {
       sidebarBackdrop.classList.remove("active");
     }
@@ -652,8 +715,10 @@ $("#modalBackdrop").addEventListener("click", (e) => {
 });
 
 // 1. Hooks up the "Add New Part" button to your existing modal
-document.getElementById('openAddPartBtn')?.addEventListener('click', () => {
-    openModal('Add New Part', `
+document.getElementById("openAddPartBtn")?.addEventListener("click", () => {
+  openModal(
+    "Add New Part",
+    `
         <form id="addPartForm">
             <div style="margin-bottom: 12px;">
                 <label style="display:block; margin-bottom:4px; font-weight:500;">Part Name</label>
@@ -681,12 +746,15 @@ document.getElementById('openAddPartBtn')?.addEventListener('click', () => {
             </div>
             <button type="submit" class="btn-primary" style="width:100%; margin-top:10px;">Save Part</button>
         </form>
-    `);
+    `,
+  );
 });
 
 // 2. Hooks up the "Add New Service" button to your existing modal
-document.getElementById('openAddServiceBtn')?.addEventListener('click', () => {
-    openModal('Add New Service', `
+document.getElementById("openAddServiceBtn")?.addEventListener("click", () => {
+  openModal(
+    "Add New Service",
+    `
         <form id="addServiceForm">
             <div style="margin-bottom: 12px;">
                 <label style="display:block; margin-bottom:4px; font-weight:500;">Service Name</label>
@@ -710,7 +778,8 @@ document.getElementById('openAddServiceBtn')?.addEventListener('click', () => {
             </div>
             <button type="submit" class="btn-primary" style="width:100%; margin-top:10px;">Save Service</button>
         </form>
-    `);
+    `,
+  );
 });
 
 /* =========================================================
@@ -718,63 +787,64 @@ document.getElementById('openAddServiceBtn')?.addEventListener('click', () => {
    Captures form inputs, stores items into localStorage,
    updates runtime DATA array, and re-renders UI components.
 ========================================================= */
-document.addEventListener('submit', (e) => {
-    // Handle Part Form Submit
-    if (e.target && e.target.id === 'addPartForm') {
-        e.preventDefault();
-        
-        const newPart = {
-            name: document.getElementById('newPartName').value,
-            sku: document.getElementById('newPartSku').value,
-            brand: document.getElementById('newPartBrand').value,
-            category: document.getElementById('newPartCategory').value,
-            stock: parseInt(document.getElementById('newPartStock').value, 10),
-            max: 60,
-            price: parseFloat(document.getElementById('newPartPrice').value)
-        };
+document.addEventListener("submit", (e) => {
+  // Handle Part Form Submit
+  if (e.target && e.target.id === "addPartForm") {
+    e.preventDefault();
 
-        // Update local storage array
-        let partsList = JSON.parse(localStorage.getItem('motofix_parts')) || [];
-        partsList.push(newPart);
-        localStorage.setItem('motofix_parts', JSON.stringify(partsList));
+    const newPart = {
+      name: document.getElementById("newPartName").value,
+      sku: document.getElementById("newPartSku").value,
+      brand: document.getElementById("newPartBrand").value,
+      category: document.getElementById("newPartCategory").value,
+      stock: parseInt(document.getElementById("newPartStock").value, 10),
+      max: 60,
+      price: parseFloat(document.getElementById("newPartPrice").value),
+    };
 
-        // Sync main DATA object and re-render inventory view
-        DATA.inventory = partsList;
-        renderInvFilters();
-        renderInventoryTable();
+    // Update local storage array
+    let partsList = JSON.parse(localStorage.getItem("motofix_parts")) || [];
+    partsList.push(newPart);
+    localStorage.setItem("motofix_parts", JSON.stringify(partsList));
 
-        // Close modal
-        document.getElementById('modalBackdrop').classList.remove('open');
-    }
+    // Sync main DATA object and re-render inventory view
+    DATA.inventory = partsList;
+    renderInvFilters();
+    renderInventoryTable();
 
-    // Handle Service Form Submit
-    if (e.target && e.target.id === 'addServiceForm') {
-        e.preventDefault();
-        
-        const newServiceCode = 'S' + (DATA.services.length + 1);
-        const newService = {
-            code: newServiceCode,
-            name: document.getElementById('newServiceName').value,
-            category: document.getElementById('newServiceCategory').value,
-            price: parseFloat(document.getElementById('newServicePrice').value),
-            hours: 1,
-            hoursLabel: document.getElementById('newServiceHours').value,
-            desc: document.getElementById('newServiceDesc').value
-        };
+    // Close modal
+    document.getElementById("modalBackdrop").classList.remove("open");
+  }
 
-        // Update local storage array
-        let servicesList = JSON.parse(localStorage.getItem('motofix_services')) || [];
-        servicesList.push(newService);
-        localStorage.setItem('motofix_services', JSON.stringify(servicesList));
+  // Handle Service Form Submit
+  if (e.target && e.target.id === "addServiceForm") {
+    e.preventDefault();
 
-        // Sync main DATA object and re-render services view
-        DATA.services = servicesList;
-        renderServiceFilters();
-        renderServicesGrid();
+    const newServiceCode = "S" + (DATA.services.length + 1);
+    const newService = {
+      code: newServiceCode,
+      name: document.getElementById("newServiceName").value,
+      category: document.getElementById("newServiceCategory").value,
+      price: parseFloat(document.getElementById("newServicePrice").value),
+      hours: 1,
+      hoursLabel: document.getElementById("newServiceHours").value,
+      desc: document.getElementById("newServiceDesc").value,
+    };
 
-        // Close modal
-        document.getElementById('modalBackdrop').classList.remove('open');
-    }
+    // Update local storage array
+    let servicesList =
+      JSON.parse(localStorage.getItem("motofix_services")) || [];
+    servicesList.push(newService);
+    localStorage.setItem("motofix_services", JSON.stringify(servicesList));
+
+    // Sync main DATA object and re-render services view
+    DATA.services = servicesList;
+    renderServiceFilters();
+    renderServicesGrid();
+
+    // Close modal
+    document.getElementById("modalBackdrop").classList.remove("open");
+  }
 });
 
 /* ===================== DASHBOARD: BAR CHART ===================== */
@@ -832,30 +902,80 @@ function renderPieChart(pieId, legendId, data) {
     .join("");
 }
 
+/* ===================== SHARED APPOINTMENT STORAGE ===================== */
+const APPOINTMENT_STORAGE_KEY = "motofix_appointments";
+
+function syncAppointmentsFromStorage() {
+  const stored = JSON.parse(
+    localStorage.getItem(APPOINTMENT_STORAGE_KEY) || "[]",
+  );
+  if (Array.isArray(stored) && stored.length > 0) {
+    DATA.appointments = stored.map((item) => ({
+      id: item.id || `A${DATA.appointments.length + 1}`,
+      customer: item.customer || "Customer",
+      phone: item.phone || "N/A",
+      initials: item.initials || "CU",
+      bike: item.bike || item.motorcycle || "Unknown Motorcycle",
+      services: Array.isArray(item.services)
+        ? item.services
+        : [item.services || "Service"],
+      date: item.date || "",
+      time: item.time || "",
+      mechanic: item.mechanic || null,
+      status: item.status || "Pending",
+      notes: item.notes || "",
+      parts: Array.isArray(item.parts) ? item.parts : [],
+      createdAt: item.createdAt || new Date().toISOString(),
+    }));
+  }
+}
+
+function persistAppointments() {
+  localStorage.setItem(
+    APPOINTMENT_STORAGE_KEY,
+    JSON.stringify(DATA.appointments),
+  );
+}
+
 /* ===================== APPOINTMENTS TABLE & NATIVE MODAL ===================== */
 
 const STATUS_FLOW = [
-  "Pending", 
-  "Confirmed", 
-  "In Progress", 
-  "Work Finished (unpaid)", 
+  "Pending",
+  "Confirmed",
+  "In Progress",
+  "Work Finished (unpaid)",
   "Complete transaction",
-  "Cancelled"
+  "Cancelled",
 ];
 
 // Consistent Custom Status Badge Generator for Table Rows & Modals
 function getCustomStatusBadge(status) {
-    let bg = "rgba(255,255,255,0.1)";
-    let color = "#ffffff";
-    
-    if (status === "Pending") { bg = "rgba(234, 179, 8, 0.15)"; color = "#facc15"; }
-    else if (status === "Confirmed") { bg = "rgba(59, 130, 246, 0.15)"; color = "#60a5fa"; }
-    else if (status === "In Progress") { bg = "rgba(249, 115, 22, 0.15)"; color = "#fb923c"; } // Distinct Orange
-    else if (status === "Work Finished (unpaid)") { bg = "rgba(168, 85, 247, 0.15)"; color = "#c084fc"; } // Distinct Purple
-    else if (status === "Complete transaction") { bg = "rgba(16, 185, 129, 0.15)"; color = "#34d399"; }
-    else if (status === "Cancelled") { bg = "rgba(239, 68, 68, 0.15)"; color = "#f87171"; }
+  let bg = "rgba(255,255,255,0.1)";
+  let color = "#ffffff";
 
-    return `
+  if (status === "Pending") {
+    bg = "rgba(234, 179, 8, 0.15)";
+    color = "#facc15";
+  } else if (status === "Confirmed") {
+    bg = "rgba(59, 130, 246, 0.15)";
+    color = "#60a5fa";
+  } else if (status === "In Progress") {
+    bg = "rgba(249, 115, 22, 0.15)";
+    color = "#fb923c";
+  } // Distinct Orange
+  else if (status === "Work Finished (unpaid)") {
+    bg = "rgba(168, 85, 247, 0.15)";
+    color = "#c084fc";
+  } // Distinct Purple
+  else if (status === "Complete transaction") {
+    bg = "rgba(16, 185, 129, 0.15)";
+    color = "#34d399";
+  } else if (status === "Cancelled") {
+    bg = "rgba(239, 68, 68, 0.15)";
+    color = "#f87171";
+  }
+
+  return `
         <span style="
             background: ${bg}; 
             color: ${color}; 
@@ -876,13 +996,13 @@ function getCustomStatusBadge(status) {
 function apptRowHTML(a) {
   return `
     <tr style="cursor: pointer;" onclick="openAppointmentModal('${a.id}')">
-      <td class="subtext">${a.id || ''}</td>
+      <td class="subtext">${a.id || ""}</td>
       <td>
         <div class="person">
-          <div class="avatar">${a.initials || 'MC'}</div>
+          <div class="avatar">${a.initials || "MC"}</div>
           <div>
             <div class="person-name">${a.customer}</div>
-            <div class="person-sub">${a.phone || 'N/A'}</div>
+            <div class="person-sub">${a.phone || "N/A"}</div>
           </div>
         </div>
       </td>
@@ -937,25 +1057,26 @@ let currentSelectedAppointmentId = null;
 
 // Use your native dashboard openModal() function
 function openAppointmentModal(appId) {
-    currentSelectedAppointmentId = appId;
-    const app = DATA.appointments.find(a => a.id === appId);
-    if (!app) return;
+  currentSelectedAppointmentId = appId;
+  const app = DATA.appointments.find((a) => a.id === appId);
+  if (!app) return;
 
-    const modalBodyHTML = `
+  const modalBodyHTML = `
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
             <div class="field" style="margin-bottom:0;"><label style="font-size:11px; color:var(--text-sub, #9ca3af);">Appointment ID</label><div style="font-weight:600;">${app.id}</div></div>
             <div class="field" style="margin-bottom:0;"><label style="font-size:11px; color:var(--text-sub, #9ca3af);">Status</label><div>${getCustomStatusBadge(app.status)}</div></div>
             
             <div class="field" style="margin-bottom:0;"><label style="font-size:11px; color:var(--text-sub, #9ca3af);">Customer Name</label><div style="font-weight:600;">${app.customer}</div></div>
-            <div class="field" style="margin-bottom:0;"><label style="font-size:11px; color:var(--text-sub, #9ca3af);">Contact Number</label><div>${app.phone || 'N/A'}</div></div>
+            <div class="field" style="margin-bottom:0;"><label style="font-size:11px; color:var(--text-sub, #9ca3af);">Contact Number</label><div>${app.phone || "N/A"}</div></div>
             
             <div class="field" style="margin-bottom:0;"><label style="font-size:11px; color:var(--text-sub, #9ca3af);">Motorcycle Model</label><div>${app.bike}</div></div>
-            <div class="field" style="margin-bottom:0;"><label style="font-size:11px; color:var(--text-sub, #9ca3af);">Assigned Mechanic</label><div>${app.mechanic || 'Unassigned'}</div></div>
+            <div class="field" style="margin-bottom:0;"><label style="font-size:11px; color:var(--text-sub, #9ca3af);">Assigned Mechanic</label><div>${app.mechanic || "Unassigned"}</div></div>
             
             <div class="field" style="margin-bottom:0; grid-column: span 2;"><label style="font-size:11px; color:var(--text-sub, #9ca3af);">Service Requested</label><div>${Array.isArray(app.services) ? app.services.join(", ") : app.services}</div></div>
-            <div class="field" style="margin-bottom:0; grid-column: span 2;"><label style="font-size:11px; color:var(--text-sub, #9ca3af);">Scheduled Date & Time</label><div>${app.date} - ${app.time || ''}</div></div>
+            <div class="field" style="margin-bottom:0; grid-column: span 2;"><label style="font-size:11px; color:var(--text-sub, #9ca3af);">Scheduled Date & Time</label><div>${app.date} - ${app.time || ""}</div></div>
             
-            <div class="field" style="margin-bottom:0; grid-column: span 2;"><label style="font-size:11px; color:var(--text-sub, #9ca3af);">Notes / Issues</label><div>${app.notes || 'None specified.'}</div></div>
+            <div class="field" style="margin-bottom:0; grid-column: span 2;"><label style="font-size:11px; color:var(--text-sub, #9ca3af);">Notes / Issues</label><div>${app.notes || "None specified."}</div></div>
+            <div class="field" style="margin-bottom:0; grid-column: span 2;"><label style="font-size:11px; color:var(--text-sub, #9ca3af);">Parts Requested</label><div>${app.parts?.length ? app.parts.map((part) => `${part.name} x${part.quantity}`).join(", ") : "No parts requested."}</div></div>
         </div>
 
         <div style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
@@ -969,53 +1090,77 @@ function openAppointmentModal(appId) {
         </div>
     `;
 
-    openModal(`Appointment Details: #${app.id}`, modalBodyHTML);
+  openModal(`Appointment Details: #${app.id}`, modalBodyHTML);
 }
 
 // Styled Status Dropdown Selector with Cancelled Option
 function getStatusAdvancementDropdown(app) {
-    return `
+  return `
         <select onchange="updateAppointmentStatus('${app.id}', this.value)" style="background-color: #1e1e2d; color: #ffffff; border: 1px solid rgba(255, 255, 255, 0.2); padding: 7px 12px; border-radius: 6px; font-size: 13px; cursor: pointer; outline: none;">
-            ${STATUS_FLOW.map(status => {
-                const isCancelled = status === 'Cancelled';
-                const textColor = isCancelled ? '#ef4444' : '#ffffff';
-                const fontWeight = isCancelled ? 'font-weight: 600;' : '';
-                return `
-                    <option value="${status}" ${app.status === status ? 'selected' : ''} style="background-color: #1e1e2d; color: ${textColor}; ${fontWeight} padding: 8px;">
+            ${STATUS_FLOW.map((status) => {
+              const isCancelled = status === "Cancelled";
+              const textColor = isCancelled ? "#ef4444" : "#ffffff";
+              const fontWeight = isCancelled ? "font-weight: 600;" : "";
+              return `
+                    <option value="${status}" ${app.status === status ? "selected" : ""} style="background-color: #1e1e2d; color: ${textColor}; ${fontWeight} padding: 8px;">
                         ${status}
                     </option>
                 `;
-            }).join('')}
+            }).join("")}
         </select>
     `;
 }
 
 function updateAppointmentStatus(appId, newStatus) {
-    const app = DATA.appointments.find(a => a.id === appId);
-    if (app) {
-        app.status = newStatus;
-        
-        if (typeof saveAppData === 'function') saveAppData(); 
+  const app = DATA.appointments.find((a) => a.id === appId);
+  if (app) {
+    app.status = newStatus;
+    persistAppointments();
+    const notifications = JSON.parse(
+      localStorage.getItem("motofix_notifications") || "[]",
+    );
+    notifications.unshift({
+      id: `N${Date.now()}`,
+      title: "Appointment status updated",
+      message: `${app.id} is now ${newStatus}.`,
+      audiences: ["customer"],
+      createdAt: new Date().toISOString(),
+      readBy: [],
+    });
+    localStorage.setItem(
+      "motofix_notifications",
+      JSON.stringify(notifications.slice(0, 100)),
+    );
 
-        renderAppointmentsPage();
-        renderDashboardAppointments();
-        openAppointmentModal(appId); // Refresh modal view
-        
-        if (typeof showNotification === 'function') {
-          showNotification(`Appointment #${appId} updated to: ${newStatus}`, 'success');
-        }
+    if (typeof saveAppData === "function") saveAppData();
+
+    renderAppointmentsPage();
+    renderDashboardAppointments();
+    openAppointmentModal(appId); // Refresh modal view
+
+    if (typeof showNotification === "function") {
+      showNotification(
+        `Appointment #${appId} updated to: ${newStatus}`,
+        "success",
+      );
     }
+  }
 }
 
 // Real-World Document & Receipt Generation Function
 function generateAppointmentReceipt() {
-    const app = DATA.appointments.find(a => a.id === currentSelectedAppointmentId);
-    if (!app) return;
+  const app = DATA.appointments.find(
+    (a) => a.id === currentSelectedAppointmentId,
+  );
+  if (!app) return;
 
-    const isPaid = app.status === 'Complete transaction' || app.status === 'Completed' || app.status.toLowerCase().includes('complete');
+  const isPaid =
+    app.status === "Complete transaction" ||
+    app.status === "Completed" ||
+    app.status.toLowerCase().includes("complete");
 
-    const printWindow = window.open('', '_blank');
-    printWindow.document.write(`
+  const printWindow = window.open("", "_blank");
+  printWindow.document.write(`
         <html>
         <head>
             <title>MotoFix Service Receipt - #${app.id}</title>
@@ -1038,17 +1183,17 @@ function generateAppointmentReceipt() {
             <div class="receipt-info">
                 <table>
                     <tr><td><strong>Receipt / Ref ID:</strong> #${app.id}</td><td><strong>Date:</strong> ${app.date}</td></tr>
-                    <tr><td><strong>Customer Name:</strong> ${app.customer}</td><td><strong>Contact:</strong> ${app.phone || 'N/A'}</td></tr>
+                    <tr><td><strong>Customer Name:</strong> ${app.customer}</td><td><strong>Contact:</strong> ${app.phone || "N/A"}</td></tr>
                     <tr><td><strong>Motorcycle Model:</strong> ${app.bike}</td><td><strong>Status:</strong> ${app.status}</td></tr>
                 </table>
             </div>
             <hr/>
             <h3>Services Performed</h3>
             <p><strong>${Array.isArray(app.services) ? app.services.join(", ") : app.services}</strong></p>
-            <p><em>Mechanic:</em> ${app.mechanic || 'Unassigned'}</p>
+            <p><em>Mechanic:</em> ${app.mechanic || "Unassigned"}</p>
             
             <div class="total-section">
-                Payment Status: ${isPaid ? 'PAID ON SITE' : (app.status === 'Cancelled' ? 'CANCELLED' : 'UNPAID / PENDING SETTLEMENT')}
+                Payment Status: ${isPaid ? "PAID ON SITE" : app.status === "Cancelled" ? "CANCELLED" : "UNPAID / PENDING SETTLEMENT"}
             </div>
             <div class="footer">
                 <p>Thank you for trusting MotoFix Services!</p>
@@ -1060,7 +1205,7 @@ function generateAppointmentReceipt() {
         </body>
         </html>
     `);
-    printWindow.document.close();
+  printWindow.document.close();
 }
 
 $$("#apptFilters .pill").forEach((p) =>
@@ -1072,7 +1217,8 @@ $$("#apptFilters .pill").forEach((p) =>
 );
 
 const apptSearchEl = $("#apptSearch");
-if (apptSearchEl) apptSearchEl.addEventListener("input", renderAppointmentsPage);
+if (apptSearchEl)
+  apptSearchEl.addEventListener("input", renderAppointmentsPage);
 
 const newApptBtnEl = $("#newApptBtn");
 if (newApptBtnEl) {
@@ -1084,7 +1230,7 @@ if (newApptBtnEl) {
       <div class="field"><label>Contact Number</label><input id="newApptPhone" placeholder="e.g. 09123456789"></div>
       <div class="field"><label>Motorcycle Model</label><input id="newApptBike" placeholder="e.g. 2022 Honda PCX 160"></div>
       <div class="field"><label>Service</label><select id="newApptService">${DATA.services.map((s) => `<option>${s.name}</option>`).join("")}</select></div>
-      <div class="field"><label>Assigned Mechanic</label><select id="newApptMechanic"><option value="">Unassigned</option>${DATA.mechanics ? DATA.mechanics.map((m) => `<option>${m.name || m}</option>`).join("") : ''}</select></div>
+      <div class="field"><label>Assigned Mechanic</label><select id="newApptMechanic"><option value="">Unassigned</option>${DATA.mechanics ? DATA.mechanics.map((m) => `<option>${m.name || m}</option>`).join("") : ""}</select></div>
       <div class="field"><label>Date &amp; Time</label><input id="newApptDateTime" type="datetime-local"></div>
       <button class="btn-primary" style="width:100%;margin-top:6px;" onclick="saveNewAppointment()">Create Appointment</button>
       `,
@@ -1097,7 +1243,12 @@ if (newApptBtnEl) {
 ========================================================= */
 
 // Call this function when opening the appointment modal or when date/time fields change
-function updateAppointmentMechanicDropdown(dateInputId, timeInputId, selectElementId, currentApptId = null) {
+function updateAppointmentMechanicDropdown(
+  dateInputId,
+  timeInputId,
+  selectElementId,
+  currentApptId = null,
+) {
   const dateVal = $(dateInputId)?.value;
   const timeVal = $(timeInputId)?.value;
   const selectEl = $(selectElementId);
@@ -1115,13 +1266,19 @@ function updateAppointmentMechanicDropdown(dateInputId, timeInputId, selectEleme
   const availableList = getAvailableMechanics(dateVal, timeVal, currentApptId);
 
   // Build dropdown options, clearly flagging busy mechanics
-  selectEl.innerHTML = `
+  selectEl.innerHTML =
+    `
     <option value="">-- Unassigned / Any Available --</option>
-  ` + availableList.map(m => `
-    <option value="${m.name}" ${m.busy ? 'disabled style="color: #6b7280; background: #111;"' : ''}>
-      ${m.name} ${m.busy ? '❌ (Already Booked)' : '✅ (Available)'}
+  ` +
+    availableList
+      .map(
+        (m) => `
+    <option value="${m.name}" ${m.busy ? 'disabled style="color: #6b7280; background: #111;"' : ""}>
+      ${m.name} ${m.busy ? "❌ (Already Booked)" : "✅ (Available)"}
     </option>
-  `).join("");
+  `,
+      )
+      .join("");
 }
 
 // Example Event Listeners to auto-refresh mechanic availability when date/time changes in the admin modal
@@ -1131,10 +1288,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (apptDateInput && apptTimeInput) {
     apptDateInput.addEventListener("change", () => {
-      updateAppointmentMechanicDropdown("#apptDate", "#apptTime", "#apptMechanicSelect");
+      updateAppointmentMechanicDropdown(
+        "#apptDate",
+        "#apptTime",
+        "#apptMechanicSelect",
+      );
     });
     apptTimeInput.addEventListener("change", () => {
-      updateAppointmentMechanicDropdown("#apptDate", "#apptTime", "#apptMechanicSelect");
+      updateAppointmentMechanicDropdown(
+        "#apptDate",
+        "#apptTime",
+        "#apptMechanicSelect",
+      );
     });
   }
 });
@@ -1196,7 +1361,9 @@ function renderServicesGrid() {
 
   // Attach click listener to open service details modal
   $$(".svc-row").forEach((card) => {
-    card.addEventListener("click", () => openServiceDetailsModal(card.dataset.code));
+    card.addEventListener("click", () =>
+      openServiceDetailsModal(card.dataset.code),
+    );
   });
 }
 
@@ -1204,7 +1371,9 @@ function openServiceDetailsModal(code) {
   const service = DATA.services.find((s) => s.code === code);
   if (!service) return;
 
-  openModal(`Service Details: ${service.name}`, `
+  openModal(
+    `Service Details: ${service.name}`,
+    `
     <div style="margin-bottom: 16px; line-height: 1.6;">
       <p><strong>Category:</strong> ${service.category}</p>
       <p><strong>Description:</strong> ${service.desc}</p>
@@ -1215,17 +1384,24 @@ function openServiceDetailsModal(code) {
       <button type="button" class="btn-primary" id="modalEditSvcBtn" data-code="${service.code}" style="flex:1;">Edit Service</button>
       <button type="button" class="btn-view" id="modalDeleteSvcBtn" data-code="${service.code}" style="flex:1; color:var(--red); border-color:rgba(239,68,68,0.3);">Delete Service</button>
     </div>
-  `);
+  `,
+  );
 
   document.getElementById("modalEditSvcBtn").addEventListener("click", () => {
     openEditServiceModal(code);
   });
 
   // === Add Service Modal with Dynamic Category Dropdown ===
-  document.getElementById('openAddServiceBtn')?.addEventListener('click', () => {
-      const serviceCategories = [...new Set(DATA.services.map(s => s.category))];
+  document
+    .getElementById("openAddServiceBtn")
+    ?.addEventListener("click", () => {
+      const serviceCategories = [
+        ...new Set(DATA.services.map((s) => s.category)),
+      ];
 
-      openModal('Add New Service', `
+      openModal(
+        "Add New Service",
+        `
           <form id="addServiceForm">
               <div style="margin-bottom: 12px;">
                   <label style="display:block; margin-bottom:4px; font-weight:500;">Service Name</label>
@@ -1238,7 +1414,7 @@ function openServiceDetailsModal(code) {
               <div style="margin-bottom: 12px;">
                   <label style="display:block; margin-bottom:4px; font-weight:500;">Category</label>
                   <select id="newServiceCategorySelect" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; margin-bottom: 6px;">
-                      ${serviceCategories.map(c => `<option value="${c}">${c}</option>`).join('')}
+                      ${serviceCategories.map((c) => `<option value="${c}">${c}</option>`).join("")}
                       <option value="OTHER">+ Add New Category...</option>
                   </select>
                   <input type="text" id="newServiceCategoryCustom" placeholder="Type new category name..." style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; display:none;">
@@ -1259,28 +1435,29 @@ function openServiceDetailsModal(code) {
               </div>
               <button type="submit" class="btn-primary" style="width:100%; margin-top:10px;">Save Service</button>
           </form>
-      `);
+      `,
+      );
 
-      const selectEl = document.getElementById('newServiceCategorySelect');
-      const customInputEl = document.getElementById('newServiceCategoryCustom');
-      
-      selectEl.addEventListener('change', (e) => {
-          if (e.target.value === 'OTHER') {
-              customInputEl.style.display = 'block';
-              customInputEl.required = true;
-              customInputEl.focus();
-          } else {
-              customInputEl.style.display = 'none';
-              customInputEl.required = false;
-          }
+      const selectEl = document.getElementById("newServiceCategorySelect");
+      const customInputEl = document.getElementById("newServiceCategoryCustom");
+
+      selectEl.addEventListener("change", (e) => {
+        if (e.target.value === "OTHER") {
+          customInputEl.style.display = "block";
+          customInputEl.required = true;
+          customInputEl.focus();
+        } else {
+          customInputEl.style.display = "none";
+          customInputEl.required = false;
+        }
       });
-  });
+    });
 
   document.getElementById("modalDeleteSvcBtn").addEventListener("click", () => {
     if (confirm(`Are you sure you want to delete service code: ${code}?`)) {
       DATA.services = DATA.services.filter((s) => s.code !== code);
       localStorage.setItem("motofix_services", JSON.stringify(DATA.services));
-      document.getElementById('modalBackdrop').classList.remove('open');
+      document.getElementById("modalBackdrop").classList.remove("open");
       renderServiceFilters();
       renderServicesGrid();
     }
@@ -1290,22 +1467,30 @@ function openServiceDetailsModal(code) {
 /* =========================================================
    SERVICES SECTION SEARCH & FILTER FUNCTIONALITY
 ========================================================= */
-const servicesSearchEl = $("#svcSearch") || document.querySelector("input[placeholder*='service' i], input[placeholder*='Search services' i]");
+const servicesSearchEl =
+  $("#svcSearch") ||
+  document.querySelector(
+    "input[placeholder*='service' i], input[placeholder*='Search services' i]",
+  );
 
 if (servicesSearchEl) {
   servicesSearchEl.addEventListener("input", (e) => {
     const query = e.target.value.toLowerCase();
-    const serviceCards = document.querySelectorAll("#page-services tr, .service-card, .stack-item"); // Adjust selector based on your HTML layout
+    const serviceCards = document.querySelectorAll(
+      "#page-services tr, .service-card, .stack-item",
+    ); // Adjust selector based on your HTML layout
 
     // If you are rendering services dynamically via a DATA array:
     if (typeof DATA !== "undefined" && DATA.services) {
-      const filteredServices = DATA.services.filter(s => 
-        (s.name + (s.description || "") + (s.mechanic || "")).toLowerCase().includes(query)
+      const filteredServices = DATA.services.filter((s) =>
+        (s.name + (s.description || "") + (s.mechanic || ""))
+          .toLowerCase()
+          .includes(query),
       );
       // Call your specific services render function here, e.g., renderServices(filteredServices);
     } else {
       // Fallback DOM filtering if static HTML rows are used
-      serviceCards.forEach(card => {
+      serviceCards.forEach((card) => {
         const text = card.textContent.toLowerCase();
         card.style.display = text.includes(query) ? "" : "none";
       });
@@ -1313,7 +1498,6 @@ if (servicesSearchEl) {
     renderServicesGrid();
   });
 }
-
 
 /* =========================================================
    UPDATE BLOCK: LOCAL STORAGE SYNC FOR CUSTOMIZATION/BIKES
@@ -1329,12 +1513,11 @@ function initCustomizationStorage() {
 }
 initCustomizationStorage();
 
-
 /* ===================== CUSTOMIZATION PAGE RENDER & CRUD ===================== */
 function renderCustomizationFilters() {
   const container = $("#customFilters");
   if (!container) return;
-  
+
   // Attach filter event listeners for custom build pills
   $$("#customFilters .pill").forEach((p) => {
     p.addEventListener("click", () => {
@@ -1349,7 +1532,8 @@ function renderBikes() {
   const listEl = $("#bikeList");
   if (!listEl) return;
 
-  const activeFilter = $("#customFilters .pill.active")?.dataset.filter || "All";
+  const activeFilter =
+    $("#customFilters .pill.active")?.dataset.filter || "All";
   const query = ($("#customSearch")?.value || "").toLowerCase();
 
   // Filter bikes based on category pills and search query
@@ -1362,7 +1546,9 @@ function renderBikes() {
 
   if (query) {
     filteredBikes = filteredBikes.filter((b) =>
-      (b.name + b.detail + b.owner + (b.mods ? b.mods.join(" ") : "")).toLowerCase().includes(query)
+      (b.name + b.detail + b.owner + (b.mods ? b.mods.join(" ") : ""))
+        .toLowerCase()
+        .includes(query),
     );
   }
 
@@ -1386,7 +1572,8 @@ function renderBikes() {
     </div>
   `,
       )
-      .join("") || `<p class="subtext" style="padding: 20px;">No registered motorcycle profiles found.</p>`;
+      .join("") ||
+    `<p class="subtext" style="padding: 20px;">No registered motorcycle profiles found.</p>`;
 }
 
 // Search input event listener for real-time filtering
@@ -1400,21 +1587,28 @@ function openBikeDetailsModal(index) {
   const b = DATA.bikes[index];
   if (!b) return;
 
-  openModal(`Motorcycle Profile: ${b.name}`, `
+  openModal(
+    `Motorcycle Profile: ${b.name}`,
+    `
     <div style="margin-bottom: 16px; line-height: 1.6;">
       <p><strong>Model & Details:</strong> ${b.name} (${b.detail})</p>
       <p><strong>Registered Owner:</strong> ${b.owner}</p>
       <p><strong>Odometer Reading:</strong> ${b.odo} km</p>
-      <p><strong>Modifications:</strong> ${b.mods && b.mods.length ? b.mods.join(", ") : 'None (Stock)'}</p>
+      <p><strong>Modifications:</strong> ${b.mods && b.mods.length ? b.mods.join(", ") : "None (Stock)"}</p>
     </div>
     <div style="display: flex; gap: 10px; margin-top: 20px;">
       <button type="button" class="btn-view" onclick="deleteBikeProfile(${index})" style="flex:1; color:var(--red); border-color:rgba(239,68,68,0.3);">Delete Profile</button>
     </div>
-  `);
+  `,
+  );
 }
 
 function deleteBikeProfile(index) {
-  if (confirm("Are you sure you want to remove this motorcycle customization profile?")) {
+  if (
+    confirm(
+      "Are you sure you want to remove this motorcycle customization profile?",
+    )
+  ) {
     DATA.bikes.splice(index, 1);
     localStorage.setItem("motofix_bikes", JSON.stringify(DATA.bikes));
     $("#modalBackdrop").classList.remove("open");
@@ -1452,7 +1646,7 @@ if (openAddCustomModalBtn) {
         </div>
         <button type="submit" class="btn-primary" style="width:100%; margin-top:10px;">Save Bike Profile</button>
       </form>
-      `
+      `,
     );
   });
 }
@@ -1463,14 +1657,19 @@ document.addEventListener("submit", (e) => {
     e.preventDefault();
 
     const rawMods = document.getElementById("newBikeMods").value;
-    const modsArray = rawMods ? rawMods.split(",").map(m => m.trim()).filter(Boolean) : [];
+    const modsArray = rawMods
+      ? rawMods
+          .split(",")
+          .map((m) => m.trim())
+          .filter(Boolean)
+      : [];
 
     const newBike = {
       name: document.getElementById("newBikeName").value,
       detail: document.getElementById("newBikeDetail").value,
       owner: document.getElementById("newBikeOwner").value,
       odo: document.getElementById("newBikeOdo").value,
-      mods: modsArray
+      mods: modsArray,
     };
 
     DATA.bikes.push(newBike);
@@ -1553,7 +1752,9 @@ function openPartDetailsModal(sku) {
   const part = DATA.inventory.find((i) => i.sku === sku);
   if (!part) return;
 
-  openModal(`Part Details: ${part.name}`, `
+  openModal(
+    `Part Details: ${part.name}`,
+    `
     <div style="margin-bottom: 16px; line-height: 1.6;">
       <p><strong>SKU:</strong> <span style="font-family:var(--font-mono);">${part.sku}</span></p>
       <p><strong>Brand:</strong> ${part.brand}</p>
@@ -1565,30 +1766,36 @@ function openPartDetailsModal(sku) {
       <button type="button" class="btn-primary" id="modalEditPartBtn" data-sku="${part.sku}" style="flex:1;">Edit Part</button>
       <button type="button" class="btn-view" id="modalDeletePartBtn" data-sku="${part.sku}" style="flex:1; color:var(--red); border-color:rgba(239,68,68,0.3);">Delete Part</button>
     </div>
-  `);
+  `,
+  );
 
   document.getElementById("modalEditPartBtn").addEventListener("click", () => {
     openEditPartModal(sku);
   });
-  
-  document.getElementById("modalDeletePartBtn").addEventListener("click", () => {
-    if (confirm(`Are you sure you want to delete the part with SKU: ${sku}?`)) {
-      DATA.inventory = DATA.inventory.filter((i) => i.sku !== sku);
-      localStorage.setItem("motofix_parts", JSON.stringify(DATA.inventory));
-      document.getElementById('modalBackdrop').classList.remove('open');
-      renderInvFilters();
-      renderInventoryTable();
-    }
-  });
+
+  document
+    .getElementById("modalDeletePartBtn")
+    .addEventListener("click", () => {
+      if (
+        confirm(`Are you sure you want to delete the part with SKU: ${sku}?`)
+      ) {
+        DATA.inventory = DATA.inventory.filter((i) => i.sku !== sku);
+        localStorage.setItem("motofix_parts", JSON.stringify(DATA.inventory));
+        document.getElementById("modalBackdrop").classList.remove("open");
+        renderInvFilters();
+        renderInventoryTable();
+      }
+    });
 }
 
-
 // ===  Add Part Modal with Dynamic Category Dropdown & Max Stock ===
-document.getElementById('openAddPartBtn')?.addEventListener('click', () => {
-    // Extract unique existing categories dynamically
-    const categories = [...new Set(DATA.inventory.map(i => i.category))];
+document.getElementById("openAddPartBtn")?.addEventListener("click", () => {
+  // Extract unique existing categories dynamically
+  const categories = [...new Set(DATA.inventory.map((i) => i.category))];
 
-    openModal('Add New Part', `
+  openModal(
+    "Add New Part",
+    `
         <form id="addPartForm">
             <div style="margin-bottom: 12px;">
                 <label style="display:block; margin-bottom:4px; font-weight:500;">Part Name</label>
@@ -1605,7 +1812,7 @@ document.getElementById('openAddPartBtn')?.addEventListener('click', () => {
             <div style="margin-bottom: 12px;">
                 <label style="display:block; margin-bottom:4px; font-weight:500;">Category</label>
                 <select id="newPartCategorySelect" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; margin-bottom: 6px;">
-                    ${categories.map(c => `<option value="${c}">${c}</option>`).join('')}
+                    ${categories.map((c) => `<option value="${c}">${c}</option>`).join("")}
                     <option value="OTHER">+ Add New Category...</option>
                 </select>
                 <!-- Hidden input field that reveals if "OTHER" is chosen -->
@@ -1627,43 +1834,52 @@ document.getElementById('openAddPartBtn')?.addEventListener('click', () => {
             </div>
             <button type="submit" class="btn-primary" style="width:100%; margin-top:10px;">Save Part</button>
         </form>
-    `);
+    `,
+  );
 
-    // Toggle custom category text input visibility when "OTHER" is selected
-    const selectEl = document.getElementById('newPartCategorySelect');
-    const customInputEl = document.getElementById('newPartCategoryCustom');
-    
-    selectEl.addEventListener('change', (e) => {
-        if (e.target.value === 'OTHER') {
-            customInputEl.style.display = 'block';
-            customInputEl.required = true;
-            customInputEl.focus();
-        } else {
-            customInputEl.style.display = 'none';
-            customInputEl.required = false;
-        }
-    });
+  // Toggle custom category text input visibility when "OTHER" is selected
+  const selectEl = document.getElementById("newPartCategorySelect");
+  const customInputEl = document.getElementById("newPartCategoryCustom");
+
+  selectEl.addEventListener("change", (e) => {
+    if (e.target.value === "OTHER") {
+      customInputEl.style.display = "block";
+      customInputEl.required = true;
+      customInputEl.focus();
+    } else {
+      customInputEl.style.display = "none";
+      customInputEl.required = false;
+    }
+  });
 });
 
 /* =========================================================
    PARTS SECTION SEARCH & FILTER FUNCTIONALITY
 ========================================================= */
-const partsSearchEl = $("#invSearch") || document.querySelector("input[placeholder*='parts' i], input[placeholder*='Search parts' i]");
+const partsSearchEl =
+  $("#invSearch") ||
+  document.querySelector(
+    "input[placeholder*='parts' i], input[placeholder*='Search parts' i]",
+  );
 
 if (partsSearchEl) {
   partsSearchEl.addEventListener("input", (e) => {
     const query = e.target.value.toLowerCase();
-    const partsRows = document.querySelectorAll("#page-parts tr, .part-row, .inventory-card"); // Adjust selector based on your HTML layout
-    
+    const partsRows = document.querySelectorAll(
+      "#page-parts tr, .part-row, .inventory-card",
+    ); // Adjust selector based on your HTML layout
+
     // If you are rendering parts dynamically via a DATA array:
     if (typeof DATA !== "undefined" && DATA.parts) {
-      const filteredParts = DATA.parts.filter(p => 
-        (p.name + (p.category || "") + (p.code || "")).toLowerCase().includes(query)
+      const filteredParts = DATA.parts.filter((p) =>
+        (p.name + (p.category || "") + (p.code || ""))
+          .toLowerCase()
+          .includes(query),
       );
       // Call your specific parts render function here, e.g., renderParts(filteredParts);
     } else {
       // Fallback DOM filtering if static HTML rows are used
-      partsRows.forEach(row => {
+      partsRows.forEach((row) => {
         const text = row.textContent.toLowerCase();
         row.style.display = text.includes(query) ? "" : "none";
       });
@@ -1677,10 +1893,9 @@ function renderInvoices() {
   const countEl = $("#invoiceCount");
   const tableEl = $("#invoiceTable");
   if (!countEl || !tableEl) return;
-  
-  countEl.textContent =
-    `${DATA.invoices.length} invoice${DATA.invoices.length === 1 ? "" : "s"} total`;
-  
+
+  countEl.textContent = `${DATA.invoices.length} invoice${DATA.invoices.length === 1 ? "" : "s"} total`;
+
   tableEl.innerHTML = `
     <thead><tr>
       <th>Invoice #</th><th>Customer</th><th>Job Ref</th><th>Items</th><th>Subtotal</th><th>VAT</th><th>Total</th><th>Status</th><th>Date</th>
@@ -1724,9 +1939,11 @@ function openInvoiceModal(invId) {
   if (!inv) return;
 
   // Find linked job or customer details for completeness
-  const linkedJob = DATA.jobs.find(j => j.id === inv.jobRef);
-  const linkedBike = linkedJob ? linkedJob.bike : "Registered Motorcycle Profile";
-  const customerObj = DATA.users.find(u => u.name === inv.customer);
+  const linkedJob = DATA.jobs.find((j) => j.id === inv.jobRef);
+  const linkedBike = linkedJob
+    ? linkedJob.bike
+    : "Registered Motorcycle Profile";
+  const customerObj = DATA.users.find((u) => u.name === inv.customer);
   const customerPhone = customerObj ? customerObj.phone : "+63 912 000 0000";
 
   const modalBodyHTML = `
@@ -1764,10 +1981,10 @@ function printCustomerReceipt(invId) {
   const inv = DATA.invoices.find((i) => i.id === invId);
   if (!inv) return;
 
-  const customerObj = DATA.users.find(u => u.name === inv.customer);
+  const customerObj = DATA.users.find((u) => u.name === inv.customer);
   const customerPhone = customerObj ? customerObj.phone : "+63 912 000 0000";
 
-  const printWindow = window.open('', '_blank');
+  const printWindow = window.open("", "_blank");
   printWindow.document.write(`
       <html>
       <head>
@@ -1821,15 +2038,15 @@ function printCustomerReceipt(invId) {
                   <tr>
                       <td>Completed Workshop Service & Parts (Ref: ${inv.jobRef})</td>
                       <td>${inv.items}</td>
-                      <td>₱${Number(inv.subtotal).toLocaleString('en-PH', {minimumFractionDigits: 2})}</td>
+                      <td>₱${Number(inv.subtotal).toLocaleString("en-PH", { minimumFractionDigits: 2 })}</td>
                   </tr>
               </tbody>
           </table>
 
           <div class="totals">
-              <div><span>Subtotal:</span> <span>₱${Number(inv.subtotal).toLocaleString('en-PH', {minimumFractionDigits: 2})}</span></div>
-              <div><span>VAT (12%):</span> <span>₱${Number(inv.vat).toLocaleString('en-PH', {minimumFractionDigits: 2})}</span></div>
-              <div class="grand-total"><span>Total Paid:</span> <span>₱${Number(inv.total).toLocaleString('en-PH', {minimumFractionDigits: 2})}</span></div>
+              <div><span>Subtotal:</span> <span>₱${Number(inv.subtotal).toLocaleString("en-PH", { minimumFractionDigits: 2 })}</span></div>
+              <div><span>VAT (12%):</span> <span>₱${Number(inv.vat).toLocaleString("en-PH", { minimumFractionDigits: 2 })}</span></div>
+              <div class="grand-total"><span>Total Paid:</span> <span>₱${Number(inv.total).toLocaleString("en-PH", { minimumFractionDigits: 2 })}</span></div>
           </div>
 
           <div class="footer">
@@ -1849,7 +2066,7 @@ function printCustomerReceipt(invId) {
 function downloadRevenueReport(fileType) {
   const totalRev = DATA.revenue.reduce((acc, r) => acc + r.value, 0);
   const totalVAT = totalRev * 0.12;
-  const currentDate = new Date().toISOString().split('T')[0];
+  const currentDate = new Date().toISOString().split("T")[0];
 
   if (fileType === "docx") {
     // Styled HTML Word document (.doc) export
@@ -1875,8 +2092,8 @@ function downloadRevenueReport(fileType) {
           
           <h2>Summary Statistics</h2>
           <ul>
-              <li><strong>Total Revenue (All Time):</strong> ₱${totalRev.toLocaleString('en-PH', {minimumFractionDigits: 2})}</li>
-              <li><strong>Total VAT Collected (12%):</strong> ₱${totalVAT.toLocaleString('en-PH', {minimumFractionDigits: 2})}</li>
+              <li><strong>Total Revenue (All Time):</strong> ₱${totalRev.toLocaleString("en-PH", { minimumFractionDigits: 2 })}</li>
+              <li><strong>Total VAT Collected (12%):</strong> ₱${totalVAT.toLocaleString("en-PH", { minimumFractionDigits: 2 })}</li>
               <li><strong>Total Invoices Processed:</strong> ${DATA.invoices.length}</li>
           </ul>
 
@@ -1886,23 +2103,24 @@ function downloadRevenueReport(fileType) {
                   <tr><th>Month</th><th>Revenue</th></tr>
               </thead>
               <tbody>
-                  ${DATA.revenue.map(r => `<tr><td>${r.month}</td><td>₱${r.value.toLocaleString('en-PH', {minimumFractionDigits: 2})}</td></tr>`).join("")}
+                  ${DATA.revenue.map((r) => `<tr><td>${r.month}</td><td>₱${r.value.toLocaleString("en-PH", { minimumFractionDigits: 2 })}</td></tr>`).join("")}
               </tbody>
           </table>
       </body>
       </html>
     `;
 
-    const blob = new Blob(['\ufeff' + htmlContent], { type: 'application/msword' });
+    const blob = new Blob(["\ufeff" + htmlContent], {
+      type: "application/msword",
+    });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
     a.download = `MotoFix_Revenue_Report_${currentDate}.doc`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-
   } else if (fileType === "pdf") {
     // Generate a real downloadable PDF using jsPDF
     const { jsPDF } = window.jspdf;
@@ -1922,14 +2140,22 @@ function downloadRevenueReport(fileType) {
     doc.setFont("helvetica", "bold");
     doc.text("Summary Statistics", 14, 38);
     doc.setFont("helvetica", "normal");
-    doc.text(`- Total Revenue: P${totalRev.toLocaleString('en-PH', {minimumFractionDigits: 2})}`, 14, 46);
-    doc.text(`- Total VAT (12%): P${totalVAT.toLocaleString('en-PH', {minimumFractionDigits: 2})}`, 14, 54);
+    doc.text(
+      `- Total Revenue: P${totalRev.toLocaleString("en-PH", { minimumFractionDigits: 2 })}`,
+      14,
+      46,
+    );
+    doc.text(
+      `- Total VAT (12%): P${totalVAT.toLocaleString("en-PH", { minimumFractionDigits: 2 })}`,
+      14,
+      54,
+    );
     doc.text(`- Invoices Processed: ${DATA.invoices.length}`, 14, 62);
 
     // Monthly Breakdown Table Header
     doc.setFont("helvetica", "bold");
     doc.text("Monthly Breakdown", 14, 74);
-    
+
     let yPos = 82;
     doc.setFillColor(240, 240, 240);
     doc.rect(14, yPos - 6, 180, 8, "F");
@@ -1939,9 +2165,13 @@ function downloadRevenueReport(fileType) {
     // Table Rows
     doc.setFont("helvetica", "normal");
     yPos += 8;
-    DATA.revenue.forEach(r => {
+    DATA.revenue.forEach((r) => {
       doc.text(r.month, 18, yPos);
-      doc.text(`P${r.value.toLocaleString('en-PH', {minimumFractionDigits: 2})}`, 120, yPos);
+      doc.text(
+        `P${r.value.toLocaleString("en-PH", { minimumFractionDigits: 2 })}`,
+        120,
+        yPos,
+      );
       yPos += 8;
     });
 
@@ -1992,10 +2222,14 @@ function renderRevenueStatsAndBreakdown() {
   const aovEl = $("#rev-aov-val");
   const aovDescEl = $("#rev-aov-desc");
 
-  if (totalEl) totalEl.textContent = `₱${totalRev.toLocaleString('en-PH', {minimumFractionDigits: 2})}`;
-  if (vatEl) vatEl.textContent = `₱${totalVAT.toLocaleString('en-PH', {minimumFractionDigits: 2})}`;
-  if (aovEl) aovEl.textContent = `₱${avgVal.toLocaleString('en-PH', {minimumFractionDigits: 2})}`;
-  if (aovDescEl) aovDescEl.textContent = `Based on ${invoiceCount} invoice${invoiceCount === 1 ? '' : 's'}`;
+  if (totalEl)
+    totalEl.textContent = `₱${totalRev.toLocaleString("en-PH", { minimumFractionDigits: 2 })}`;
+  if (vatEl)
+    vatEl.textContent = `₱${totalVAT.toLocaleString("en-PH", { minimumFractionDigits: 2 })}`;
+  if (aovEl)
+    aovEl.textContent = `₱${avgVal.toLocaleString("en-PH", { minimumFractionDigits: 2 })}`;
+  if (aovDescEl)
+    aovDescEl.textContent = `Based on ${invoiceCount} invoice${invoiceCount === 1 ? "" : "s"}`;
 
   // Populate Service Category Breakdown Panel
   const breakdownContainer = $("#category-breakdown-container");
@@ -2004,15 +2238,15 @@ function renderRevenueStatsAndBreakdown() {
       <div style="display: flex; flex-direction: column; gap: 10px;">
         <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.08);">
           <span>🔧 Engine Maintenance</span>
-          <strong style="color:var(--orange);">₱${(totalRev * 0.5).toLocaleString('en-PH', {minimumFractionDigits: 2})} (50%)</strong>
+          <strong style="color:var(--orange);">₱${(totalRev * 0.5).toLocaleString("en-PH", { minimumFractionDigits: 2 })} (50%)</strong>
         </div>
         <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.08);">
           <span>⚙️ Custom Parts & Upgrades</span>
-          <strong style="color:var(--orange);">₱${(totalRev * 0.3).toLocaleString('en-PH', {minimumFractionDigits: 2})} (30%)</strong>
+          <strong style="color:var(--orange);">₱${(totalRev * 0.3).toLocaleString("en-PH", { minimumFractionDigits: 2 })} (30%)</strong>
         </div>
         <div style="display: flex; justify-content: space-between; padding: 8px 0;">
           <span>🛠️ General Repairs</span>
-          <strong style="color:var(--orange);">₱${(totalRev * 0.2).toLocaleString('en-PH', {minimumFractionDigits: 2})} (20%)</strong>
+          <strong style="color:var(--orange);">₱${(totalRev * 0.2).toLocaleString("en-PH", { minimumFractionDigits: 2 })} (20%)</strong>
         </div>
       </div>
     `;
@@ -2025,17 +2259,18 @@ function renderRevenueStatsAndBreakdown() {
 
 // Helper to check if a mechanic is already booked on a specific date/time
 function isMechanicBusy(mechanicName, date, time, excludeApptId = null) {
-  return DATA.appointments.some(a => {
+  return DATA.appointments.some((a) => {
     if (excludeApptId && a.id === excludeApptId) return false;
-    if (a.status === "Cancelled" || a.status === "Complete transaction") return false;
+    if (a.status === "Cancelled" || a.status === "Complete transaction")
+      return false;
     return a.mechanic === mechanicName && a.date === date && a.time === time;
   });
 }
 
 // Get list of available mechanics for a given date/time slot
 function getAvailableMechanics(date, time, excludeApptId = null) {
-  const allMechanics = DATA.users.filter(u => u.role === "Mechanic");
-  return allMechanics.map(m => {
+  const allMechanics = DATA.users.filter((u) => u.role === "Mechanic");
+  return allMechanics.map((m) => {
     const busy = isMechanicBusy(m.name, date, time, excludeApptId);
     return { name: m.name, initials: m.initials, busy };
   });
@@ -2046,10 +2281,18 @@ function renderJobs() {
   const jobsList = $("#jobsList");
   if (!jobsList) return;
 
+  const activeStatus =
+    $("#jobsAdminFilters .pill.active")?.dataset.status || "All";
+  const searchTerm = ($("#jobsAdminSearch")?.value || "").trim().toLowerCase();
+
   // Dynamically sync jobs from active/confirmed/in-progress appointments if not already present
-  DATA.appointments.forEach(app => {
+  DATA.appointments.forEach((app) => {
     if (app.mechanic && app.status !== "Cancelled") {
-      let existingJob = DATA.jobs.find(j => j.id === "J-" + app.id || j.customer === app.customer && j.bike === app.bike);
+      let existingJob = DATA.jobs.find(
+        (j) =>
+          j.id === "J-" + app.id ||
+          (j.customer === app.customer && j.bike === app.bike),
+      );
       if (!existingJob) {
         DATA.jobs.push({
           id: "J-" + app.id,
@@ -2061,17 +2304,32 @@ function renderJobs() {
           parts: 1,
           cost: 500, // Base estimated inspection/service cost
           note: `Service requested: ${Array.isArray(app.services) ? app.services.join(", ") : app.services}`,
-          status: app.status === "In Progress" ? "In Progress" : "Pending"
+          status: app.status === "In Progress" ? "In Progress" : "Pending",
         });
       }
     }
   });
 
-  jobsList.innerHTML = DATA.jobs.map((j) => `
-    <div class="job-card" style="background: #1e1e2d; border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 16px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 10px;">
+  const filteredJobs = DATA.jobs.filter((job) => {
+    const searchable = [job.id, job.customer, job.bike, job.mechanic, job.note]
+      .join(" ")
+      .toLowerCase();
+    const matchesStatus = activeStatus === "All" || job.status === activeStatus;
+    return matchesStatus && (!searchTerm || searchable.includes(searchTerm));
+  });
+
+  const summary = $("#jobsAdminSummary");
+  if (summary)
+    summary.textContent = `${filteredJobs.length} of ${DATA.jobs.length} mechanic jobs`;
+
+  jobsList.innerHTML =
+    filteredJobs
+      .map(
+        (j) => `
+      <div class="job-card" style="background: #1e1e2d; border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 16px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 10px;">
       <div style="display: flex; justify-content: space-between; align-items: center;">
         <span style="font-family: var(--font-mono); font-weight: 700; color: var(--orange);">${j.id}</span>
-        ${statusBadge(j.status)}
+        <div style="display:flex; align-items:center; gap:10px;">${statusBadge(j.status)}<button class="job-view-details" type="button" data-admin-job-details="${j.id}">View Details</button></div>
       </div>
       <div style="font-size: 16px; font-weight: 600; color: #fff;">${j.customer} — <span style="font-weight: 400; color: var(--text-sub, #9ca3af);">${j.bike}</span></div>
       <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.03); padding: 8px 12px; border-radius: 6px;">
@@ -2086,8 +2344,63 @@ function renderJobs() {
       </div>
       <div style="font-size: 13px; color: var(--text-sub, #9ca3af); font-style: italic;">Notes: ${j.note}</div>
     </div>
-  `).join("") || `<p class="subtext" style="padding: 20px;">No active mechanic jobs assigned.</p>`;
+  `,
+      )
+      .join("") ||
+    `<div class="jobs-admin-empty">No mechanic jobs match the selected filters.</div>`;
+
+  document.querySelectorAll("[data-admin-job-details]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const job = DATA.jobs.find(
+        (item) => item.id === button.dataset.adminJobDetails,
+      );
+      if (job) openAdminJobDetails(job);
+    });
+  });
 }
+
+function openAdminJobDetails(job) {
+  const appointment = DATA.appointments.find((item) => item.id === job.apptRef);
+  const bookedAt = appointment?.createdAt
+    ? new Date(appointment.createdAt).toLocaleString("en-PH", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      })
+    : "Not available for this legacy job";
+  const services =
+    appointment?.services || job.note || "Service details unavailable";
+  const parts = appointment?.parts?.length
+    ? appointment.parts
+        .map((part) => `${part.name} x${part.quantity || 1}`)
+        .join(", ")
+    : "No parts requested";
+  const details = `
+      <div class="admin-job-details-grid">
+        <div><span>Customer</span><strong>${job.customer}</strong></div>
+        <div><span>Contact</span><strong>${appointment?.phone || "N/A"}</strong></div>
+        <div><span>Motorcycle</span><strong>${job.bike}</strong></div>
+        <div><span>Assigned mechanic</span><strong>${job.mechanic}</strong></div>
+        <div><span>Service requested</span><strong>${Array.isArray(services) ? services.join(", ") : services}</strong></div>
+        <div><span>Status</span><strong>${statusBadge(job.status)}</strong></div>
+        <div><span>Scheduled date</span><strong>${appointment?.date || "Not set"}</strong></div>
+        <div><span>Scheduled time</span><strong>${appointment?.time || "Not set"}</strong></div>
+        <div class="full"><span>Booked by customer</span><strong>${bookedAt}</strong></div>
+        <div class="full"><span>Parts requested</span><strong>${parts}</strong></div>
+        <div class="full"><span>Notes</span><strong>${appointment?.notes || job.note || "No notes provided"}</strong></div>
+      </div>`;
+  openModal(`Job Details: ${job.id}`, details);
+}
+
+$("#jobsAdminSearch")?.addEventListener("input", renderJobs);
+$("#jobsAdminFilters")?.addEventListener("click", (event) => {
+  const pill = event.target.closest(".pill");
+  if (!pill) return;
+  $$("#jobsAdminFilters .pill").forEach((item) =>
+    item.classList.remove("active"),
+  );
+  pill.classList.add("active");
+  renderJobs();
+});
 
 /* ===================== USER MANAGEMENT PAGE ===================== */
 function renderUsers() {
@@ -2103,7 +2416,10 @@ function renderUsers() {
     list = list.filter((u) => (u.name + u.email).toLowerCase().includes(query));
   }
 
-  usersGrid.innerHTML = list.map((u) => `
+  usersGrid.innerHTML =
+    list
+      .map(
+        (u) => `
     <div class="user-card" style="background: #1e1e2d; border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 12px;">
       <div style="display: flex; align-items: center; gap: 12px;">
         <div class="avatar" style="width: 40px; height: 40px; font-size: 14px;">${u.initials || avatarInitials(u.name)}</div>
@@ -2114,10 +2430,13 @@ function renderUsers() {
       </div>
       <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 10px;">
         <span style="background: rgba(255,107,26,0.15); color: var(--orange); padding: 3px 8px; border-radius: 4px; font-weight: 600; font-size: 11px; text-transform: uppercase;">${u.role}</span>
-        <span style="color: var(--text-sub, #9ca3af);">${u.phone || 'No phone'}</span>
+        <span style="color: var(--text-sub, #9ca3af);">${u.phone || "No phone"}</span>
       </div>
     </div>
-  `).join("") || `<p class="subtext" style="padding: 20px;">No users found.</p>`;
+  `,
+      )
+      .join("") ||
+    `<p class="subtext" style="padding: 20px;">No users found.</p>`;
 }
 
 $$("#userFilters .pill").forEach((p) =>
@@ -2202,7 +2521,9 @@ function renderMasterMechanicsTable() {
         </tr>
     </thead>
     <tbody>
-        ${DATA.masterEmployees.map(e => `
+        ${DATA.masterEmployees
+          .map(
+            (e) => `
             <tr>
                 <td>${e.id}</td>
                 <td>
@@ -2220,15 +2541,21 @@ function renderMasterMechanicsTable() {
                     <button class="btn-view delete-emp-inline" data-id="${e.id}" style="color: var(--red); border-color: rgba(239,68,68,0.2);">Deactivate</button>
                 </td>
             </tr>
-        `).join("")}
+        `,
+          )
+          .join("")}
     </tbody>
   `;
 
-  document.querySelectorAll(".delete-emp-inline").forEach(btn => {
+  document.querySelectorAll(".delete-emp-inline").forEach((btn) => {
     btn.addEventListener("click", () => {
       const id = Number(btn.getAttribute("data-id"));
-      if (confirm("Are you sure you want to deactivate this store employee account?")) {
-        DATA.masterEmployees = DATA.masterEmployees.filter(e => e.id !== id);
+      if (
+        confirm(
+          "Are you sure you want to deactivate this store employee account?",
+        )
+      ) {
+        DATA.masterEmployees = DATA.masterEmployees.filter((e) => e.id !== id);
         renderMasterMechanicsTable();
       }
     });
@@ -2250,7 +2577,7 @@ if (openAddMechanicModalBtn) {
       </div>
       <div class="field"><label>Email Address</label><input id="newEmpEmail" placeholder="employee@motofix.com"></div>
       <button class="btn-primary" id="saveNewEmpBtn" style="width:100%;margin-top:6px;">Create Account</button>
-      `
+      `,
     );
 
     const saveBtn = $("#saveNewEmpBtn");
@@ -2259,15 +2586,18 @@ if (openAddMechanicModalBtn) {
         const nameInput = $("#newEmpName");
         const roleInput = $("#newEmpRole");
         const emailInput = $("#newEmpEmail");
-        
+
         if (nameInput && nameInput.value) {
-          const newId = DATA.masterEmployees.length > 0 ? Math.max(...DATA.masterEmployees.map(e => e.id)) + 1 : 1;
+          const newId =
+            DATA.masterEmployees.length > 0
+              ? Math.max(...DATA.masterEmployees.map((e) => e.id)) + 1
+              : 1;
           DATA.masterEmployees.push({
             id: newId,
             name: nameInput.value,
             role: roleInput ? roleInput.value : "Mechanic",
             email: emailInput ? emailInput.value : "employee@motofix.com",
-            status: "Active"
+            status: "Active",
           });
           renderMasterMechanicsTable();
           $("#modalBackdrop").classList.remove("open");
@@ -2282,7 +2612,9 @@ function openEditPartModal(sku) {
   const part = DATA.inventory.find((i) => i.sku === sku);
   if (!part) return;
 
-  openModal('Edit Part', `
+  openModal(
+    "Edit Part",
+    `
     <form id="editPartForm">
         <input type="hidden" id="editPartOriginalSku" value="${part.sku}">
         <div style="margin-bottom: 12px;">
@@ -2311,7 +2643,8 @@ function openEditPartModal(sku) {
         </div>
         <button type="submit" class="btn-primary" style="width:100%; margin-top:10px;">Update Part</button>
     </form>
-  `);
+  `,
+  );
 }
 
 function deletePart(sku) {
@@ -2328,7 +2661,9 @@ function openEditServiceModal(code) {
   const service = DATA.services.find((s) => s.code === code);
   if (!service) return;
 
-  openModal('Edit Service', `
+  openModal(
+    "Edit Service",
+    `
     <form id="editServiceForm">
         <input type="hidden" id="editServiceCode" value="${service.code}">
         <div style="margin-bottom: 12px;">
@@ -2353,7 +2688,8 @@ function openEditServiceModal(code) {
         </div>
         <button type="submit" class="btn-primary" style="width:100%; margin-top:10px;">Update Service</button>
     </form>
-  `);
+  `,
+  );
 }
 
 function deleteService(code) {
@@ -2366,58 +2702,60 @@ function deleteService(code) {
 }
 
 // Global listener handling edit form submissions
-document.addEventListener('submit', (e) => {
-  if (e.target && e.target.id === 'editPartForm') {
+document.addEventListener("submit", (e) => {
+  if (e.target && e.target.id === "editPartForm") {
     e.preventDefault();
-    const originalSku = document.getElementById('editPartOriginalSku').value;
-    
+    const originalSku = document.getElementById("editPartOriginalSku").value;
+
     const updatedPart = {
-      name: document.getElementById('editPartName').value,
-      sku: document.getElementById('editPartSku').value,
-      brand: document.getElementById('editPartBrand').value,
-      category: document.getElementById('editPartCategory').value,
-      stock: parseInt(document.getElementById('editPartStock').value, 10),
+      name: document.getElementById("editPartName").value,
+      sku: document.getElementById("editPartSku").value,
+      brand: document.getElementById("editPartBrand").value,
+      category: document.getElementById("editPartCategory").value,
+      stock: parseInt(document.getElementById("editPartStock").value, 10),
       max: 60,
-      price: parseFloat(document.getElementById('editPartPrice').value)
+      price: parseFloat(document.getElementById("editPartPrice").value),
     };
 
-    const index = DATA.inventory.findIndex(i => i.sku === originalSku);
+    const index = DATA.inventory.findIndex((i) => i.sku === originalSku);
     if (index !== -1) {
       DATA.inventory[index] = updatedPart;
-      localStorage.setItem('motofix_parts', JSON.stringify(DATA.inventory));
+      localStorage.setItem("motofix_parts", JSON.stringify(DATA.inventory));
       renderInvFilters();
       renderInventoryTable();
     }
-    document.getElementById('modalBackdrop').classList.remove('open');
+    document.getElementById("modalBackdrop").classList.remove("open");
   }
 
-  if (e.target && e.target.id === 'editServiceForm') {
+  if (e.target && e.target.id === "editServiceForm") {
     e.preventDefault();
-    const code = document.getElementById('editServiceCode').value;
+    const code = document.getElementById("editServiceCode").value;
 
     const updatedService = {
       code: code,
-      name: document.getElementById('editServiceName').value,
-      category: document.getElementById('editServiceCategory').value,
-      price: parseFloat(document.getElementById('editServicePrice').value),
+      name: document.getElementById("editServiceName").value,
+      category: document.getElementById("editServiceCategory").value,
+      price: parseFloat(document.getElementById("editServicePrice").value),
       hours: 1,
-      hoursLabel: document.getElementById('editServiceHours').value,
-      desc: document.getElementById('editServiceDesc').value
+      hoursLabel: document.getElementById("editServiceHours").value,
+      desc: document.getElementById("editServiceDesc").value,
     };
 
-    const index = DATA.services.findIndex(s => s.code === code);
+    const index = DATA.services.findIndex((s) => s.code === code);
     if (index !== -1) {
       DATA.services[index] = updatedService;
-      localStorage.setItem('motofix_services', JSON.stringify(DATA.services));
+      localStorage.setItem("motofix_services", JSON.stringify(DATA.services));
       renderServiceFilters();
       renderServicesGrid();
     }
-    document.getElementById('modalBackdrop').classList.remove('open');
+    document.getElementById("modalBackdrop").classList.remove("open");
   }
 });
 
 /* ===================== INIT ===================== */
 function init() {
+  syncAppointmentsFromStorage();
+
   // Master Admin Sidebar Check
   const userRole = localStorage.getItem("userRole");
   if (userRole === "master_admin") {
@@ -2450,41 +2788,53 @@ function init() {
   renderUsers();
 
   renderMasterMechanicsTable();
-  
+  renderAdminNotifications();
 }
 
 document.addEventListener("DOMContentLoaded", init);
 
+window.addEventListener("storage", (event) => {
+  if (event.key === "motofix_notifications") renderAdminNotifications();
+  if (event.key === APPOINTMENT_STORAGE_KEY) {
+    syncAppointmentsFromStorage();
+    renderDashboardAppointments();
+    renderAppointmentsPage();
+  }
+});
+
 /* =========================================================
    EDIT SERVICE FORM SUBMISSION HANDLER (Completion Fix)
 ========================================================= */
-document.addEventListener('submit', (e) => {
-    if (e.target && e.target.id === 'editServiceForm') {
-        e.preventDefault();
-        
-        const serviceCode = document.getElementById('editServiceCode').value;
-        const serviceIndex = DATA.services.findIndex(s => s.code === serviceCode);
+document.addEventListener("submit", (e) => {
+  if (e.target && e.target.id === "editServiceForm") {
+    e.preventDefault();
 
-        if (serviceIndex !== -1) {
-            DATA.services[serviceIndex] = {
-                ...DATA.services[serviceIndex],
-                name: document.getElementById('editServiceName').value,
-                category: document.getElementById('editServiceCategory').value,
-                desc: document.getElementById('editServiceDesc').value,
-                price: parseFloat(document.getElementById('editServicePrice').value)
-            };
+    const serviceCode = document.getElementById("editServiceCode").value;
+    const serviceIndex = DATA.services.findIndex((s) => s.code === serviceCode);
 
-            // Save updated services list to localStorage
-            localStorage.setItem("motofix_services", JSON.stringify(DATA.services));
-            
-            // Close modal and refresh UI views
-            document.getElementById('modalBackdrop').classList.remove('open');
-            renderServiceFilters();
-            renderServicesGrid();
-            
-            if (typeof showNotification === 'function') {
-                showNotification(`Service ${serviceCode} updated successfully!`, 'success');
-            }
-        }
+    if (serviceIndex !== -1) {
+      DATA.services[serviceIndex] = {
+        ...DATA.services[serviceIndex],
+        name: document.getElementById("editServiceName").value,
+        category: document.getElementById("editServiceCategory").value,
+        desc: document.getElementById("editServiceDesc").value,
+        price: parseFloat(document.getElementById("editServicePrice").value),
+      };
+
+      // Save updated services list to localStorage
+      localStorage.setItem("motofix_services", JSON.stringify(DATA.services));
+
+      // Close modal and refresh UI views
+      document.getElementById("modalBackdrop").classList.remove("open");
+      renderServiceFilters();
+      renderServicesGrid();
+
+      if (typeof showNotification === "function") {
+        showNotification(
+          `Service ${serviceCode} updated successfully!`,
+          "success",
+        );
+      }
     }
+  }
 });
