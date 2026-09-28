@@ -82,27 +82,68 @@ function validate() {
    .catch(() => ({ ok: false, role: null }));
    --------------------------------------------------------------------------
 ========================================================================== */
+/* ==========================================================================
+   DATABASE ABSTRACTION LAYER (Login Authentication)
+   - Checks LocalStorage (`motofix_users`) for dynamically registered users.
+   - Falls back to hardcoded accounts for system testing.
+   - PREPPED FOR PHP/MYSQL: When moving to PHPMyAdmin, replace this 
+     logic with a fetch() POST request to a backend script (e.g., login.php).
+========================================================================== */
 function authenticate(email, password) {
   return new Promise((resolve) => {
     setTimeout(() => {
+      const normalizedEmail = String(email || "").trim().toLowerCase();
+      let role = null;
 
-      // ANDITO YUNG MGA ACCOUNTS PARA MAKAPASOK SA MGA UI
+      // 1. CHECK LOCALSTORAGE DATABASE MOCK FIRST (Catches new signups!)
+      const registeredUsers = JSON.parse(localStorage.getItem("motofix_users")) || [];
+      const foundUser = registeredUsers.find(u => u.email.toLowerCase() === normalizedEmail);
 
-      // Hardcoded accounts for design review (CHANGE LATER FOR DYNAMIC FUNCTION)
+      if (foundUser) {
+        // If found in localStorage, verify password matches what they signed up with
+        if (foundUser.password === password) {
+          // Map database role string to system roles safely
+          role = foundUser.role ? foundUser.role.toLowerCase() : "customer";
+          
+          // Save extra user profile info to session storage for the UI to use
+          localStorage.setItem("userFullName", foundUser.name || `${foundUser.first_name} ${foundUser.last_name}`);
+          
+          resolve({ ok: true, role });
+          return;
+        } else {
+          // Password incorrect for this local account
+          resolve({ ok: false, role: null });
+          return;
+        }
+      }
+
+      // 2. FALLBACK TO HARDCODED ACCOUNTS (If not found in localStorage)
       const knownUsers = {
-        "master@motofix.com": "master_admin", // New Master Admin role
+        "master@motofix.com": "master_admin", // Master Admin role
         "admin@motofix.com": "admin",         // Regular Store Admin
-        "mechanic1@motofix.com": "mechanic",    // Mechanic1 name Ramon Santos
-        "mechanic2@motofix.com": "mechanic",    // Mechanic2 name Jake Reyes
-        "jose@email.com": "customer",          // Customer name Jose Bautista
-        "ana@email.com": "customer",            // Customer name Ana Flores
-        "miguel@email.com": "customer"          // Customer name Miguel Torres
+        "mechanic1@motofix.com": "mechanic",    // Mechanic Ramon Santos
+        "mechanic2@motofix.com": "mechanic",    // Mechanic Jake Reyes
+        "jose@email.com": "customer",          // Customer Jose Bautista
+        "ana@email.com": "customer",            // Customer Ana Flores
+        "miguel@email.com": "customer"          // Customer Miguel Torres
       };
 
-      const normalizedEmail = String(email || "").trim().toLowerCase();
-      const role = knownUsers[normalizedEmail] || null;
-      // Simple mock password check for visual testing
+      role = knownUsers[normalizedEmail] || null;
       const passwordValid = typeof password === "string" && password.length >= 6;
+
+      /* 
+        PHPMyAdmin Migration Note for Defense:
+        When switching to your backend, you will replace the code above with:
+        
+        return fetch('api/login.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: normalizedEmail, password })
+        })
+        .then(res => res.json())
+        .then(data => ({ ok: data.success, role: data.role }))
+        .catch(() => ({ ok: false, role: null }));
+      */
 
       resolve({ ok: !!role && passwordValid, role });
     }, 600);
