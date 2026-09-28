@@ -242,6 +242,7 @@ export function initNavigation() {
     });
   }
 
+  closeSidebar();
   // --- User Profile Popup Toggle Logic ---
   const userOptionsBtn = document.querySelector(".user_options-btn");
   const popupUserOptions = document.querySelector(".popup_user_options");

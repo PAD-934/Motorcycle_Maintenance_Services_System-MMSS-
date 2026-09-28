@@ -1,38 +1,30 @@
 export function initTransactions() {
-    const transactionsTableBody = document.getElementById("transactions-table-body");
+    const transactionsTableBody = document.getElementById("sc-appointments-tbody");
     const invoiceCountLabel = document.getElementById("invoice-count-label");
-    const filterTabs = document.querySelectorAll(".transactions-filters .filter-tab");
+    const filterTabs = document.querySelectorAll(".sc-filter-btn");
+
+    // --- Database-Ready API Abstraction Layer ---
+    async function fetchTransactionsFromDB() {
+        try {
+            // CURRENT: Using localStorage
+            const data = localStorage.getItem("userTransactions");
+            return data ? JSON.parse(data) : [];
+            
+            // Pag ready na i implement ung database: palitan nio yung nasa taas gamit to:
+            // const response = await fetch('/api/transactions');
+            // return await response.json();
+        } catch (error) {
+            console.error("Failed to load transactions:", error);
+            return [];
+        }
+    }
 
     function loadTransactions(filter = "all") {
         if (!transactionsTableBody) return;
 
         let transactions = JSON.parse(localStorage.getItem("userTransactions")) || [];
 
-        // Fallback demo data if nothing is booked yet
-        if (transactions.length === 0) {
-            transactions = [
-                {
-                    id: "A1",
-                    service: "Basic Oil Change, Brake System Service",
-                    mechanic: "Ramon Santos",
-                    parts: "Spark Plug (₱350)",
-                    broughtOwnParts: "No",
-                    total: "₱1,850.00",
-                    status: "completed",
-                    date: "2026-07-24"
-                },
-                {
-                    id: "A4",
-                    service: "Suspension Setup, Performance Exhaust Install",
-                    mechanic: "Unassigned",
-                    parts: "None",
-                    broughtOwnParts: "Yes (Motul Oil 10W40)",
-                    total: "₱950.00",
-                    status: "pending",
-                    date: "2026-07-28"
-                }
-            ];
-        }
+        // removed fallback block for database readiness
 
         let filtered = transactions;
         if (filter !== "all") {
