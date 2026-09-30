@@ -138,13 +138,26 @@ function getCustomerProfile() {
     },
   };
 
-  return (
-    profiles[email] || {
-      name: "Customer",
-      phone: "+63 912 100 0000",
-      initials: "CU",
-    }
-  );
+    const base = profiles[email] || {
+    name: "Customer",
+    phone: "+63 912 100 0000",
+    initials: "CU",
+  };
+
+  let saved = null;
+  try {
+    saved = JSON.parse(localStorage.getItem("motofix_profiles") || "{}")[email];
+  } catch {}
+  if (!saved) return base;
+
+  const name = saved.name || base.name;
+  return {
+    name,
+    phone: saved.phone || base.phone,
+    initials:
+      name.split(" ").filter(Boolean).map((p) => p[0]).join("").slice(0, 2).toUpperCase() ||
+      base.initials,
+  };
 }
 
 function renderStoredAppointments() {
@@ -193,9 +206,54 @@ function renderStoredAppointments() {
         .join("")
     : "";
 }
+function renderPendingParts() {
+  const box = document.getElementById("sc-selected-parts");
+  if (!box) return;
 
+  let parts = [];
+  try {
+    parts = JSON.parse(localStorage.getItem("motofix_pending_parts") || "[]");
+  } catch {
+    parts = [];
+  }
+
+  if (!parts.length) {
+    box.innerHTML = `<div style="padding:10px;color:#9a9a9a;">No parts selected. Pick parts in Parts &amp; Shop.</div>`;
+    return;
+  }
+
+  const money = (n) =>
+    `₱${Number(n).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`;
+  const subtotal = parts
+    .filter((p) => p.source === "buy")
+    .reduce((sum, p) => sum + p.price * p.quantity, 0);
+
+  box.innerHTML =
+    parts
+      .map(
+        (p) => `
+      <div class="sc-service-item">
+        <div class="sc-service-info">
+          <span>${escapeHtml(p.name)} × ${p.quantity}</span>
+          <span class="sc-price">${p.source === "buy" ? money(p.price * p.quantity) : "Bringing own"}</span>
+        </div>
+      </div>`
+      )
+      .join("") +
+    `<div class="sc-service-item">
+       <div class="sc-service-info">
+         <span><strong>Parts subtotal</strong></span>
+         <span class="sc-price">${money(subtotal)}</span>
+       </div>
+     </div>`;
+}
 export function initAppointments() {
   renderStoredAppointments();
+    renderStoredAppointments();
+  renderPendingParts();
+  document
+    .getElementById("sc-open-modal-btn")
+    ?.addEventListener("click", renderPendingParts);
 
   const dateInput = document.getElementById("sc-date-input");
   if (dateInput) {
@@ -334,6 +392,7 @@ export function initAppointments() {
       const updatedAppointments = [newAppointment, ...storedAppointments];
       writeStoredAppointments(updatedAppointments);
       localStorage.removeItem("motofix_pending_parts");
+      renderPendingParts();   // <-- add this line
       addSharedNotification(
         "New customer appointment",
         `${profile.name} requested ${checkedServices.join(", ")} for ${moto}.`,

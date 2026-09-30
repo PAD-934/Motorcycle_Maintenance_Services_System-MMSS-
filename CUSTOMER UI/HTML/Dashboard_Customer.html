@@ -496,43 +496,42 @@
       </div>
     </header>
 
-    <!-- MAIN LAYOUT -->
-    <main class="CM">
-      <!-- ORIGINAL DASHBOARD VIEW -->
-      <div id="dashboard-view" class="parent_main">
-        <!-- FIRST DIV SUBPARENT -->
-        <div class="first_widget_sub_parent">
-          <!-- first widget -->
-          <div class="motorcycle_widget">
-            <div class="motorcycle_widget_subparent">
-              <span class="mws_label">My Motorcycles</span>
-              <div class="mws_icon">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  class="lucide lucide-bike"
-                  aria-hidden="true"
-                  style="color: rgb(249, 115, 22)"
-                >
-                  <circle cx="18.5" cy="17.5" r="3.5"></circle>
-                  <circle cx="5.5" cy="17.5" r="3.5"></circle>
-                  <circle cx="15" cy="5" r="1"></circle>
-                  <path d="M12 17.5V14l-3-3 4-3 2 3h2"></path>
-                </svg>
-              </div>
-            </div>
-            <div>
-              <div class="mws_numeral">2</div>
-            </div>
-          </div>
-
+   <!-- MAIN LAYOUT -->
+<main class="CM">
+  <!-- ORIGINAL DASHBOARD VIEW -->
+  <div id="dashboard-view" class="parent_main">
+    <!-- FIRST DIV SUBPARENT -->
+    <div class="first_widget_sub_parent">
+      <!-- first widget -->
+<div class="motorcycle_widget">
+  <div class="motorcycle_widget_subparent">
+    <span class="mws_label">My Motorcycles</span>
+    <div class="mws_icon">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        class="lucide lucide-bike"
+        aria-hidden="true"
+        style="color: rgb(249, 115, 22)"
+      >
+        <circle cx="18.5" cy="17.5" r="3.5"></circle>
+        <circle cx="5.5" cy="17.5" r="3.5"></circle>
+        <circle cx="15" cy="5" r="1"></circle>
+        <path d="M12 17.5V14l-3-3 4-3 2 3h2"></path>
+      </svg>
+    </div>
+  </div>
+  <div>
+    <div class="mws_numeral" id="motorcycle-count">0</div>
+  </div>
+</div>
           <!-- second widget -->
           <div class="appointments_widget">
             <div class="appointments_widget_subparent">
@@ -559,35 +558,7 @@
                 </svg>
               </div>
             </div>
-            <div class="aws_numeral">2</div>
-          </div>
-
-          <!-- third widget -->
-          <div class="job_widget">
-            <div class="jobs_widget_subparent">
-              <span class="jws_label">Pending Jobs</span>
-              <div class="jws_icon">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  class="lucide lucide-wrench"
-                  aria-hidden="true"
-                  style="color: rgb(245, 158, 11)"
-                >
-                  <path
-                    d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.106-3.105c.32-.322.863-.22.983.218a6 6 0 0 1-8.259 7.057l-7.91 7.91a1 1 0 0 1-2.999-3l7.91-7.91a6 6 0 0 1 7.057-8.259c.438.12.54.662.219.984z"
-                  ></path>
-                </svg>
-              </div>
-            </div>
-            <div class="jws_numeral">2</div>
+           <div class="aws_numeral" id="appointments-count">0</div>
           </div>
 
           <!-- fourth widget -->
@@ -614,7 +585,7 @@
                 </svg>
               </div>
             </div>
-            <div class="ews_numeral">₱0.00</div>
+           <div class="ews_numeral" id="total-spent">₱0.00</div>
           </div>
         </div>
 
@@ -710,83 +681,7 @@
         <!-- THIRD DIV SUBPARENT -->
         <div class="third_widget_sub_parent">
           <div class="third_sub_parent_label">My Motorcycles</div>
-          <div class="motorcycle_list_parent">
-            <div class="motorcycle_list_subparent">
-              <div class="moto_label_parent">
-                <div class="moto_label_subparent">
-                  <div class="third_div_moto_icon">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="20"
-                      height="20"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      class="lucide lucide-bike"
-                      aria-hidden="true"
-                      style="color: rgb(249, 115, 22)"
-                    >
-                      <circle cx="18.5" cy="17.5" r="3.5"></circle>
-                      <circle cx="5.5" cy="17.5" r="3.5"></circle>
-                      <circle cx="15" cy="5" r="1"></circle>
-                      <path d="M12 17.5V14l-3-3 4-3 2 3h2"></path>
-                    </svg>
-                  </div>
-                  <div>
-                    <div class="third_div_moto_label">2022 Honda PCX 160</div>
-                    <div class="third_div_moto_sublabel">
-                      Pearl White · ABC 1234
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="moto_km_parent">
-                <div class="moto_km">12,450 km</div>
-                <div class="moto_mods">2 mods</div>
-              </div>
-            </div>
-
-            <div class="motorcycle_list_subparent">
-              <div class="moto_label_parent">
-                <div class="moto_label_subparent">
-                  <div class="third_div_moto_icon">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="20"
-                      height="20"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      class="lucide lucide-bike"
-                      aria-hidden="true"
-                      style="color: rgb(249, 115, 22)"
-                    >
-                      <circle cx="18.5" cy="17.5" r="3.5"></circle>
-                      <circle cx="5.5" cy="17.5" r="3.5"></circle>
-                      <circle cx="15" cy="5" r="1"></circle>
-                      <path d="M12 17.5V14l-3-3 4-3 2 3h2"></path>
-                    </svg>
-                  </div>
-                  <div>
-                    <div class="third_div_moto_label">2021 Yamaha NMAX 155</div>
-                    <div class="third_div_moto_sublabel">
-                      Matte Black · XYZ 5678
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="moto_km_parent">
-                <div class="moto_km">28,300 km</div>
-              </div>
-            </div>
+          <div class="motorcycle_list_parent" id="dashboard-motorcycles-list">
           </div>
         </div>
 
@@ -1006,14 +901,7 @@
               <div class="sc-form-group">
                 <label>MOTORCYCLE</label>
                 <div class="sc-select-row">
-                  <select id="sc-motorcycle-select" class="sc-input-field">
-                    <option value="2022 Honda PCX 160 — ABC 1234">
-                      2022 Honda PCX 160 — ABC 1234
-                    </option>
-                    <option value="2021 Yamaha NMAX 155 — XYZ 5678">
-                      2021 Yamaha NMAX 155 — XYZ 5678
-                    </option>
-                  </select>
+                  <select id="sc-motorcycle-select" class="sc-input-field"></select>
                   <button
                     type="button"
                     id="sc-add-motorbike-btn"
@@ -1167,7 +1055,11 @@
                   </select>
                 </div>
               </div>
-
+              <!-- SELECTED PARTS (from Parts & Shop) -->
+      <div class="sc-form-group">
+        <label>SELECTED PARTS</label>
+        <div id="sc-selected-parts" class="sc-services-box"></div>
+      </div>
               <!-- NOTES -->
               <div class="sc-form-group">
                 <label>NOTES</label>
@@ -1277,33 +1169,6 @@
         <div class="mc-content-layout">
           <!-- MOTORCYCLE LIST CARDS -->
           <div class="mc-list-column" id="motorcycles-list">
-            <!-- Bike Card 1 -->
-            <div class="mc-bike-card" data-bike-id="1">
-              <div class="mc-bike-info">
-                <div class="mc-bike-title">2022 Honda PCX 160</div>
-                <div class="mc-bike-sub">Pearl White · ABC 1234</div>
-                <div class="mc-tags-row">
-                  <span class="mc-tag">Aftermarket exhaust</span>
-                  <span class="mc-tag">LED headlights</span>
-                </div>
-              </div>
-              <div class="mc-bike-meta">
-                <div class="mc-odometer-val">12,450 km</div>
-                <div class="mc-odometer-label">odometer</div>
-              </div>
-            </div>
-
-            <!-- Bike Card 2 -->
-            <div class="mc-bike-card" data-bike-id="2">
-              <div class="mc-bike-info">
-                <div class="mc-bike-title">2021 Yamaha NMAX 155</div>
-                <div class="mc-bike-sub">Matte Black · XYZ 5678</div>
-              </div>
-              <div class="mc-bike-meta">
-                <div class="mc-odometer-val">28,300 km</div>
-                <div class="mc-odometer-label">odometer</div>
-              </div>
-            </div>
           </div>
 
           <!-- BIKE DETAILS & CUSTOMIZATIONS PANEL (HIDDEN BY DEFAULT) -->
@@ -1427,19 +1292,40 @@
               </button>
             </div>
             <div class="mc-modal-body">
-              <p>
-                To register a new motorcycle, please visit the shop in person
-                with your OR/CR, or contact us at
-                <span class="mc-highlight-email">motofix@shop.com</span> for
-                remote registration assistance.
-              </p>
-              <button
-                type="button"
-                class="mc-got-it-btn"
-                id="got-it-bike-modal"
-              >
-                Got it
-              </button>
+                   <div class="sc-form-group">
+        <label>MAKE</label>
+        <input type="text" id="bike-make" class="sc-input-field" placeholder="e.g. Honda" />
+      </div>
+      <div class="sc-form-group">
+        <label>MODEL</label>
+        <input type="text" id="bike-model" class="sc-input-field" placeholder="e.g. PCX 160" />
+      </div>
+      <div class="sc-form-row">
+        <div class="sc-form-group half">
+          <label>YEAR</label>
+          <input type="number" id="bike-year" class="sc-input-field" placeholder="e.g. 2022" />
+        </div>
+        <div class="sc-form-group half">
+          <label>COLOR</label>
+          <input type="text" id="bike-color" class="sc-input-field" placeholder="e.g. Pearl White" />
+        </div>
+      </div>
+      <div class="sc-form-row">
+        <div class="sc-form-group half">
+          <label>PLATE NO.</label>
+          <input type="text" id="bike-plate" class="sc-input-field" placeholder="e.g. ABC 1234" />
+        </div>
+        <div class="sc-form-group half">
+          <label>MILEAGE (KM)</label>
+          <input type="number" id="bike-mileage" class="sc-input-field" placeholder="e.g. 12450" />
+        </div>
+      </div>
+      <div class="sc-form-group">
+        <label>CUSTOMIZATIONS (OPTIONAL, COMMA-SEPARATED)</label>
+        <input type="text" id="bike-mods" class="sc-input-field" placeholder="e.g. Aftermarket exhaust, LED headlights" />
+      </div>
+      <div id="bike-form-error" class="sc-booking-error" hidden></div>
+      <button type="button" class="sc-submit-btn" id="save-bike-btn">Save Motorcycle</button>
             </div>
           </div>
         </div>
@@ -1535,7 +1421,6 @@
                   <th>Stock</th>
                   <th>Unit Price</th>
                   <th>Source</th>
-                  <th>Action</th>
                 </tr>
               </thead>
               <tbody id="parts-table-body">

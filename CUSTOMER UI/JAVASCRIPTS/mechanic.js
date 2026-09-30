@@ -204,15 +204,16 @@
     if (dot) dot.style.display = notifications.length ? "block" : "none";
   }
 
-  window.addEventListener("storage", (event) => {
+    window.addEventListener("storage", (event) => {
     if (event.key === "motofix_notifications") renderMechanicNotifications();
-    if (event.key === "motofix_appointments") {
-      syncJobsFromSharedAppointments();
-      renderAppointments();
-      renderDashboard();
-      renderJobs();
+    if (
+      event.key === "motofix_appointments" ||
+      event.key === "motofix_inventory"
+    ) {
+      renderAll();
     }
   });
+  window.addEventListener("focus", () => renderAll());
 
   const parts = [
     {
@@ -313,7 +314,7 @@
     },
   ];
 
-  let apptStatusFilter = "pending";
+  let apptStatusFilter = "all";
   let apptSearchTerm = "";
   let jobsSearchTerm = "";
   let jobsStatusFilter = "all";
@@ -500,12 +501,11 @@
         <td><div class="dt-cell"><div class="d">${j.date}</div><div class="t">${j.time}</div></div></td>
         <td>${badge(j.status)}</td>
         <td class="${j.notes ? "note-warn" : "note-dim"}">${j.notes ? escapeHtml(j.notes) : "—"}</td>
-        <td><button class="job-details-btn" type="button" data-job-details="${j.id}">View Details</button></td>
       </tr>
     `,
           )
           .join("")
-      : `<tr><td colspan="7" class="jobs-empty-row">No jobs match the selected filters.</td></tr>`;
+      : `<tr><td colspan="6" class="jobs-empty-row">No jobs match the selected filters.</td></tr>`;
 
     document.querySelectorAll("[data-job-details]").forEach((button) => {
       button.addEventListener("click", () => {
@@ -702,31 +702,27 @@
     inventory: ["Inventory & Parts", "Parts catalog and stock management"],
   };
 
-  function goTo(key) {
-    document
-      .querySelectorAll(".view")
-      .forEach((v) => v.classList.remove("active"));
-    document.getElementById(views[key]).classList.add("active");
-    document
-      .querySelectorAll(".nav-item")
-      .forEach((n) => n.classList.toggle("active", n.dataset.view === key));
-    document.getElementById("pageTitle").textContent = titles[key][0];
-    document.getElementById("pageSubtitle").textContent = titles[key][1];
-    const app = document.getElementById("app");
-    app.classList.remove("mobile-open");
-    if (key === "dashboard") renderDashboard();
-    if (key === "jobs") renderJobs();
-    if (key === "appointments") renderAppointments();
-    if (key === "inventory") renderInventory();
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    function renderAll() {
+    syncJobsFromSharedAppointments();
+    renderDashboard();
+    renderJobs();
+    renderAppointments();
+    renderInventory();
   }
 
-  document.getElementById("nav").addEventListener("click", (e) => {
-    const item = e.target.closest(".nav-item");
-    if (!item) return;
-    e.preventDefault();
-    goTo(item.dataset.view);
-  });
+  function goTo() {
+    document
+      .querySelectorAll(".view")
+      .forEach((v) => v.classList.add("active"));
+    document.getElementById("pageTitle").textContent = "Dashboard";
+    document.getElementById("pageSubtitle").textContent =
+      `Welcome back, ${CURRENT_USER.name.split(" ")[0]}`;
+    document.getElementById("app").classList.remove("mobile-open");
+    renderAll();
+  }
+
+   const navEl = document.getElementById("nav");
+  if (navEl) navEl.style.display = "none";
 
   /* ---------------- Sidebar toggle ---------------- */
   const app = document.getElementById("app");

@@ -1,8 +1,7 @@
 export function initTransactions() {
-    const transactionsTableBody = document.getElementById("sc-appointments-tbody");
+    const transactionsTableBody = document.getElementById("transactions-table-body");
     const invoiceCountLabel = document.getElementById("invoice-count-label");
-    const filterTabs = document.querySelectorAll(".sc-filter-btn");
-
+    const filterTabs = document.querySelectorAll(".filter-tab");
     // --- Database-Ready API Abstraction Layer ---
     async function fetchTransactionsFromDB() {
         try {
