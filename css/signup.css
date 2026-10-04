@@ -1,0 +1,276 @@
+* {
+            box-sizing: border-box;
+        }
+        body {
+            margin: 0;
+            font-family: 'JetBrains Mono', monospace;
+            background-color: #121212;
+            color: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        h1, h2, h3, .logo-text {
+            font-family: 'Barlow Condensed', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Top Navigation Bar */
+        .top-nav {
+            position: relative;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+        .logo_parent {
+            padding: 20px 20px 16px;
+        }
+        
+        .logo_sub_parent {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo_icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, rgb(249, 115, 22), rgb(251, 146, 60));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logo_name {
+            font-family: "Barlow Condensed", sans-serif;
+            font-size: 20px;
+            font-weight: 800;
+            letter-spacing: 1px;
+        }
+
+        .logo_type {
+            font-size: 10px;
+            color: #71717a;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+        .signin-link {
+            font-size: 14px;
+            color: #aaa;
+            text-decoration: none;
+        }
+        .signin-link span {
+            color: #ff6600;
+            font-weight: 700;
+        }
+        .signin-link:hover span {
+            text-decoration: underline;
+        }
+
+        /* Main Container Layout (Split Box) */
+        .signup-container {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            background-color: #18181b;
+            border: 1px solid #27272a;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 1100px;
+            overflow: hidden;
+            margin-top: 40px;
+            box-shadow: 0 0 30px rgba(255, 102, 0, 0.12), 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Left Hero Banner Column */
+        .left-banner {
+            background-color: #18181b;
+            padding: 50px 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            border-right: 1px solid #27272a;
+        }
+        .badge {
+            font-size: 11px;
+            color: #ff6600;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            margin-bottom: 15px;
+            display: block;
+        }
+        .left-banner h1 {
+            font-size: 42px;
+            line-height: 1.1;
+            margin: 0 0 20px 0;
+            color: #ffffff;
+        }
+        .left-banner p {
+            font-size: 13px;
+            color: #a1a1aa;
+            line-height: 1.6;
+            margin: 0 0 40px 0;
+        }
+        .benefits-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .benefit-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            color: #d4d4d8;
+        }
+        .check-icon {
+            color: #ff6600;
+            font-weight: bold;
+        }
+
+        /* Right Form Column */
+        .right-form {
+            background-color: #121212;
+            padding: 40px 50px;
+            overflow-y: auto;
+        }
+        .section-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            margin-top: 30px;
+        }
+        .section-title:first-of-type {
+            margin-top: 0;
+        }
+        .step-number {
+            background-color: rgba(255, 102, 0, 0.15);
+            color: #ff6600;
+            font-size: 12px;
+            font-weight: 700;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .section-title h3 {
+            font-size: 18px;
+            margin: 0;
+            color: #ffffff;
+        }
+        .section-desc {
+            font-size: 12px;
+            color: #71717a;
+            margin: -10px 0 20px 36px;
+        }
+
+        /* Form Inputs Grid Layout */
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .form-group.span-2 {
+            grid-column: span 2;
+        }
+        .form-group.span-3 {
+            grid-column: span 3;
+        }
+        label {
+            font-size: 11px;
+            color: #a1a1aa;
+        }
+        .optional-badge {
+            background-color: #27272a;
+            color: #ff6600;
+            font-size: 9px;
+            padding: 1px 5px;
+            border-radius: 4px;
+            margin-left: 6px;
+            display: inline-block;
+        }
+        input, select {
+            background-color: #18181b;
+            border: 1px solid #27272a;
+            border-radius: 8px;
+            padding: 10px 14px;
+            color: #ffffff;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            width: 100%;
+            transition: border-color 0.2s;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: #ff6600;
+        }
+        input::placeholder {
+            color: #52525b;
+        }
+
+        /* Terms and Submit Button Row */
+        .form-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #27272a;
+        }
+        .terms-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 11px;
+            color: #a1a1aa;
+        }
+        .terms-group input {
+            width: 16px;
+            height: 16px;
+            accent-color: #ff6600;
+        }
+        .submit-btn {
+            background-color: #ff6600;
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 24px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .submit-btn:hover {
+            background-color: #e55b00;
+        }
+
+        /* Responsive adjustments */
+        @media(max-width: 900px) {
+            .signup-container {
+                grid-template-columns: 1fr;
+            }
+            .left-banner {
+                padding: 30px;
+            }
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            .form-group.span-2, .form-group.span-3 {
+                grid-column: span 1;
+            }
+        }

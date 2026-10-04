@@ -1,0 +1,1038 @@
+/* Transactions / Invoices View Styling */
+.transactions-container {
+    padding: 24px;
+    color: #f8fafc;
+    font-family: inherit;
+}
+
+.transactions-header {
+    margin-bottom: 24px;
+}
+
+.transactions-header h2 {
+    font-size: 24px;
+    font-weight: 700;
+    color: #ffffff;
+    margin-bottom: 4px;
+}
+
+.transactions-header p {
+    font-size: 14px;
+    color: #94a3b8;
+}
+
+.transactions-filters {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.filter-tab {
+    background-color: transparent;
+    border: 1px solid #334155;
+    color: #94a3b8;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.filter-tab.active {
+    border: 1px solid rgb(249, 115, 22);
+    background: rgba(249, 115, 22, 0.12);
+    color: rgb(249, 115, 22);
+}
+
+.transactions-count {
+    font-size: 13px;
+    color: #64748b;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Table layout */
+.transactions-table-wrapper {
+    background: #111113;
+    border: 1px solid #27272a;
+    border-radius: 12px;
+    overflow-x: auto;
+}
+
+.transactions-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 14px;
+}
+
+.transactions-table th {
+    background: #111113;
+    color: #94a3b8;
+    font-weight: 600;
+    padding: 14px 16px;
+    border-bottom: 1px solid #27272a;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.transactions-table td {
+    padding: 16px;
+    border-bottom: 1px solid #1e293b;
+    color: #e2e8f0;
+    vertical-align: middle;
+}
+
+.transactions-table tr:last-child td {
+    border-bottom: none;
+}
+
+.transactions-table tr:hover td {
+    background: #1e293b30;
+}
+
+/* Status badges */
+.badge-status {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.badge-status.completed {
+    background: rgba(34, 197, 94, 0.15);
+    color: #4ade80;
+    border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.badge-status.pending {
+    background: rgba(234, 179, 8, 0.15);
+    color: #facc15;
+    border: 1px solid rgba(234, 179, 8, 0.3);
+}
+
+/* Empty state */
+.transactions-empty {
+    text-align: center;
+    padding: 48px 16px;
+    color: #f97316;
+}
+
+.transactions-empty p {
+    font-size: 15px;
+    margin-top: 8px;
+}
+
+/* Detailed Modal or Expanded View */
+.receipt-details-btn {
+    border: 1px solid rgb(249, 115, 22);
+    background: rgba(249, 115, 22, 0.12);
+    color: rgb(249, 115, 22);
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    transition: background 0.2s;
+}
+
+.receipt-details-btn:hover {
+    background: #475569;
+}
+
+/* ==========================================
+   CUSTOMER RECEIPT MODAL
+   Replaces native browser alert() for receipts.
+   ========================================== */
+.receipt-modal-overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.72);
+    backdrop-filter: blur(4px);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.18s ease, visibility 0.18s ease;
+    z-index: 1000;
+}
+
+.receipt-modal-overlay.show {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+.receipt-modal-card {
+    width: min(560px, 100%);
+    max-height: min(720px, calc(100vh - 40px));
+    overflow-y: auto;
+    background: #111113;
+    border: 1px solid #2a2a2d;
+    border-radius: 14px;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55);
+    color: #f4f4f5;
+    transform: translateY(8px) scale(0.98);
+    transition: transform 0.18s ease;
+}
+
+.receipt-modal-overlay.show .receipt-modal-card {
+    transform: translateY(0) scale(1);
+}
+
+.receipt-modal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 20px 22px;
+    border-bottom: 1px solid #27272a;
+}
+
+.receipt-modal-kicker {
+    display: block;
+    margin-bottom: 4px;
+    color: #f97316;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+}
+
+.receipt-modal-header h2 {
+    margin: 0;
+    font-size: 20px;
+    color: #fafafa;
+}
+
+.receipt-modal-close {
+    width: 32px;
+    height: 32px;
+    border: 1px solid #303034;
+    border-radius: 8px;
+    background: #18181b;
+    color: #a1a1aa;
+    cursor: pointer;
+    font-size: 22px;
+    line-height: 1;
+}
+
+.receipt-modal-close:hover {
+    color: #fff;
+    background: #27272a;
+}
+
+.receipt-modal-body {
+    padding: 20px 22px;
+}
+
+.receipt-summary {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.receipt-summary > div,
+.receipt-detail-row {
+    padding: 12px;
+    border: 1px solid #27272a;
+    border-radius: 9px;
+    background: #151517;
+}
+
+.receipt-summary span,
+.receipt-detail-row span {
+    display: block;
+    margin-bottom: 4px;
+    color: #71717a;
+    font-size: 11px;
+}
+
+.receipt-summary strong,
+.receipt-detail-row strong {
+    display: block;
+    color: #f4f4f5;
+    font-size: 13px;
+    overflow-wrap: anywhere;
+}
+
+.receipt-total {
+    color: #22c55e !important;
+    font-size: 16px !important;
+}
+
+.receipt-status.completed {
+    color: #22c55e !important;
+}
+
+.receipt-status.pending,
+.receipt-status.in_progress {
+    color: #f59e0b !important;
+}
+
+.receipt-detail-row {
+    margin-top: 10px;
+}
+
+.receipt-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    padding: 16px 22px;
+    border-top: 1px solid #27272a;
+}
+
+/* ==========================================
+   CUSTOMER NOTIFICATIONS
+   ========================================== */
+.customer-notification-panel {
+    width: 340px;
+    max-width: min(340px, calc(100vw - 24px));
+    padding: 0;
+    right: 0;
+    top: calc(100% + 8px);
+}
+
+.notification-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.notification-unread-count {
+    min-width: 20px;
+    height: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 6px;
+    border-radius: 10px;
+    background: #f97316;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.customer-notification-item {
+    width: 100%;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    text-align: left;
+    border: 0;
+    border-bottom: 1px solid #27272a;
+    cursor: pointer;
+    color: inherit;
+    background: transparent;
+}
+
+.customer-notification-item:hover {
+    background: #18181b;
+}
+
+.customer-notification-item.unread {
+    background: rgba(249, 115, 22, 0.055);
+}
+
+.customer-notification-icon {
+    flex: 0 0 14px;
+    color: #71717a;
+    font-size: 9px;
+    padding-top: 3px;
+}
+
+.customer-notification-item.unread .customer-notification-icon {
+    color: #f97316;
+}
+
+.customer-notification-item .popup_user_email {
+    display: block;
+    line-height: 1.4;
+    margin-top: 3px;
+}
+
+/* ==========================================
+   MOTORCYCLE CUSTOMIZATION VIEW/EDIT MODE
+   ========================================== */
+.mc-detail-field {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.mc-detail-input {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    border: 1px solid transparent;
+    border-radius: 7px;
+    padding: 7px 8px;
+    background: transparent;
+    color: #f4f4f5;
+    font: inherit;
+    font-size: 13px;
+    outline: none;
+}
+
+.mc-detail-input:disabled {
+    cursor: default;
+    opacity: 1;
+}
+
+.mc-detail-input.is-editing {
+    border-color: #3f3f46;
+    background: #18181b;
+}
+
+.mc-detail-input.is-editing:focus {
+    border-color: #f97316;
+    box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.1);
+}
+
+.mc-detail-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+.mc-detail-actions > button {
+    flex: 1 1 120px;
+}
+
+@media (max-width: 560px) {
+    .receipt-summary {
+        grid-template-columns: 1fr;
+    }
+
+    .customer-notification-panel {
+        right: -8px;
+    }
+}
+
+/* Mobile invoice UX: one scrollable receipt instead of scattered details. */
+.receipt-modal-open {
+    overflow: hidden;
+}
+
+.receipt-modal-card {
+    display: flex;
+    flex-direction: column;
+}
+
+.receipt-modal-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+}
+
+.receipt-invoice-overview {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 0 0 18px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #27272a;
+}
+
+.receipt-invoice-overview > div {
+    min-width: 0;
+}
+
+.receipt-invoice-number {
+    display: block;
+    margin-top: 4px;
+    color: #f8fafc;
+    font-size: 20px;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+}
+
+.receipt-section {
+    margin-bottom: 20px;
+}
+
+.receipt-section h3 {
+    margin: 0 0 12px;
+    color: #e2e8f0;
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.55px;
+}
+
+.receipt-info-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.receipt-info-item,
+.receipt-line-item {
+    min-width: 0;
+    padding: 13px;
+    background: #18181b;
+    border: 1px solid #27272a;
+    border-radius: 9px;
+}
+
+.receipt-info-item span,
+.receipt-line-item span {
+    display: block;
+    margin-bottom: 5px;
+    color: #94a3b8;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.receipt-info-item strong,
+.receipt-line-item strong {
+    display: block;
+    color: #f8fafc;
+    font-size: 13px;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+}
+
+.receipt-line-item {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 8px;
+}
+
+.receipt-line-item:last-child {
+    margin-bottom: 0;
+}
+
+.receipt-line-item strong {
+    text-align: right;
+}
+
+.receipt-total-panel {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-top: 4px;
+    padding: 16px;
+    border: 1px solid rgba(249, 115, 22, 0.35);
+    border-radius: 10px;
+    background: rgba(249, 115, 22, 0.08);
+}
+
+.receipt-total-panel span {
+    color: #cbd5e1;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.receipt-total-panel strong {
+    color: #f97316;
+    font-size: 21px;
+    line-height: 1.2;
+    text-align: right;
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 560px) {
+    .transactions-container {
+        padding: 14px 10px;
+    }
+
+    .transactions-table-wrapper {
+        border-radius: 10px;
+    }
+
+    .transactions-table {
+        min-width: 760px;
+    }
+
+    .receipt-modal-overlay {
+        align-items: stretch;
+        padding: 0;
+    }
+
+    .receipt-modal-card {
+        width: 100%;
+        height: 100dvh;
+        max-height: none;
+        border-radius: 0;
+        border-left: 0;
+        border-right: 0;
+    }
+
+    .receipt-modal-header {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        flex: 0 0 auto;
+        padding: 15px 16px;
+        background: #111113;
+        border-bottom: 1px solid #27272a;
+    }
+
+    .receipt-modal-body {
+        padding: 16px;
+    }
+
+    .receipt-modal-footer {
+        position: sticky;
+        bottom: 0;
+        z-index: 2;
+        flex: 0 0 auto;
+        padding: 12px 16px;
+        background: #111113;
+        border-top: 1px solid #27272a;
+    }
+
+    .receipt-invoice-overview {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .receipt-info-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .receipt-line-item {
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .receipt-line-item strong,
+    .receipt-total-panel strong {
+        text-align: left;
+    }
+
+    .receipt-total-panel {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .receipt-total-panel strong {
+        font-size: 20px;
+    }
+}
+
+/* ==========================================
+   CONSOLIDATED CUSTOMER RECEIPT VIEW
+   Keeps the existing dark dashboard theme.
+   ========================================== */
+.receipt-customer-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 0 0 18px;
+    margin-bottom: 18px;
+    border-bottom: 1px solid #27272a;
+}
+
+.receipt-customer-summary > div:first-child {
+    min-width: 0;
+}
+
+.receipt-customer-summary > div:first-child strong {
+    display: block;
+    color: #f8fafc;
+    font-size: 15px;
+    line-height: 1.35;
+}
+
+.receipt-summary-total {
+    flex: 0 0 auto;
+    text-align: right;
+}
+
+.receipt-summary-total span {
+    display: block;
+    margin-bottom: 3px;
+    color: #94a3b8;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .45px;
+}
+
+.receipt-summary-total strong {
+    color: #f97316;
+    font-size: 17px;
+}
+
+.receipt-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.receipt-transaction-card {
+    padding: 14px;
+    border: 1px solid #2a2a2d;
+    border-radius: 11px;
+    background: #151517;
+}
+
+.receipt-transaction-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+    padding-bottom: 11px;
+    border-bottom: 1px solid #27272a;
+}
+
+.receipt-transaction-title {
+    min-width: 0;
+}
+
+.receipt-transaction-index {
+    display: block;
+    margin-bottom: 3px;
+    color: #f97316;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: .1em;
+}
+
+.receipt-transaction-title strong {
+    display: block;
+    color: #f8fafc;
+    font-size: 16px;
+    overflow-wrap: anywhere;
+}
+
+.receipt-checklist-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.receipt-info-wide {
+    grid-column: 1 / -1;
+}
+
+.receipt-parts-block {
+    margin-top: 9px;
+    padding-top: 9px;
+    border-top: 1px solid #27272a;
+}
+
+.receipt-transaction-total {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 10px;
+    padding: 11px 12px;
+    border-radius: 8px;
+    background: rgba(249, 115, 22, .07);
+}
+
+.receipt-transaction-total span {
+    color: #cbd5e1;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.receipt-transaction-total strong {
+    color: #f97316;
+    font-size: 16px;
+    text-align: right;
+    overflow-wrap: anywhere;
+}
+
+.receipt-viewed-note {
+    margin-right: auto;
+    color: #94a3b8;
+    font-size: 11px;
+}
+
+@media (max-width: 560px) {
+    .receipt-modal-header h2 {
+        font-size: 18px;
+    }
+
+    .receipt-customer-summary {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 9px;
+    }
+
+    .receipt-summary-total {
+        width: 100%;
+        text-align: left;
+    }
+
+    .receipt-checklist-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .receipt-info-wide {
+        grid-column: auto;
+    }
+
+    .receipt-transaction-card {
+        padding: 12px;
+    }
+
+    .receipt-transaction-heading {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .receipt-viewed-note {
+        width: 100%;
+        margin-right: 0;
+        margin-bottom: 8px;
+    }
+
+    .receipt-modal-footer {
+        flex-wrap: wrap;
+    }
+}
+
+
+/* Clickable transaction rows */
+.transactions-table tbody tr.transaction-row {
+    cursor: pointer;
+    outline: none;
+    transition: background-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.transactions-table tbody tr.transaction-row:hover td {
+    background: rgba(249, 115, 22, 0.08);
+}
+
+.transactions-table tbody tr.transaction-row:focus-visible td {
+    background: rgba(249, 115, 22, 0.12);
+    box-shadow: inset 0 0 0 1px rgba(249, 115, 22, 0.35);
+}
+
+.badge-status.viewed {
+    background: rgba(59, 130, 246, 0.14);
+    color: #60a5fa;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.receipt-transaction-card {
+    padding: 16px;
+    margin-bottom: 12px;
+    border: 1px solid #27272a;
+    border-radius: 12px;
+    background: #151517;
+}
+
+.receipt-transaction-card:last-child {
+    margin-bottom: 0;
+}
+
+.receipt-transaction-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.receipt-transaction-title {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.receipt-transaction-index {
+    color: #f97316;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .1em;
+}
+
+.receipt-checklist-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.receipt-info-wide {
+    grid-column: span 2;
+}
+
+.receipt-parts-block {
+    margin-top: 10px;
+}
+
+.receipt-transaction-total {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 12px;
+    padding: 13px;
+    border-radius: 9px;
+    background: rgba(249, 115, 22, .08);
+    border: 1px solid rgba(249, 115, 22, .25);
+}
+
+.receipt-transaction-total span {
+    color: #cbd5e1;
+    font-size: 12px;
+}
+
+.receipt-transaction-total strong {
+    color: #f97316;
+}
+
+.receipt-customer-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding-bottom: 16px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid #27272a;
+}
+
+.receipt-customer-summary > div {
+    min-width: 0;
+}
+
+.receipt-customer-summary strong {
+    color: #f8fafc;
+    font-size: 14px;
+}
+
+.receipt-summary-total {
+    text-align: right;
+}
+
+.receipt-summary-total span {
+    display: block;
+    color: #94a3b8;
+    font-size: 11px;
+}
+
+.receipt-summary-total strong {
+    color: #f97316;
+    font-size: 18px;
+}
+
+@media (max-width: 560px) {
+    .receipt-checklist-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .receipt-info-wide {
+        grid-column: auto;
+    }
+
+    .receipt-customer-summary {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .receipt-summary-total {
+        text-align: left;
+    }
+}
+
+
+/* Fully interactive motorcycle customization/details controls */
+.mc-detail-field {
+    position: relative;
+    cursor: pointer;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    transition: border-color .15s ease, background .15s ease, transform .15s ease;
+}
+
+.mc-detail-field:hover,
+.mc-detail-field:focus-within {
+    border-color: rgba(249, 115, 22, .65);
+    background: rgba(249, 115, 22, .06);
+}
+
+.mc-detail-field::after {
+    content: "✎";
+    position: absolute;
+    top: 9px;
+    right: 10px;
+    opacity: .45;
+    font-size: 12px;
+    pointer-events: none;
+}
+
+.mc-detail-input {
+    cursor: pointer;
+}
+
+.mc-detail-input[readonly] {
+    cursor: pointer;
+}
+
+.mc-detail-input.is-editing {
+    cursor: text;
+}
+
+.mc-tag-editable {
+    appearance: none;
+    -webkit-appearance: none;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+    border: 1px solid rgba(249, 115, 22, .35);
+    transition: border-color .15s ease, background .15s ease, transform .15s ease, box-shadow .15s ease;
+}
+
+.mc-tag-editable:hover,
+.mc-tag-editable:focus-visible {
+    border-color: #f97316;
+    background: rgba(249, 115, 22, .12);
+    box-shadow: 0 0 0 2px rgba(249, 115, 22, .1);
+    transform: translateY(-1px);
+    outline: none;
+}
+
+.mc-tag-edit-icon {
+    opacity: .65;
+    margin-left: 3px;
+}
+
+.mc-customization-editor-card {
+    width: min(520px, calc(100vw - 32px));
+}
+
+.mc-customization-editor-card .mc-modal-body {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.mc-customization-editor-actions {
+    display: grid;
+    grid-template-columns: auto 1fr auto auto;
+    gap: 8px;
+    align-items: center;
+    margin-top: 8px;
+}
+
+@media (max-width: 560px) {
+    .mc-customization-editor-actions {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .mc-customization-editor-actions > span {
+        display: none;
+    }
+}

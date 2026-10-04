@@ -1,0 +1,388 @@
+/* ==========================================
+   MOTORCYCLES PAGE STYLING (MC_)
+   ========================================== */
+
+/* Main Container Layout */
+.mc-main-container {
+    color: #f4f4f5;
+    font-family: 'DM Sans', sans-serif;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    height: 100%;
+    box-sizing: border-box;
+    overflow-y: auto;
+}
+
+/* Header Bar */
+.mc-header-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.mc-section-title {
+    font-size: 18px;
+    font-weight: 800;
+    font-family: "Barlow Condensed", sans-serif;
+}
+
+/* Add Bike Button */
+.mc-add-bike-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background-color: #f97316;
+    color: #ffffff;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-weight: 500;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.mc-add-bike-btn:hover {
+    background-color: #ea580c;
+}
+
+/* Content Layout (List + Side Panel Grid) */
+.mc-content-layout {
+    display: flex;
+    gap: 20px;
+    position: relative;
+    width: 100%;
+}
+
+/* Motorcycle List Column */
+.mc-list-column {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    flex: 1;
+    transition: all 0.3s ease;
+}
+
+/* Individual Bike Card */
+.mc-bike-card {
+    background-color: #18181b;
+    border: 1px solid #27272a;
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background-color 0.2s;
+}
+
+.mc-bike-card:hover {
+    border-color: #f97316;
+    background-color: #1f1f23;
+}
+
+.mc-bike-card.selected {
+    border-color: #f97316;
+    background-color: #1f1f23;
+}
+
+.mc-bike-info {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.mc-bike-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #ffffff;
+    font-family: "Barlow Condensed", sans-serif;
+}
+
+.mc-bike-sub {
+    font-size: 13px;
+    color: #71717a;
+}
+
+/* Tags Row */
+.mc-tags-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 4px;
+    flex-wrap: wrap;
+}
+
+.mc-tag {
+    background: rgba(251, 191, 36, 0.12);
+    color: rgb(251, 191, 36);
+    border: 1px solid rgba(251, 191, 36, 0.2);
+    padding: 3px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+/* Odometer Metas */
+.mc-bike-meta {
+    text-align: right;
+}
+
+.mc-odometer-val {
+    font-size: 16px;
+    font-weight: 600;
+    color: #f97316;
+    font-family: "JetBrains Mono", monospace;
+}
+
+.mc-odometer-label {
+    font-size: 11px;
+    color: #71717a;
+}
+
+/* ==========================================
+   BIKE DETAILS SIDE PANEL
+   ========================================== */
+.mc-details-panel {
+    width: 450px;
+    background-color: #18181b;
+    border: 1px solid #27272a;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    animation: slideInRight 0.25s ease-out;
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.mc-details-header {
+    padding: 20px;
+    border-bottom: 1px solid #27272a;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.mc-details-header h2 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #ffffff;
+    margin: 0;
+}
+
+.mc-close-panel-btn {
+    background: transparent;
+    border: none;
+    color: #a1a1aa;
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+}
+
+.mc-close-panel-btn:hover {
+    color: #ffffff;
+    background-color: #27272a;
+}
+
+.mc-details-body {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    overflow-y: auto;
+}
+
+/* Specs Grid */
+.mc-specs-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+}
+
+.mc-spec-box {
+    background-color: #121214;
+    border: 1px solid #27272a;
+    border-radius: 8px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.mc-spec-box .spec-lbl {
+    font-size: 10px;
+    color: #71717a;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.mc-spec-box .spec-val {
+    font-size: 14px;
+    color: #ffffff;
+    font-weight: 500;
+}
+
+/* Section Blocks */
+.mc-section-block {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.mc-section-block label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #a1a1aa;
+    text-transform: uppercase;
+}
+
+/* Available Services List inside Panel */
+.mc-services-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.mc-service-row {
+    background-color: #121214;
+    border: 1px solid #27272a;
+    border-radius: 8px;
+    padding: 12px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.mc-service-row .svc-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: #ffffff;
+}
+
+.mc-service-row .svc-desc {
+    font-size: 12px;
+    color: #71717a;
+}
+
+.mc-service-row .svc-price {
+    font-size: 14px;
+    font-weight: 600;
+    color: #f97316;
+}
+
+/* ==========================================
+   MODAL OVERLAY (REGISTER MOTORCYCLE)
+   ========================================== */
+.mc-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.mc-modal-card {
+    background-color: #18181b;
+    border: 1px solid #27272a;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 440px;
+    padding: 24px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    animation: scaleUp 0.2s ease-out;
+}
+
+@keyframes scaleUp {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.mc-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.mc-modal-header h2 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #ffffff;
+    margin: 0;
+}
+
+.mc-modal-close-btn {
+    background: transparent;
+    border: none;
+    color: #a1a1aa;
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+}
+
+.mc-modal-close-btn:hover {
+    color: #ffffff;
+    background-color: #27272a;
+}
+
+.mc-modal-body {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    font-size: 14px;
+    color: #a1a1aa;
+    line-height: 1.5;
+}
+
+.mc-highlight-email {
+    color: #f97316;
+    font-weight: 500;
+}
+
+.mc-got-it-btn {
+    background-color: #f97316;
+    color: #ffffff;
+    border: none;
+    padding: 12px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    margin-top: 8px;
+}
+
+.mc-got-it-btn:hover {
+    background-color: #ea580c;
+}
