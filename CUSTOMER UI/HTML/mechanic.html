@@ -6,7 +6,7 @@
     <title>MotoFix — Services System</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="../STYLES/mechanic.css" />
@@ -80,7 +80,7 @@
 
           <div class="topbar-right">
             <div class="bell-wrap">
-              <button class="icon-btn" id="bellBtn" aria-label="Notifications">
+              <button class="icon-btn" id="bellBtn" aria-label="Notifications" aria-expanded="false">
                 <svg
                   viewBox="0 0 24 24"
                   fill="none"
@@ -93,64 +93,49 @@
                   <path d="M13.7 21a2 2 0 01-3.4 0"></path>
                 </svg>
               </button>
-              <span class="dot" id="bellDot"></span>
+              <span class="dot" id="bellDot" aria-hidden="true" hidden></span>
               <div class="notif-panel" id="notifPanel">
                 <div class="notif-head">Notifications</div>
-                <div class="notif-item">
-                  <div class="t">New appointment assigned</div>
-                  <div class="d">
-                    Ana Flores · Chain &amp; Sprocket Kit · Jul 25
-                  </div>
-                </div>
-                <div class="notif-item">
-                  <div class="t">Low stock alert</div>
-                  <div class="d">
-                    Carburetor Jet Kit is running low — 8 left
-                  </div>
-                </div>
-                <div class="notif-item">
-                  <div class="t">Job completed</div>
-                  <div class="d">
-                    Jose Bautista's engine overhaul marked done
-                  </div>
-                </div>
               </div>
             </div>
 
-            <button class="user-trigger" id="userTrigger">
-              <div class="avatar" id="topAvatar">RS</div>
-              <svg
-                class="chev"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2.5"
-                stroke-linecap="round"
-                stroke-linejoin="round"
+            <div class="user-menu" id="userMenu">
+              <button
+                class="user-trigger"
+                id="userTrigger"
+                type="button"
+                aria-expanded="false"
+                aria-haspopup="true"
               >
-                <path d="M6 9l6 6 6-6"></path>
-              </svg>
-            </button>
-            <div class="dropdown" id="userDropdown">
-              <div class="dd-name" id="userDisplayName">Ramon Santos</div>
-              <div class="dd-email" id="userDisplayEmail">
-                mechanic1@motofix.com
-              </div>
-              <hr />
-              <button class="signout" id="signOutBtn">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"></path>
-                  <path d="M16 17l5-5-5-5M21 12H9"></path>
-                </svg>
-                Sign Out
+                <div class="avatar" id="topAvatar">RS</div>
+                <span class="caret" aria-hidden="true">⌄</span>
               </button>
+              <div class="user-dropdown" id="userDropdown" role="menu">
+                <div class="user-dropdown-info">
+                  <strong id="userDisplayName">Ramon Santos</strong>
+                  <span id="userDisplayEmail">mechanic1@motofix.com</span>
+                </div>
+                <button class="profile-edit-action" id="editMechanicProfileBtn" type="button" role="menuitem">Edit Profile</button>
+                <button class="sign-out popup_signout-btn" id="signOutBtn" type="button" role="menuitem">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="m16 17 5-5-5-5"></path>
+                    <path d="M21 12H9"></path>
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                  </svg>
+                  Sign Out
+                </button>
+              </div>
             </div>
           </div>
         </header>
@@ -352,6 +337,8 @@
       </div>
     </div>
 
+    <script src="../../js/notification-retention.js"></script>
+    <script src="../../js/inventory-usage.js"></script>
     <script src="../JAVASCRIPTS/mechanic.js"></script>
   </body>
 </html>

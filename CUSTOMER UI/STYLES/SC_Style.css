@@ -200,6 +200,21 @@
   border-bottom: none;
 }
 
+.sc-appointments-table tbody tr.sc-appointment-row {
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.sc-appointments-table tbody tr.sc-appointment-row:hover,
+.sc-appointments-table tbody tr.sc-appointment-row:focus-visible {
+  background: #1c1c20;
+}
+
+.sc-appointments-table tbody tr.sc-appointment-row:focus-visible {
+  outline: 2px solid #f97316;
+  outline-offset: -2px;
+}
+
 .sc-id-col {
   color: #71717a;
   font-weight: 500;
@@ -256,6 +271,11 @@
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.5px;
+}
+
+.sc-notification-highlight td {
+  background: rgba(249, 115, 22, 0.18) !important;
+  transition: background-color 0.25s ease;
 }
 
 .sc-confirmed {
@@ -580,6 +600,17 @@
   background: #3f3f46;
 }
 
+.sc-danger-btn {
+  background: rgba(239, 68, 68, 0.16);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+.sc-danger-btn:hover {
+  background: rgba(239, 68, 68, 0.28);
+  color: #fca5a5;
+}
+
 /* Services checkbox layout */
 .sc-services-box {
   background: #121214;
@@ -694,4 +725,38 @@
 
 .sc-submit-btn:hover {
   background: rgb(234, 88, 12);
+}
+
+.sc-submit-btn.sc-danger-btn {
+  background: rgba(239, 68, 68, 0.16);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  box-sizing: border-box;
+}
+
+.sc-submit-btn.sc-danger-btn:hover {
+  background: rgba(239, 68, 68, 0.28);
+  color: #fca5a5;
+}
+
+.sc-account-danger-zone {
+  margin-top: 24px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(239, 68, 68, 0.28);
+}
+
+.sc-account-danger-title {
+  margin-bottom: 5px;
+  color: #f87171;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.sc-account-danger-description {
+  margin-bottom: 12px;
+  color: #a1a1aa;
+  font-size: 12px;
+  line-height: 1.5;
 }

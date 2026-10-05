@@ -7,24 +7,47 @@
   }
 
   /* ---------------- Data ---------------- */
-  const mechanicProfiles = {
-    "mechanic1@motofix.com": {
-      name: "Ramon Santos",
-      email: "mechanic1@motofix.com",
-      role: "Mechanic",
-      initials: "RS",
-    },
-    "mechanic2@motofix.com": {
-      name: "Jake Reyes",
-      email: "mechanic2@motofix.com",
-      role: "Mechanic",
-      initials: "JR",
-    },
+  function readStoredArray(key) {
+    try {
+      const value = JSON.parse(localStorage.getItem(key) || "[]");
+      return Array.isArray(value) ? value : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function readProfileMap() {
+    try {
+      const profiles = JSON.parse(localStorage.getItem("motofix_profiles") || "{}");
+      return profiles && typeof profiles === "object" && !Array.isArray(profiles) ? profiles : {};
+    } catch {
+      return {};
+    }
+  }
+
+  const currentEmail = (localStorage.getItem("userEmail") || "").toLowerCase();
+  const savedProfile = readProfileMap()[currentEmail] || {};
+  const storedAccounts = [
+    ...readStoredArray("motofix_users"),
+    ...readStoredArray("motofix_master_employees"),
+  ];
+  const storedAccount = storedAccounts.find(
+    (account) => account.email?.toLowerCase() === currentEmail,
+  );
+  const fallbackNames = {
+    "mechanic1@motofix.com": "Ramon Santos",
+    "mechanic2@motofix.com": "Jake Reyes",
   };
-  const CURRENT_USER =
-    mechanicProfiles[(localStorage.getItem("userEmail") || "").toLowerCase()] ||
-    mechanicProfiles["mechanic1@motofix.com"];
-  const TODAY = "2026-07-22";
+  const currentName = savedProfile.name || storedAccount?.name || localStorage.getItem("userFullName") || fallbackNames[currentEmail] || currentEmail;
+  let currentPhone = savedProfile.phone || storedAccount?.phone || "";
+  const CURRENT_USER = {
+    name: currentName,
+    email: currentEmail,
+    role: "Mechanic",
+    initials: currentName.split(/\s+/).map((part) => part[0]).slice(0, 2).join("").toUpperCase(),
+  };
+  const now = new Date();
+  const TODAY = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 
   const STATUS_ORDER = ["pending", "confirmed", "in_progress", "completed"];
   const STATUS_LABEL = {
@@ -35,55 +58,7 @@
     cancelled: "Cancelled",
   };
 
-  let jobs = [
-    {
-      id: "A1",
-      customer: "Miguel Torres",
-      phone: "+63 912 100 0001",
-      initials: "MT",
-      motorcycle: "2022 Honda PCX 160",
-      plate: null,
-      services: ["Basic Oil Change", "Brake System Service"],
-      date: "2026-07-24",
-      time: "09:00",
-      status: "confirmed",
-      mechanic: "Ramon Santos",
-      notes: "Brakes feel spongy",
-      labor: null,
-    },
-    {
-      id: "A3",
-      customer: "Ana Flores",
-      phone: "+63 912 100 0003",
-      initials: "AF",
-      motorcycle: "2020 Suzuki Gixxer 150",
-      plate: null,
-      services: ["Chain & Sprocket Kit"],
-      date: "2026-07-25",
-      time: "10:00",
-      status: "pending",
-      mechanic: "Ramon Santos",
-      notes: null,
-      labor: null,
-    },
-    {
-      id: "A5",
-      customer: "Jose Bautista",
-      phone: "+63 912 100 0002",
-      initials: "JB",
-      motorcycle: "2023 Kawasaki Dominar 400",
-      plate: "KLM 9012",
-      services: ["Engine Overhaul"],
-      date: "2026-07-22",
-      time: "08:00",
-      status: "completed",
-      mechanic: "Ramon Santos",
-      notes: "Engine knock at high RPM",
-      labor: 2500,
-      record:
-        "Engine overhauled, new piston rings, gaskets replaced. Test ride confirmed fix.",
-    },
-  ];
+  let jobs = [];
 
   function normalizeMechanicStatus(status) {
     const value = (status || "Pending").toString();
@@ -92,24 +67,118 @@
       Confirmed: "confirmed",
       "In Progress": "in_progress",
       "Work Finished (unpaid)": "completed",
+      "Work Finished": "completed",
+      Unpaid: "completed",
       "Complete transaction": "completed",
+      Completed: "completed",
       Cancelled: "cancelled",
       cancelled: "cancelled",
     };
     return map[value] || value.toLowerCase().replace(/\s+/g, "_");
   }
 
+  function openMechanicProfileEditor() {
+    const overlay = document.createElement("div");
+    overlay.className = "job-details-backdrop mechanic-profile-backdrop";
+    overlay.innerHTML = `
+      <section class="mechanic-profile-dialog" role="dialog" aria-modal="true" aria-labelledby="mechanic-profile-title">
+        <div class="mechanic-profile-header">
+          <h2 id="mechanic-profile-title">Edit Profile</h2>
+          <button type="button" class="mechanic-profile-close" aria-label="Close profile editor">×</button>
+        </div>
+        <form id="mechanic-profile-form" class="mechanic-profile-form">
+          <div class="mechanic-profile-field">
+            <label for="mechanic-profile-name">Full Name</label>
+            <input id="mechanic-profile-name" value="${escapeHtml(CURRENT_USER.name)}" required>
+          </div>
+          <div class="mechanic-profile-field">
+            <label for="mechanic-profile-email">Email (Login)</label>
+            <input id="mechanic-profile-email" type="email" value="${escapeHtml(CURRENT_USER.email)}" disabled>
+          </div>
+          <div class="mechanic-profile-field">
+            <label for="mechanic-profile-phone">Phone</label>
+            <input id="mechanic-profile-phone" type="tel" value="${escapeHtml(currentPhone)}" placeholder="+63 912 345 6789">
+          </div>
+          <button class="mechanic-profile-save" type="submit">Save Profile</button>
+        </form>
+      </section>`;
+    document.body.appendChild(overlay);
+
+    const close = () => overlay.remove();
+    overlay.querySelector(".mechanic-profile-close").addEventListener("click", close);
+    overlay.addEventListener("click", (event) => {
+      if (event.target === overlay) close();
+    });
+    overlay.querySelector("#mechanic-profile-form").addEventListener("submit", (event) => {
+      event.preventDefault();
+      const nextName = overlay.querySelector("#mechanic-profile-name").value.trim();
+      const nextPhone = overlay.querySelector("#mechanic-profile-phone").value.trim();
+      if (!nextName) return window.alert("Please enter your name.");
+      if (nextPhone && !/^[0-9+\-\s()]{7,20}$/.test(nextPhone)) {
+        return window.alert("Please enter a valid phone number.");
+      }
+
+      const previousName = CURRENT_USER.name;
+      const profiles = readProfileMap();
+      profiles[currentEmail] = { ...(profiles[currentEmail] || {}), name: nextName, phone: nextPhone };
+      localStorage.setItem("motofix_profiles", JSON.stringify(profiles));
+      localStorage.setItem("userFullName", nextName);
+
+      for (const key of ["motofix_users", "motofix_master_employees"]) {
+        const accounts = readStoredArray(key);
+        const account = accounts.find((item) => item.email?.toLowerCase() === currentEmail);
+        if (!account) continue;
+        account.name = nextName;
+        account.phone = nextPhone;
+        account.initials = nextName.split(/\s+/).map((part) => part[0]).slice(0, 2).join("").toUpperCase();
+        account.updated_at = new Date().toISOString();
+        localStorage.setItem(key, JSON.stringify(accounts));
+      }
+
+      const appointments = readStoredArray("motofix_appointments");
+      let assignmentsChanged = false;
+      appointments.forEach((appointment) => {
+        // Current appointment assignments use the mechanic's display name as the join value.
+        if (appointment.mechanic === previousName) {
+          appointment.mechanic = nextName;
+          assignmentsChanged = true;
+        }
+      });
+      if (assignmentsChanged) {
+        localStorage.setItem("motofix_appointments", JSON.stringify(appointments));
+        window.dispatchEvent(new Event("motofix:appointments-updated"));
+      }
+
+      CURRENT_USER.name = nextName;
+      CURRENT_USER.initials = nextName.split(/\s+/).map((part) => part[0]).slice(0, 2).join("").toUpperCase();
+      currentPhone = nextPhone;
+      document.getElementById("sideName").textContent = nextName;
+      document.getElementById("userDisplayName").textContent = nextName;
+      document.getElementById("sideAvatar").textContent = CURRENT_USER.initials;
+      document.getElementById("topAvatar").textContent = CURRENT_USER.initials;
+      document.getElementById("userMenu").classList.remove("open");
+      document.getElementById("userTrigger").setAttribute("aria-expanded", "false");
+      close();
+      renderAll();
+    });
+  }
+
+  // Mechanic Jobs is a role-filtered view of shared appointments; status writes
+  // update the source record so Admin reports and Customer tracking stay consistent.
   function syncJobsFromSharedAppointments() {
     try {
       const stored = JSON.parse(
         localStorage.getItem("motofix_appointments") || "[]",
       );
-      if (!Array.isArray(stored)) return;
+      if (!Array.isArray(stored)) {
+        jobs = [];
+        return;
+      }
 
       jobs = stored
         .filter((appointment) => appointment.mechanic === CURRENT_USER.name)
         .map((appointment) => ({
-          id: appointment.id || "A1",
+          id: appointment.id || "",
           customer: appointment.customer || "Customer",
           phone: appointment.phone || "N/A",
           initials:
@@ -131,7 +200,11 @@
           status: normalizeMechanicStatus(appointment.status),
           mechanic: appointment.mechanic || "Unassigned",
           notes: appointment.notes || null,
-          labor: appointment.labor || null,
+          serviceCost:
+            parseStoredAmount(appointment.serviceCost) ??
+            parseStoredAmount(appointment.transaction?.total) ??
+            parseStoredAmount(appointment.total) ??
+            parseStoredAmount(appointment.labor),
           record: appointment.record || null,
           createdAt: appointment.createdAt || null,
           parts: Array.isArray(appointment.parts) ? appointment.parts : [],
@@ -141,9 +214,11 @@
         "Unable to sync mechanic jobs from shared appointments:",
         error,
       );
+      jobs = [];
     }
   }
 
+  // jobId is the shared appointment ID; notifications point back to that same record.
   function persistMechanicStatus(jobId, status) {
     const appointments = JSON.parse(
       localStorage.getItem("motofix_appointments") || "[]",
@@ -155,11 +230,25 @@
       pending: "Pending",
       confirmed: "Confirmed",
       in_progress: "In Progress",
-      completed: "Complete transaction",
+      completed: "Completed",
       cancelled: "Cancelled",
     };
+    let inventoryDeducted = false;
+    if (labels[status] === "Completed") {
+      const inventoryUpdate = window.consumeAppointmentInventory(appointment);
+      if (!inventoryUpdate.ok) {
+        window.alert(inventoryUpdate.message);
+        return false;
+      }
+      inventoryDeducted = inventoryUpdate.deducted;
+    }
     appointment.status = labels[status] || status;
     localStorage.setItem("motofix_appointments", JSON.stringify(appointments));
+    if (inventoryDeducted) {
+      parts = readInventory();
+      renderAll();
+    }
+    window.dispatchEvent(new Event("motofix:appointments-updated"));
 
     const notifications = JSON.parse(
       localStorage.getItem("motofix_notifications") || "[]",
@@ -169,6 +258,8 @@
       title: "Appointment status updated",
       message: `${appointment.id} is now ${appointment.status}.`,
       audiences: ["customer", "admin", "master_admin"],
+      appointmentId: appointment.id,
+      destination: "appointments",
       createdAt: new Date().toISOString(),
       readBy: [],
     });
@@ -178,141 +269,128 @@
     );
   }
 
-  function renderMechanicNotifications() {
-    const panel = document.getElementById("notifPanel");
-    const dot = document.getElementById("bellDot");
-    if (!panel) return;
-    const notifications = JSON.parse(
-      localStorage.getItem("motofix_notifications") || "[]",
-    ).filter(
+  function getMechanicNotifications() {
+    return readStoredArray("motofix_notifications").filter(
       (notification) =>
         notification.audiences?.includes("mechanic") ||
         notification.audiences?.includes(`mechanic:${CURRENT_USER.name}`),
     );
+  }
+
+  function renderMechanicNotifications() {
+    const panel = document.getElementById("notifPanel");
+    const dot = document.getElementById("bellDot");
+    if (!panel) return;
+    const notifications = getMechanicNotifications();
+    const userKey = `mechanic:${CURRENT_USER.email.trim().toLowerCase()}`;
+    const hasUnread = notifications.some(
+      (notification) => !notification.readBy?.includes(userKey),
+    );
+    const unreadCount = notifications.filter(
+      (notification) => !notification.readBy?.includes(userKey),
+    ).length;
     panel.innerHTML = `<div class="notif-head">Notifications</div>${
       notifications.length
         ? notifications
             .slice(0, 8)
             .map(
-              (notification) => `
-      <div class="notif-item"><div class="t">${escapeHtml(notification.title)}</div><div class="d">${escapeHtml(notification.message)}</div></div>
+              (notification, index) => `
+      <button type="button" class="notif-item" data-mechanic-notification="${index}">
+        <div class="t">${escapeHtml(notification.title)}</div>
+        <div class="d">${escapeHtml(notification.message)}</div>
+      </button>
     `,
             )
             .join("")
         : '<div class="notif-item"><div class="d">No new notifications.</div></div>'
     }`;
-    if (dot) dot.style.display = notifications.length ? "block" : "none";
+    if (dot) {
+      dot.hidden = !hasUnread;
+      dot.textContent = unreadCount > 9 ? "9+" : String(unreadCount);
+      dot.setAttribute("aria-label", `${unreadCount} unread notifications`);
+    }
   }
 
-    window.addEventListener("storage", (event) => {
+  function markMechanicNotificationsRead() {
+    const allNotifications = readStoredArray("motofix_notifications");
+    const visible = getMechanicNotifications();
+    const visibleIds = new Set(visible.map((notification) => notification.id));
+    const userKey = `mechanic:${CURRENT_USER.email.trim().toLowerCase()}`;
+    allNotifications.forEach((notification) => {
+      if (!visibleIds.has(notification.id)) return;
+      const readBy = Array.isArray(notification.readBy) ? notification.readBy : [];
+      if (!readBy.includes(userKey)) notification.readBy = [...readBy, userKey];
+    });
+    localStorage.setItem("motofix_notifications", JSON.stringify(allNotifications));
+  }
+
+  function openNotificationDetails(notification) {
+    const existing = document.getElementById("notificationDetailsModal");
+    if (existing) existing.remove();
+    const createdAt = notification.createdAt
+      ? new Date(notification.createdAt).toLocaleString("en-PH", {
+          dateStyle: "medium",
+          timeStyle: "short",
+        })
+      : "Time not available";
+    const modal = document.createElement("div");
+    modal.id = "notificationDetailsModal";
+    modal.className = "job-details-backdrop";
+    modal.innerHTML = `
+      <section class="job-details-modal" role="dialog" aria-modal="true" aria-labelledby="notificationDetailsTitle">
+        <div class="job-details-head">
+          <div><div class="job-details-kicker">Notification</div><h2 id="notificationDetailsTitle">${escapeHtml(notification.title || "Update")}</h2></div>
+          <button class="job-details-close" type="button" aria-label="Close notification">&times;</button>
+        </div>
+        <div class="job-details-grid">
+          <div class="full"><span>Message</span><strong>${escapeHtml(notification.message || "No additional details")}</strong></div>
+          <div class="full"><span>Received</span><strong>${escapeHtml(createdAt)}</strong></div>
+        </div>
+      </section>`;
+    document.body.appendChild(modal);
+    const close = () => modal.remove();
+    modal.querySelector(".job-details-close").addEventListener("click", close);
+    modal.addEventListener("click", (event) => {
+      if (event.target === modal) close();
+    });
+  }
+
+  function openMechanicNotification(notification) {
+    const appointment = jobs.find(
+      (job) => job.id === notification.appointmentId,
+    );
+    if (appointment) {
+      openJobDetails(appointment);
+      return;
+    }
+    openNotificationDetails(notification);
+  }
+
+  window.addEventListener("storage", (event) => {
     if (event.key === "motofix_notifications") renderMechanicNotifications();
     if (
       event.key === "motofix_appointments" ||
-      event.key === "motofix_inventory"
+      event.key === INVENTORY_KEY
     ) {
       renderAll();
     }
   });
   window.addEventListener("focus", () => renderAll());
+  window.addEventListener("motofix:inventory-updated", () => {
+    parts = readInventory();
+    renderInventory();
+  });
 
-  const parts = [
-    {
-      name: "Engine Oil 10W-40 (1L)",
-      sku: "OIL-10W40-1L",
-      brand: "Motul",
-      cat: "Fluids",
-      stock: 48,
-      price: 180,
-    },
-    {
-      name: "Oil Filter — Honda PCX",
-      sku: "FLT-OIL-PCX",
-      brand: "Honda Genuine",
-      cat: "Filters",
-      stock: 22,
-      price: 95,
-    },
-    {
-      name: "Spark Plug CR8E",
-      sku: "SPK-CR8E",
-      brand: "NGK",
-      cat: "Ignition",
-      stock: 64,
-      price: 75,
-    },
-    {
-      name: "Air Filter — Yamaha NMAX",
-      sku: "FLT-AIR-NMAX",
-      brand: "Yamaha Genuine",
-      cat: "Filters",
-      stock: 18,
-      price: 220,
-    },
-    {
-      name: "Brake Pad Set — Front",
-      sku: "BRK-PAD-FR",
-      brand: "EBC",
-      cat: "Brakes",
-      stock: 30,
-      price: 450,
-    },
-    {
-      name: "Brake Fluid DOT4 (500ml)",
-      sku: "FLD-DOT4-500",
-      brand: "Brembo",
-      cat: "Fluids",
-      stock: 25,
-      price: 130,
-    },
-    {
-      name: "Chain Kit 428 (110L)",
-      sku: "CHN-428-110",
-      brand: "DID",
-      cat: "Drivetrain",
-      stock: 12,
-      price: 680,
-    },
-    {
-      name: "Front Sprocket 15T",
-      sku: "SPR-FR-15T",
-      brand: "Renthal",
-      cat: "Drivetrain",
-      stock: 20,
-      price: 240,
-    },
-    {
-      name: "Rear Sprocket 42T",
-      sku: "SPR-RR-42T",
-      brand: "Renthal",
-      cat: "Drivetrain",
-      stock: 15,
-      price: 380,
-    },
-    {
-      name: "Fork Oil 15W (1L)",
-      sku: "OIL-FRK-15W",
-      brand: "Motul",
-      cat: "Fluids",
-      stock: 16,
-      price: 210,
-    },
-    {
-      name: "Carburetor Jet Kit",
-      sku: "CARB-JET-UNI",
-      brand: "Universal",
-      cat: "Engine",
-      stock: 8,
-      price: 350,
-    },
-    {
-      name: "Battery 12V 5Ah",
-      sku: "BAT-12V-5AH",
-      brand: "Yuasa",
-      cat: "Electrical",
-      stock: 10,
-      price: 850,
-    },
-  ];
+  const INVENTORY_KEY = "motofix_parts";
+  function readInventory() {
+    return readStoredArray(INVENTORY_KEY).map((part) => ({
+      ...part,
+      cat: part.category || part.cat || "Uncategorized",
+      stock: Number(part.stock) || 0,
+      price: Number(part.price) || 0,
+    }));
+  }
+  let parts = readInventory();
 
   let apptStatusFilter = "all";
   let apptSearchTerm = "";
@@ -338,9 +416,18 @@
       ? iso
       : iso;
   };
+  const parseStoredAmount = (value) => {
+    if (typeof value === "number") {
+      return Number.isFinite(value) ? value : null;
+    }
+    const normalized = String(value ?? "").replace(/[^0-9.-]/g, "");
+    if (!normalized) return null;
+    const amount = Number(normalized);
+    return Number.isFinite(amount) ? amount : null;
+  };
   const peso = (n) =>
     "₱" +
-    Number(n).toLocaleString("en-PH", {
+    (parseStoredAmount(n) ?? 0).toLocaleString("en-PH", {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     });
@@ -391,15 +478,15 @@
     const todaysJobs = jobs.filter((j) => j.date === TODAY);
     const inProgress = jobs.filter((j) => j.status === "in_progress");
     const completed = jobs.filter((j) => j.status === "completed");
-    const monthLabor = jobs
+    const monthServiceCost = jobs
       .filter((j) => j.status === "completed")
-      .reduce((s, j) => s + (j.labor || 0), 0);
+      .reduce((s, j) => s + (j.serviceCost || 0), 0);
 
     document.getElementById("dashStats").innerHTML = [
       statCard("Today's Jobs", todaysJobs.length, ICONS.calendar, "orange"),
       statCard("In Progress", inProgress.length, ICONS.progress, "blue"),
       statCard("Completed", completed.length, ICONS.check, "green"),
-      statCard("This Month Labor", monthLabor, ICONS.cash, "amber", true),
+      statCard("This Month Service Cost", monthServiceCost, ICONS.cash, "amber", true),
     ].join("");
 
     const box = document.getElementById("todaySchedule");
@@ -445,24 +532,25 @@
 
   function renderJobs() {
     const mine = jobs.filter((j) => j.mechanic === CURRENT_USER.name);
+    const assigned = mine.filter((j) => j.status !== "completed");
     const inProgress = mine.filter((j) => j.status === "in_progress").length;
     const completedToday = mine.filter(
       (j) => j.status === "completed" && j.date === TODAY,
     ).length;
-    const laborEarned = mine
+    const completedServiceCost = mine
       .filter((j) => j.status === "completed")
-      .reduce((s, j) => s + (j.labor || 0), 0);
+      .reduce((s, j) => s + (j.serviceCost || 0), 0);
 
     document.getElementById("jobsStats").innerHTML = [
-      statCard("Assigned Jobs", mine.length, ICONS.clipboard, "blue"),
+      statCard("Assigned Jobs", assigned.length, ICONS.clipboard, "blue"),
       statCard("In Progress", inProgress, ICONS.progress, "orange"),
       statCard("Completed Today", completedToday, ICONS.check, "green"),
-      statCard("Labor Earned", laborEarned, ICONS.cash, "amber", true),
+      statCard("Completed Service Cost", completedServiceCost, ICONS.cash, "amber", true),
     ].join("");
 
     const today = new Date().toISOString().slice(0, 10);
     const query = jobsSearchTerm.trim().toLowerCase();
-    const visibleJobs = mine.filter((job) => {
+    const visibleJobs = assigned.filter((job) => {
       const searchable = [
         job.customer,
         job.motorcycle,
@@ -484,12 +572,12 @@
 
     document.getElementById("jobsCount").textContent = visibleJobs.length;
     document.getElementById("jobsFilterSummary").textContent =
-      `${visibleJobs.length} of ${mine.length} assigned jobs`;
+      `${visibleJobs.length} of ${assigned.length} assigned jobs`;
     document.getElementById("jobsTableBody").innerHTML = visibleJobs.length
       ? visibleJobs
           .map(
             (j) => `
-      <tr>
+      <tr class="job-details-trigger" data-job-details="${escapeHtml(j.id)}" tabindex="0" aria-label="View details for ${escapeHtml(j.customer)}">
         <td>
           <div class="cust-cell">
             <div class="init">${j.initials}</div>
@@ -507,25 +595,18 @@
           .join("")
       : `<tr><td colspan="6" class="jobs-empty-row">No jobs match the selected filters.</td></tr>`;
 
-    document.querySelectorAll("[data-job-details]").forEach((button) => {
-      button.addEventListener("click", () => {
-        const job = jobs.find((item) => item.id === button.dataset.jobDetails);
-        if (job) openJobDetails(job);
-      });
-    });
-
-    const records = mine.filter((j) => j.status === "completed" && j.record);
+    const records = mine.filter((j) => j.status === "completed");
     const recBox = document.getElementById("jobRecords");
     if (records.length === 0) {
       recBox.innerHTML = emptyState(
         "No job records yet",
-        "Completed jobs with a service summary will show up here.",
+        "Jobs marked completed by the admin will show up here.",
       );
     } else {
       recBox.innerHTML = records
         .map(
           (j) => `
-        <div class="record-card">
+        <div class="record-card job-details-trigger" data-job-details="${escapeHtml(j.id)}" tabindex="0" role="button" aria-label="View details for completed job ${escapeHtml(j.id)}">
           <div class="record-top">
             <div>
               <div class="record-id">${j.id}</div>
@@ -533,10 +614,10 @@
             </div>
             <div style="text-align:right">
               ${badge(j.status)}
-              ${j.labor ? `<div class="record-labor">${peso(j.labor)} Labor</div>` : ""}
+              ${j.serviceCost !== null ? `<div class="record-labor">${peso(j.serviceCost)} Service Cost</div>` : ""}
             </div>
           </div>
-          <div class="record-note">${escapeHtml(j.record)}</div>
+          <div class="record-note">${escapeHtml(j.record || `Completed services: ${j.services.join(", ")}`)}</div>
         </div>
       `,
         )
@@ -574,6 +655,8 @@
           <div class="full"><span>Booked by customer</span><strong>${escapeHtml(bookedAt)}</strong></div>
           <div class="full"><span>Service requested</span><strong>${job.services.map((service) => escapeHtml(service)).join(", ")}</strong></div>
           <div class="full"><span>Parts requested</span><strong>${parts}</strong></div>
+          <div class="full"><span>Job record</span><strong>${escapeHtml(job.record || (job.status === "completed" ? `Completed services: ${job.services.join(", ")}` : "No completion record yet"))}</strong></div>
+          <div><span>Service cost</span><strong>${job.serviceCost !== null ? escapeHtml(peso(job.serviceCost)) : "Not recorded"}</strong></div>
           <div class="full"><span>Notes</span><strong>${escapeHtml(job.notes || "No notes provided")}</strong></div>
         </div>
       </section>`;
@@ -616,8 +699,8 @@
     body.innerHTML = list
       .map((j) => {
         return `
-        <tr>
-          <td class="sku-tag">${j.id}</td>
+      <tr class="job-details-trigger" data-job-details="${escapeHtml(j.id)}" tabindex="0" aria-label="View details for ${escapeHtml(j.customer)}">
+        <td class="sku-tag">${escapeHtml(j.id)}</td>
           <td>
             <div class="cust-cell">
               <div class="init">${j.initials}</div>
@@ -635,6 +718,7 @@
   }
 
   function renderInventory() {
+    parts = readInventory();
     let list = parts.slice();
     if (invCatFilter !== "All")
       list = list.filter((p) => p.cat === invCatFilter);
@@ -661,11 +745,11 @@
     }
     emptyBox.innerHTML = "";
 
-    const MAX_STOCK = 70;
+    const maxStock = Math.max(1, ...list.map((part) => Number(part.max || part.stock || 1)));
     body.innerHTML = list
       .map((p) => {
-        const pct = Math.min(100, Math.round((p.stock / MAX_STOCK) * 100));
-        const low = p.stock <= 12;
+        const pct = Math.min(100, Math.round((p.stock / maxStock) * 100));
+        const low = p.stock <= Number(p.reorderLevel ?? 10);
         return `
         <tr>
           <td style="font-weight:600">${escapeHtml(p.name)}</td>
@@ -718,6 +802,7 @@
     document.getElementById("pageSubtitle").textContent =
       `Welcome back, ${CURRENT_USER.name.split(" ")[0]}`;
     document.getElementById("app").classList.remove("mobile-open");
+    syncSidebarScrim();
     renderAll();
   }
 
@@ -726,29 +811,51 @@
 
   /* ---------------- Sidebar toggle ---------------- */
   const app = document.getElementById("app");
+  if (window.innerWidth > 860) app.classList.add("collapsed");
+  const syncSidebarScrim = () => {
+    const isOpen = window.innerWidth <= 860
+      ? app.classList.contains("mobile-open")
+      : !app.classList.contains("collapsed");
+    app.classList.toggle("sidebar-dimmed", isOpen);
+  };
+  syncSidebarScrim();
+
   document.getElementById("menuToggle").addEventListener("click", () => {
     if (window.innerWidth <= 860) {
       app.classList.toggle("mobile-open");
     } else {
       app.classList.toggle("collapsed");
     }
+    syncSidebarScrim();
   });
-  document
-    .getElementById("scrim")
-    .addEventListener("click", () => app.classList.remove("mobile-open"));
+  document.getElementById("scrim").addEventListener("click", () => {
+    if (window.innerWidth <= 860) {
+      app.classList.remove("mobile-open");
+    } else {
+      app.classList.add("collapsed");
+    }
+    syncSidebarScrim();
+  });
+  window.addEventListener("resize", syncSidebarScrim);
 
   /* ---------------- User dropdown ---------------- */
   const userTrigger = document.getElementById("userTrigger");
-  const userDropdown = document.getElementById("userDropdown");
+  const userMenu = document.getElementById("userMenu");
   userTrigger.addEventListener("click", (e) => {
     e.stopPropagation();
-    userDropdown.classList.toggle("show");
-    userTrigger.classList.toggle("open");
+    const isOpen = userMenu.classList.toggle("open");
+    userTrigger.setAttribute("aria-expanded", String(isOpen));
     document.getElementById("notifPanel").classList.remove("show");
   });
+  document.getElementById("editMechanicProfileBtn")?.addEventListener("click", (event) => {
+    event.stopPropagation();
+    userMenu.classList.remove("open");
+    userTrigger.setAttribute("aria-expanded", "false");
+    openMechanicProfileEditor();
+  });
   document.getElementById("signOutBtn").addEventListener("click", () => {
-    userDropdown.classList.remove("show");
-    userTrigger.classList.remove("open");
+    userMenu.classList.remove("open");
+    userTrigger.setAttribute("aria-expanded", "false");
     localStorage.removeItem("isLoggedIn");
     localStorage.removeItem("userEmail");
     localStorage.removeItem("userRole");
@@ -758,20 +865,57 @@
   /* ---------------- Notifications ---------------- */
   const bellBtn = document.getElementById("bellBtn");
   const notifPanel = document.getElementById("notifPanel");
-  const bellDot = document.getElementById("bellDot");
   renderMechanicNotifications();
   bellBtn.addEventListener("click", (e) => {
     e.stopPropagation();
+    const opening = !notifPanel.classList.contains("show");
     notifPanel.classList.toggle("show");
-    userDropdown.classList.remove("show");
-    userTrigger.classList.remove("open");
-    bellDot.style.display = "none";
+    if (opening) {
+      markMechanicNotificationsRead();
+      renderMechanicNotifications();
+      notifPanel.classList.add("show");
+    }
+    userMenu.classList.remove("open");
+    userTrigger.setAttribute("aria-expanded", "false");
+    bellBtn.setAttribute(
+      "aria-expanded",
+      String(notifPanel.classList.contains("show")),
+    );
+  });
+  window.addEventListener("motofix:notifications-updated", renderMechanicNotifications);
+  notifPanel.addEventListener("click", (event) => {
+    const item = event.target.closest("[data-mechanic-notification]");
+    if (!item) return;
+    event.stopPropagation();
+    const notification = getMechanicNotifications()[
+      Number(item.dataset.mechanicNotification)
+    ];
+    if (!notification) return;
+    notifPanel.classList.remove("show");
+    bellBtn.setAttribute("aria-expanded", "false");
+    openMechanicNotification(notification);
   });
 
   document.addEventListener("click", () => {
-    userDropdown.classList.remove("show");
-    userTrigger.classList.remove("open");
+    userMenu.classList.remove("open");
+    userTrigger.setAttribute("aria-expanded", "false");
     notifPanel.classList.remove("show");
+    bellBtn.setAttribute("aria-expanded", "false");
+  });
+
+  document.addEventListener("click", (event) => {
+    const trigger = event.target.closest("[data-job-details]");
+    if (!trigger) return;
+    const job = jobs.find((item) => item.id === trigger.dataset.jobDetails);
+    if (job) openJobDetails(job);
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    const trigger = event.target.closest("[data-job-details]");
+    if (!trigger) return;
+    event.preventDefault();
+    const job = jobs.find((item) => item.id === trigger.dataset.jobDetails);
+    if (job) openJobDetails(job);
   });
 
   /* ---------------- Appointments filters ---------------- */

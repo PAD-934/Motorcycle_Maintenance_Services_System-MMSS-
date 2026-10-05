@@ -153,6 +153,14 @@
     background-color: #1f1f23;
 }
 
+.parts-table tr.part-unavailable {
+    opacity: 0.65;
+}
+
+.parts-table tr.part-unavailable:hover {
+    background-color: transparent;
+}
+
 .part-name-main {
     font-weight: 600;
     color: #ffffff;
@@ -211,6 +219,24 @@
     transition: all 0.2s;
 }
 
+.source-btn:disabled {
+    color: #71717a;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.source-btn.out-of-stock-label {
+    padding: 6px 10px;
+    border: 1px solid #f87171;
+    background-color: rgba(127, 29, 29, 0.35);
+    color: #fecaca;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+    opacity: 1;
+    white-space: nowrap;
+}
+
 .source-btn.active-buy {
     border: 1px solid rgb(249, 115, 22);
     background: rgba(249, 115, 22, 0.12);
@@ -246,30 +272,41 @@
 }
 
 /* ==========================================
-   PARTS SELECTION / CART SIDE PANEL
+   PARTS SELECTION / CART MODAL
    ========================================== */
+.parts-selection-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1100;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    box-sizing: border-box;
+    background: rgba(0, 0, 0, 0.72);
+}
+
 .parts-details-panel {
-    width: 360px;
-    flex-shrink: 0;
+    width: min(480px, 100%);
+    max-height: min(680px, 85vh);
     background-color: #18181b;
     border: 1px solid #27272a;
     border-radius: 12px;
-    display: none; /* toggled via JS */
+    display: flex;
     flex-direction: column;
     box-sizing: border-box;
-    position: sticky;
-    top: 20px;
-    animation: slideInRight 0.25s ease-out;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55);
+    animation: partsModalIn 0.2s ease-out;
 }
 
-@keyframes slideInRight {
+@keyframes partsModalIn {
     from {
         opacity: 0;
-        transform: translateX(20px);
+        transform: translateY(10px) scale(0.98);
     }
     to {
         opacity: 1;
-        transform: translateX(0);
+        transform: translateY(0) scale(1);
     }
 }
 
@@ -317,7 +354,7 @@
     overflow-y: auto;
 }
 
-/* Cart Item Card inside Side Panel */
+/* Cart Item Card inside the parts modal */
 .cart-item-card {
     background-color: #121214;
     border: 1px solid #27272a;

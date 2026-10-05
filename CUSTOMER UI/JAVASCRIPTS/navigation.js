@@ -13,44 +13,113 @@ export function initNavigation() {
   const dashBookBtn = document.getElementById("dash-book-service-btn");
   const dashPartsBtn = document.getElementById("dash-view-parts-btn");
   const dashTransactionsBtn = document.getElementById("dash-transactions-btn");
+  const dashboardAppointmentsBtn = document.getElementById("dashboard-view-appointments");
+  const escapeHtml = (value) => String(value ?? "").replace(/[&<>\"']/g, (character) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  })[character]);
 
   function renderCustomerNotifications() {
     const button = document.getElementById("customerBellBtn");
     if (!button) return;
     const email = (localStorage.getItem("userEmail") || "").toLowerCase();
-    const notifications = JSON.parse(
+    const allNotifications = JSON.parse(
       localStorage.getItem("motofix_notifications") || "[]",
-    ).filter((notification) => notification.audiences?.includes("customer"));
+    );
+    // Customer-specific audiences are keyed by the current email; shared "customer"
+    // audiences are broadcasts. readBy uses the same role/email key per account.
+    const notifications = allNotifications.filter((notification) =>
+      notification.audiences?.includes("customer") ||
+      notification.audiences?.includes(`customer:${email}`),
+    );
+    const userKey = `customer:${email}`;
+    const unreadNotifications = notifications.filter(
+      (notification) => !notification.readBy?.includes(userKey),
+    );
+    const dot = button.querySelector(".orange_circle");
+    if (dot) {
+      dot.hidden = unreadNotifications.length === 0;
+      dot.textContent = unreadNotifications.length > 9 ? "9+" : String(unreadNotifications.length);
+      dot.setAttribute("aria-label", `${unreadNotifications.length} unread notifications`);
+    }
     let panel = document.getElementById("customerNotifPanel");
     if (!panel) {
       panel = document.createElement("div");
       panel.id = "customerNotifPanel";
-      panel.className = "popup_user_options";
-      panel.style.width = "300px";
+      panel.className = "customer-notif-panel";
       button.parentElement.appendChild(panel);
     }
-    panel.innerHTML = `<div class="popup_user_info"><strong>Notifications</strong></div>${
+    panel.innerHTML = `<div class="customer-notif-head">Notifications</div>${
       notifications.length
         ? notifications
             .slice(0, 8)
             .map(
-              (notification) =>
-                `<div class="popup_user_info"><div class="popup_user_name">${notification.title}</div><div class="popup_user_email">${notification.message}</div></div>`,
+              (notification) => `<button type="button" class="customer-notification-link" data-notification-id="${escapeHtml(notification.id)}"><span class="customer-notification-title">${escapeHtml(notification.title)}</span><span class="customer-notification-message">${escapeHtml(notification.message)}</span></button>`,
             )
             .join("")
-        : '<div class="popup_user_info"><div class="popup_user_email">No new notifications.</div></div>'
+        : '<div class="customer-notif-empty">No notifications yet.</div>'
     }`;
-    button.addEventListener("click", (event) => {
-      event.stopPropagation();
-      panel.classList.toggle("show");
-    });
-    void email;
+  }
+
+  function closeCustomerNotifications() {
+    const panel = document.getElementById("customerNotifPanel");
+    const button = document.getElementById("customerBellBtn");
+    panel?.classList.remove("show");
+    button?.setAttribute("aria-expanded", "false");
   }
 
   renderCustomerNotifications();
+  const customerBellButton = document.getElementById("customerBellBtn");
+  customerBellButton?.addEventListener("click", (event) => {
+    event.stopPropagation();
+    const panel = document.getElementById("customerNotifPanel");
+    if (!panel) return;
+    const opening = !panel.classList.contains("show");
+    panel.classList.toggle("show");
+    customerBellButton.setAttribute("aria-expanded", String(opening));
+    if (opening) {
+      const email = (localStorage.getItem("userEmail") || "").toLowerCase();
+      const allNotifications = JSON.parse(
+        localStorage.getItem("motofix_notifications") || "[]",
+      );
+      const visible = allNotifications.filter((notification) =>
+        notification.audiences?.includes("customer") ||
+        notification.audiences?.includes(`customer:${email}`),
+      );
+      const userKey = `customer:${email}`;
+      visible.forEach((notification) => {
+        const readBy = Array.isArray(notification.readBy) ? notification.readBy : [];
+        if (!readBy.includes(userKey)) notification.readBy = [...readBy, userKey];
+      });
+      localStorage.setItem("motofix_notifications", JSON.stringify(allNotifications));
+      renderCustomerNotifications();
+      panel.classList.add("show");
+    }
+  });
+  document.addEventListener(
+    "click",
+    (event) => {
+      const panel = document.getElementById("customerNotifPanel");
+      if (
+        panel?.classList.contains("show") &&
+        !panel.contains(event.target) &&
+        !customerBellButton?.contains(event.target)
+      ) {
+        closeCustomerNotifications();
+      }
+    },
+    true,
+  );
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") closeCustomerNotifications();
+  });
   window.addEventListener("storage", (event) => {
     if (event.key === "motofix_notifications") renderCustomerNotifications();
   });
+  window.addEventListener("motofix:notifications-updated", renderCustomerNotifications);
 
   // --- View Switching Logic ---
   function switchToServicePage() {
@@ -127,6 +196,84 @@ export function initNavigation() {
       middleHeaderSub.textContent = "Manage service scheduling";
   }
 
+  customerBellButton?.parentElement?.addEventListener("click", (event) => {
+    const item = event.target.closest(".customer-notification-link[data-notification-id]");
+    if (!item) return;
+    const allNotifications = JSON.parse(
+      localStorage.getItem("motofix_notifications") || "[]",
+    );
+    // destination and entity IDs are the notification-to-record contract used by all dashboards.
+    const notification = allNotifications.find(
+      (entry) => entry.id === item.dataset.notificationId,
+    );
+    if (!notification) return;
+
+    event.preventDefault();
+    const request = notification.permissionRequestId
+      ? JSON.parse(localStorage.getItem("motofix_permission_requests") || "[]")
+          .find((entry) => entry.id === notification.permissionRequestId)
+      : null;
+    const appointmentId = notification.appointmentId || request?.appointmentId;
+    const title = String(notification.title || "").toLowerCase();
+    const destination =
+      notification.destination ||
+      (request?.type?.startsWith("account_")
+        ? "profile"
+        : appointmentId
+          ? "appointments"
+          : /appointment|booking|job/.test(title)
+            ? "appointments"
+            : /invoice|transaction|payment|receipt/.test(title)
+              ? "transactions"
+              : /motorcycle|motorcycle registration/.test(title)
+                ? "motorcycles"
+                : /parts|stock/.test(title)
+                  ? "parts"
+                  : "dashboard");
+
+    navLinks.forEach((link) => link.classList.remove("active"));
+    const destinationIndex = {
+      dashboard: 0,
+      profile: 0,
+      appointments: 1,
+      motorcycles: 2,
+      parts: 3,
+      transactions: 4,
+    }[destination] ?? 0;
+    navLinks[destinationIndex]?.classList.add("active");
+    if (destination === "appointments") {
+      switchToAppointmentsPage();
+      if (appointmentId) {
+        window.dispatchEvent(
+          new CustomEvent("motofix:open-customer-appointment", {
+            detail: { appointmentId: String(appointmentId) },
+          }),
+        );
+      } else if (request) {
+        document.getElementById("edit-profile-btn")?.click();
+      }
+    } else if (destination === "parts") {
+      switchToPartsPage();
+    } else if (destination === "transactions") {
+      switchToTransactionsPage();
+      if (appointmentId) {
+        window.dispatchEvent(
+          new CustomEvent("motofix:open-customer-transaction", {
+            detail: { appointmentId: String(appointmentId) },
+          }),
+        );
+      }
+    } else if (destination === "motorcycles") {
+      switchToMotorcyclesPage();
+    } else if (destination === "profile") {
+      switchToDashboardPage();
+      document.getElementById("edit-profile-btn")?.click();
+    } else {
+      switchToDashboardPage();
+    }
+    closeCustomerNotifications();
+  });
+
   function switchToMotorcyclesPage() {
     if (dashView) dashView.style.display = "none";
     if (serviceView) serviceView.style.display = "none";
@@ -134,9 +281,9 @@ export function initNavigation() {
     if (partsView) partsView.style.display = "none";
     if (transactionsView) transactionsView.style.display = "none";
     if (middleHeaderLabel)
-      middleHeaderLabel.textContent = "Motorcycle Customization";
+      middleHeaderLabel.textContent = "My Motorcycles";
     if (middleHeaderSub)
-      middleHeaderSub.textContent = "Bike profiles & custom builds";
+      middleHeaderSub.textContent = "Manage your registered motorcycles";
   }
 
   function switchToPartsPage() {
@@ -173,14 +320,12 @@ export function initNavigation() {
       if (index === 0) {
         switchToDashboardPage(); // Customer Dashboard page
       } else if (index === 1) {
-        switchToServicePage(); // Booking/Service page
-      } else if (index === 2) {
         switchToAppointmentsPage(); // My Appointments
-      } else if (index === 3) {
+      } else if (index === 2) {
         switchToMotorcyclesPage(); // My motorcycle page
-      } else if (index === 4) {
+      } else if (index === 3) {
         switchToPartsPage(); // Parts & Shop page
-      } else if (index === 5) {
+      } else if (index === 4) {
         switchToTransactionsPage(); // Parts & Shop page
       }
     });
@@ -274,4 +419,10 @@ export function initNavigation() {
       window.location.href = "../../login.html";
     });
   }
+
+  dashboardAppointmentsBtn?.addEventListener("click", () => {
+    navLinks.forEach((link) => link.classList.remove("active"));
+    navLinks[1]?.classList.add("active");
+    switchToAppointmentsPage();
+  });
 }

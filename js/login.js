@@ -93,8 +93,56 @@ function authenticate(email, password) {
   return new Promise((resolve) => {
     setTimeout(() => {
       const normalizedEmail = String(email || "").trim().toLowerCase();
+      const knownUsers = {
+        "master@motofix.com": "master_admin",
+        "admin@motofix.com": "admin",
+        "mechanic1@motofix.com": "mechanic",
+        "mechanic2@motofix.com": "mechanic",
+        "jose@email.com": "customer",
+        "ana@email.com": "customer",
+        "miguel@email.com": "customer",
+      };
       let role = null;
+      let deletedAccounts = [];
+      try {
+        const storedDeletedAccounts = JSON.parse(
+          localStorage.getItem("motofix_deleted_accounts") || "[]",
+        );
+        deletedAccounts = Array.isArray(storedDeletedAccounts)
+          ? storedDeletedAccounts.map((accountEmail) => String(accountEmail).toLowerCase())
+          : [];
+      } catch {
+        deletedAccounts = [];
+      }
+      if (deletedAccounts.includes(normalizedEmail)) {
+        resolve({ ok: false, role: null });
+        return;
+      }
+      try {
+        const replacedEmails = JSON.parse(
+          localStorage.getItem("motofix_replaced_emails") || "[]",
+        );
+        if (
+          Array.isArray(replacedEmails) &&
+          replacedEmails.some((accountEmail) => String(accountEmail).toLowerCase() === normalizedEmail)
+        ) {
+          resolve({ ok: false, role: null });
+          return;
+        }
+        const aliases = JSON.parse(
+          localStorage.getItem("motofix_login_aliases") || "{}",
+        );
+        if (aliases && typeof aliases === "object" && !Array.isArray(aliases)) {
+          Object.entries(aliases).forEach(([alias, aliasRole]) => {
+            if (aliasRole) knownUsers[alias.trim().toLowerCase()] = String(aliasRole).toLowerCase();
+          });
+        }
+      } catch (error) {
+        console.error("Unable to load customer login email changes:", error);
+      }
 
+      // Resolve credentials from the shared account collection; aliases preserve login
+      // after a Customer changes email, while role metadata routes to the right dashboard.
       // 1. CHECK LOCALSTORAGE DATABASE MOCK FIRST (Catches new signups!)
       const registeredUsers = JSON.parse(localStorage.getItem("motofix_users")) || [];
       const foundUser = registeredUsers.find(u => u.email.toLowerCase() === normalizedEmail);
@@ -102,8 +150,33 @@ function authenticate(email, password) {
       if (foundUser) {
         // If found in localStorage, verify password matches what they signed up with
         if (foundUser.password === password) {
-          // Map database role string to system roles safely
-          role = foundUser.role ? foundUser.role.toLowerCase() : "customer";
+          // Keep built-in account identities on their intended system roles.
+          role =
+            knownUsers[normalizedEmail] ||
+            (foundUser.role ? foundUser.role.toLowerCase() : "customer");
+          if (knownUsers[normalizedEmail] && foundUser.role !== role) {
+            foundUser.role = role;
+            localStorage.setItem("motofix_users", JSON.stringify(registeredUsers));
+
+            const employees = JSON.parse(
+              localStorage.getItem("motofix_master_employees") || "[]",
+            );
+            if (Array.isArray(employees)) {
+              let employeesUpdated = false;
+              employees.forEach((employee) => {
+                if (employee.email?.trim().toLowerCase() === normalizedEmail) {
+                  employee.role = role;
+                  employeesUpdated = true;
+                }
+              });
+              if (employeesUpdated) {
+                localStorage.setItem(
+                  "motofix_master_employees",
+                  JSON.stringify(employees),
+                );
+              }
+            }
+          }
           
           // Save extra user profile info to session storage for the UI to use
           localStorage.setItem("userFullName", foundUser.name || `${foundUser.first_name} ${foundUser.last_name}`);
@@ -118,16 +191,6 @@ function authenticate(email, password) {
       }
 
       // 2. FALLBACK TO HARDCODED ACCOUNTS (If not found in localStorage)
-      const knownUsers = {
-        "master@motofix.com": "master_admin", // Master Admin role
-        "admin@motofix.com": "admin",         // Regular Store Admin
-        "mechanic1@motofix.com": "mechanic",    // Mechanic Ramon Santos
-        "mechanic2@motofix.com": "mechanic",    // Mechanic Jake Reyes
-        "jose@email.com": "customer",          // Customer Jose Bautista
-        "ana@email.com": "customer",            // Customer Ana Flores
-        "miguel@email.com": "customer"          // Customer Miguel Torres
-      };
-
       role = knownUsers[normalizedEmail] || null;
       const passwordValid = typeof password === "string" && password.length >= 6;
 

@@ -1,23 +1,95 @@
 // JAVASCRIPTS/motorcycles.js
 const MOTORCYCLE_STORE_KEY = "motofix_motorcycles";
 
+// Motorcycle ownership currently joins to the signed-in user by normalized email.
+// A database migration can replace ownerEmail with a foreign key to the users table.
 const currentEmail = () =>
   (localStorage.getItem("userEmail") || "").trim().toLowerCase();
 
 function readAllBikes() {
   try {
     const parsed = JSON.parse(localStorage.getItem(MOTORCYCLE_STORE_KEY) || "[]");
-    return Array.isArray(parsed) ? parsed : [];
+    if (!Array.isArray(parsed)) return [];
+    const cleaned = parsed.map(({ customizations, ...bike }) => bike);
+    if (parsed.some((bike) => Object.hasOwn(bike, "customizations"))) {
+      localStorage.setItem(MOTORCYCLE_STORE_KEY, JSON.stringify(cleaned));
+    }
+    return cleaned;
   } catch {
     return [];
   }
 }
 
 const writeAllBikes = (bikes) =>
-  localStorage.setItem(MOTORCYCLE_STORE_KEY, JSON.stringify(bikes));
+  localStorage.setItem(
+    MOTORCYCLE_STORE_KEY,
+    JSON.stringify(bikes.map(({ customizations, ...bike }) => bike)),
+  );
 
 const getMyBikes = () =>
   readAllBikes().filter((b) => b.ownerEmail === currentEmail());
+
+// Signup stores an initial bike on the user record; migrate it once into the
+// motorcycle collection, linked back to that user through ownerEmail.
+function migrateSignupMotorcycle() {
+  const email = currentEmail();
+  if (!email || localStorage.getItem(`motofix_signup_motorcycle_migrated:${email}`)) {
+    return;
+  }
+
+  try {
+    const users = JSON.parse(localStorage.getItem("motofix_users") || "[]");
+    const account = Array.isArray(users)
+      ? users.find((user) => user.email?.trim().toLowerCase() === email)
+      : null;
+    if (!account) return;
+
+    const model = String(account.moto_model || "").trim();
+    const plate = String(account.plate_number || "")
+      .trim()
+      .toUpperCase();
+    const hasModel = model && model.toLowerCase() !== "none specified";
+    const hasPlate = plate && plate.toLowerCase() !== "unregistered";
+    if (!hasModel && !hasPlate) {
+      localStorage.setItem(`motofix_signup_motorcycle_migrated:${email}`, "true");
+      return;
+    }
+
+    const bikes = readAllBikes();
+    const registeredBikeIndex = bikes.findIndex(
+      (bike) =>
+        bike.ownerEmail?.trim().toLowerCase() === email &&
+        (hasPlate
+          ? String(bike.plate || "").trim().toUpperCase() === plate
+          : String(bike.model || "").trim().toLowerCase() === model.toLowerCase()),
+    );
+    if (registeredBikeIndex >= 0) {
+      const bike = bikes[registeredBikeIndex];
+      bikes[registeredBikeIndex] = {
+        ...bike,
+        model: bike.model || (hasModel ? model : "Motorcycle"),
+        plate: bike.plate || (hasPlate ? plate : ""),
+      };
+      writeAllBikes(bikes);
+    } else {
+      bikes.push({
+        id: `signup-${encodeURIComponent(email)}`,
+        ownerEmail: email,
+        make: "",
+        model: hasModel ? model : "Motorcycle",
+        year: "",
+        color: "",
+        plate: hasPlate ? plate : "",
+        mileage: 0,
+        createdAt: account.created_at || new Date().toISOString(),
+      });
+      writeAllBikes(bikes);
+    }
+    localStorage.setItem(`motofix_signup_motorcycle_migrated:${email}`, "true");
+  } catch (error) {
+    console.error("Unable to migrate the motorcycle saved during signup:", error);
+  }
+}
 
 function escapeHtml(value) {
   return String(value ?? "").replace(
@@ -27,7 +99,7 @@ function escapeHtml(value) {
   );
 }
 
-const bikeTitle = (b) => `${b.year} ${b.make} ${b.model}`.trim();
+const bikeTitle = (b) => [b.year, b.make, b.model].filter(Boolean).join(" ");
 const bikeSub = (b) => [b.color, b.plate].filter(Boolean).join(" · ");
 const formatKm = (n) => `${Number(n || 0).toLocaleString("en-PH")} km`;
 
@@ -56,6 +128,7 @@ export function initMotorcycles() {
   const errorBox = document.getElementById("bike-form-error");
 
   let editingId = null; // null = adding a new bike
+  let activeBikeId = null;
 
   const setField = (name, value) => {
     const el = document.getElementById(`bike-${name}`);
@@ -69,17 +142,10 @@ export function initMotorcycles() {
       ? bikes
           .map(
             (b) => `
-        <div class="mc-bike-card" data-bike-id="${escapeHtml(b.id)}">
+        <div class="mc-bike-card" data-bike-id="${escapeHtml(b.id)}" tabindex="0" role="button" aria-label="View details for ${escapeHtml(bikeTitle(b))}">
           <div class="mc-bike-info">
             <div class="mc-bike-title">${escapeHtml(bikeTitle(b))}</div>
             <div class="mc-bike-sub">${escapeHtml(bikeSub(b))}</div>
-            ${
-              b.customizations?.length
-                ? `<div class="mc-tags-row">${b.customizations
-                    .map((m) => `<span class="mc-tag">${escapeHtml(m)}</span>`)
-                    .join("")}</div>`
-                : ""
-            }
           </div>
           <div class="mc-bike-meta">
             <div class="mc-odometer-val">${escapeHtml(formatKm(b.mileage))}</div>
@@ -99,7 +165,7 @@ export function initMotorcycles() {
       ? bikes
           .map(
             (b) => `
-        <div class="motorcycle_list_subparent" data-bike-id="${escapeHtml(b.id)}" style="cursor:pointer" title="Click to edit">
+        <div class="motorcycle_list_subparent" data-bike-id="${escapeHtml(b.id)}" tabindex="0" role="button" aria-label="View details for ${escapeHtml(bikeTitle(b))}" style="cursor:pointer" title="View motorcycle details">
           <div class="moto_label_parent">
             <div class="moto_label_subparent">
               <div class="third_div_moto_icon">${BIKE_ICON}</div>
@@ -111,11 +177,6 @@ export function initMotorcycles() {
           </div>
           <div class="moto_km_parent">
             <div class="moto_km">${escapeHtml(formatKm(b.mileage))}</div>
-            ${
-              b.customizations?.length
-                ? `<div class="moto_mods">${b.customizations.length} mod${b.customizations.length === 1 ? "" : "s"}</div>`
-                : ""
-            }
           </div>
         </div>`
           )
@@ -144,6 +205,10 @@ export function initMotorcycles() {
 
   // ---------- Details panel ----------
   function showDetails(bike) {
+    activeBikeId = bike.id;
+    listEl?.querySelectorAll(".mc-bike-card").forEach((card) => {
+      card.classList.toggle("selected", card.dataset.bikeId === String(bike.id));
+    });
     const set = (id, value) => {
       const el = document.getElementById(id);
       if (el) el.textContent = value;
@@ -154,15 +219,6 @@ export function initMotorcycles() {
     set("detail-color", bike.color || "—");
     set("detail-plate", bike.plate);
     set("detail-mileage", formatKm(bike.mileage));
-
-    const mods = document.getElementById("detail-customizations");
-    if (mods) {
-      mods.innerHTML = bike.customizations?.length
-        ? bike.customizations
-            .map((m) => `<span class="mc-tag">${escapeHtml(m)}</span>`)
-            .join("")
-        : `<span class="mc-tag">None</span>`;
-    }
 
     // Edit / Delete buttons (created here, no HTML edit needed)
     let actions = document.getElementById("bike-detail-actions");
@@ -178,7 +234,16 @@ export function initMotorcycles() {
     document.getElementById("edit-bike-btn").addEventListener("click", () => openModal(bike));
     document.getElementById("delete-bike-btn").addEventListener("click", () => deleteBike(bike));
 
-    if (detailsPanel) detailsPanel.style.display = "block";
+    if (detailsPanel) {
+      detailsPanel.style.display = "flex";
+      document.getElementById("close-bike-details")?.focus();
+    }
+  }
+
+  function closeDetails() {
+    activeBikeId = null;
+    if (detailsPanel) detailsPanel.style.display = "none";
+    listEl?.querySelectorAll(".mc-bike-card").forEach((card) => card.classList.remove("selected"));
   }
 
   function deleteBike(bike) {
@@ -188,29 +253,52 @@ export function initMotorcycles() {
         (b) => !(b.id === bike.id && b.ownerEmail === currentEmail())
       )
     );
-    if (detailsPanel) detailsPanel.style.display = "none";
+    closeDetails();
     renderAll();
   }
 
-    listEl?.addEventListener("click", (e) => {
+  listEl?.addEventListener("click", (e) => {
     const card = e.target.closest(".mc-bike-card");
     if (!card) return;
     const bike = getMyBikes().find((b) => b.id === card.dataset.bikeId);
-    if (bike) openModal(bike);
+    if (bike) {
+      listEl.querySelectorAll(".mc-bike-card").forEach((item) => item.classList.remove("selected"));
+      card.classList.add("selected");
+      showDetails(bike);
+    }
   });
-  
+
+  listEl?.addEventListener("keydown", (event) => {
+    const card = event.target.closest(".mc-bike-card");
+    if (!card || (event.key !== "Enter" && event.key !== " ")) return;
+    event.preventDefault();
+    card.click();
+  });
+
   dashListEl?.addEventListener("click", (e) => {
-  const row = e.target.closest(".motorcycle_list_subparent");
-  if (!row) return;
-  const bike = getMyBikes().find((b) => b.id === row.dataset.bikeId);
-  if (bike) openModal(bike);
-});
+    const row = e.target.closest(".motorcycle_list_subparent");
+    if (!row) return;
+    const bike = getMyBikes().find((b) => b.id === row.dataset.bikeId);
+    if (bike) showDetails(bike);
+  });
+
+  dashListEl?.addEventListener("keydown", (event) => {
+    const row = event.target.closest(".motorcycle_list_subparent");
+    if (!row || (event.key !== "Enter" && event.key !== " ")) return;
+    event.preventDefault();
+    row.click();
+  });
+
+  detailsPanel?.addEventListener("click", (event) => {
+    if (event.target === detailsPanel) closeDetails();
+  });
+
   if (closeDetailsBtn) {
-    closeDetailsBtn.addEventListener("click", () => {
-      if (detailsPanel) detailsPanel.style.display = "none";
-      listEl?.querySelectorAll(".mc-bike-card").forEach((c) => c.classList.remove("selected"));
-    });
+    closeDetailsBtn.addEventListener("click", closeDetails);
   }
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && detailsPanel?.style.display === "flex") closeDetails();
+  });
 
   // ---------- Add / Edit modal ----------
   function openModal(bike = null) {
@@ -224,7 +312,6 @@ export function initMotorcycles() {
     setField("color", bike?.color);
     setField("plate", bike?.plate);
     setField("mileage", bike?.mileage);
-    setField("mods", bike?.customizations?.join(", "));
 
     if (errorBox) errorBox.hidden = true;
     let delBtn = document.getElementById("delete-bike-in-modal");
@@ -232,7 +319,7 @@ export function initMotorcycles() {
       delBtn = document.createElement("button");
       delBtn.id = "delete-bike-in-modal";
       delBtn.type = "button";
-      delBtn.className = "sc-secondary-btn";
+      delBtn.className = "sc-submit-btn sc-danger-btn";
       delBtn.style.cssText = "width:100%;margin-top:8px";
       delBtn.textContent = "Delete Motorcycle";
       saveBtn.after(delBtn);
@@ -297,10 +384,6 @@ export function initMotorcycles() {
       color: val("bike-color"),
       plate,
       mileage,
-      customizations: val("bike-mods")
-        .split(",")
-        .map((m) => m.trim())
-        .filter(Boolean),
     };
 
     const keepId = editingId;
@@ -311,6 +394,7 @@ export function initMotorcycles() {
       if (idx === -1) return showError("Motorcycle not found.");
       all[idx] = { ...all[idx], ...data, updatedAt: new Date().toISOString() };
     } else {
+      // id identifies the motorcycle; ownerEmail is its current user relationship.
       all.push({
         id: `B${Date.now()}`,
         ownerEmail: currentEmail(),
@@ -333,5 +417,16 @@ export function initMotorcycles() {
     }
   });
 
+  migrateSignupMotorcycle();
   renderAll();
+
+  window.addEventListener("storage", (event) => {
+    if (event.key !== MOTORCYCLE_STORE_KEY) return;
+    renderAll();
+    if (detailsPanel?.style.display === "flex") {
+      const selectedBike = getMyBikes().find((bike) => bike.id === activeBikeId);
+      if (selectedBike) showDetails(selectedBike);
+      else closeDetails();
+    }
+  });
 }

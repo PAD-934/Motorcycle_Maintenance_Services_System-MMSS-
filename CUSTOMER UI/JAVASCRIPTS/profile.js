@@ -1,5 +1,7 @@
 // JAVASCRIPTS/profile.js
 const PROFILE_KEY = "motofix_profiles";
+const PERMISSION_REQUESTS_KEY = "motofix_permission_requests";
+const NOTIFICATIONS_KEY = "motofix_notifications";
 
 const currentEmail = () =>
   (localStorage.getItem("userEmail") || "").trim().toLowerCase();
@@ -13,6 +15,85 @@ function readProfiles() {
   } catch {
     return {};
   }
+}
+
+function readStoredArray(key) {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(key) || "[]");
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function createDeletionRequestId(requests) {
+  const timestamp = Date.now();
+  let attempt = 0;
+  let requestId;
+  do {
+    requestId = `PR-${timestamp}${attempt ? `-${attempt}` : ""}`;
+    attempt += 1;
+  } while (requests.some((request) => request.id === requestId));
+  return requestId;
+}
+
+function requestAccountDeletion(profile) {
+  const email = currentEmail();
+  if (!email) {
+    alert("Your account email could not be found. Please sign in again.");
+    return false;
+  }
+
+  const requests = readStoredArray(PERMISSION_REQUESTS_KEY);
+  if (requests.some(
+    (request) =>
+      request.type === "account_delete" &&
+      request.status === "Pending" &&
+      request.targetEmail?.toLowerCase() === email,
+  )) {
+    alert("Your account deletion request is already pending review.");
+    return false;
+  }
+
+  const requestedAt = new Date().toISOString();
+  const requestId = createDeletionRequestId(requests);
+  requests.unshift({
+    id: requestId,
+    type: "account_delete",
+    status: "Pending",
+    targetEmail: email,
+    targetName: profile.name,
+    targetRole: "Customer",
+    requestedBy: email,
+    requestedByName: profile.name,
+    requestedByRole: "customer",
+    requestedAt,
+    notes: [],
+  });
+  localStorage.setItem(PERMISSION_REQUESTS_KEY, JSON.stringify(requests));
+
+  const notifications = readStoredArray(NOTIFICATIONS_KEY);
+  notifications.unshift({
+    id: `N${Date.now()}`,
+    title: "Account deletion requested",
+    message: `${profile.name} requested deletion of their customer account (${email}).`,
+    audiences: ["admin"],
+    permissionRequestId: requestId,
+    createdAt: requestedAt,
+    readBy: [],
+  });
+  localStorage.setItem(NOTIFICATIONS_KEY, JSON.stringify(notifications.slice(0, 100)));
+  window.dispatchEvent(new Event("motofix:notifications-updated"));
+  return true;
+}
+
+function confirmAccountDeletionRequest(profile) {
+  if (!window.confirm("Are you sure you want to request deletion of your account? This sends a request to the administrator; your account will not be deleted unless approved.")) {
+    return false;
+  }
+  if (!requestAccountDeletion(profile)) return false;
+  alert("Your account deletion request was sent to the administrator for review.");
+  return true;
 }
 
 const initialsOf = (name) =>
@@ -37,10 +118,176 @@ export function getProfile() {
   return { email, name, phone, initials: initialsOf(name) };
 }
 
-function saveProfile({ name, phone }) {
-  const all = readProfiles();
-  all[currentEmail()] = { name, phone };
-  localStorage.setItem(PROFILE_KEY, JSON.stringify(all));
+function saveCustomerProfile({ name, email, phone }) {
+  const oldEmail = currentEmail();
+  const newEmail = email.trim().toLowerCase();
+  if (!oldEmail) throw new Error("Your signed-in email could not be found. Please sign in again.");
+
+  const readArray = (key) => {
+    let value;
+    try {
+      value = JSON.parse(localStorage.getItem(key) || "[]");
+    } catch (error) {
+      throw new Error(`Could not read ${key}. Your profile was not changed.`);
+    }
+    if (!Array.isArray(value)) {
+      throw new Error(`Stored ${key} data is invalid. Your profile was not changed.`);
+    }
+    return value;
+  };
+  const users = readArray("motofix_users");
+  const employees = readArray("motofix_master_employees");
+  const reservedEmails = [
+    "master@motofix.com",
+    "admin@motofix.com",
+    "mechanic1@motofix.com",
+    "mechanic2@motofix.com",
+    "jose@email.com",
+    "ana@email.com",
+    "miguel@email.com",
+  ];
+  let existingAliases;
+  try {
+    existingAliases = JSON.parse(localStorage.getItem("motofix_login_aliases") || "{}");
+  } catch {
+    throw new Error("Login email data is invalid. Your profile was not changed.");
+  }
+  if (!existingAliases || typeof existingAliases !== "object" || Array.isArray(existingAliases)) {
+    throw new Error("Login email data is invalid. Your profile was not changed.");
+  }
+  if (
+    users.some((user) => user.email?.trim().toLowerCase() === newEmail && user.email?.trim().toLowerCase() !== oldEmail) ||
+    employees.some((user) => user.email?.trim().toLowerCase() === newEmail) ||
+    (newEmail !== oldEmail && (reservedEmails.includes(newEmail) || existingAliases[newEmail]))
+  ) {
+    throw new Error("That email address is already in use.");
+  }
+
+  let profiles;
+  try {
+    profiles = JSON.parse(localStorage.getItem(PROFILE_KEY) || "{}");
+  } catch {
+    throw new Error("Your saved profile data is invalid. Your profile was not changed.");
+  }
+  if (!profiles || typeof profiles !== "object" || Array.isArray(profiles)) {
+    throw new Error("Your saved profile data is invalid. Your profile was not changed.");
+  }
+  // Email is the current cross-store customer key; migrate every reference together
+  // so appointments, motorcycles, notifications, permissions, and login remain linked.
+  const appointments = readArray("motofix_appointments");
+  const motorcycles = readArray("motofix_motorcycles");
+  const notifications = readArray(NOTIFICATIONS_KEY);
+  const permissionRequests = readArray(PERMISSION_REQUESTS_KEY);
+  let aliases;
+  let replacedEmails;
+  try {
+    aliases = JSON.parse(localStorage.getItem("motofix_login_aliases") || "{}");
+    replacedEmails = JSON.parse(localStorage.getItem("motofix_replaced_emails") || "[]");
+  } catch {
+    throw new Error("Login email data is invalid. Your profile was not changed.");
+  }
+  if (!aliases || typeof aliases !== "object" || Array.isArray(aliases) || !Array.isArray(replacedEmails)) {
+    throw new Error("Login email data is invalid. Your profile was not changed.");
+  }
+
+  const previousProfile = profiles[oldEmail] || {};
+  delete profiles[oldEmail];
+  profiles[newEmail] = { ...previousProfile, name, phone };
+  const account = users.find((user) => user.email?.trim().toLowerCase() === oldEmail);
+  if (account) {
+    account.email = newEmail;
+    account.name = name;
+    account.phone = phone;
+  } else {
+    aliases[newEmail] = "customer";
+  }
+  delete aliases[oldEmail];
+  if (oldEmail !== newEmail && !replacedEmails.includes(oldEmail)) {
+    replacedEmails.push(oldEmail);
+  }
+
+  appointments.forEach((appointment) => {
+    if (appointment.customerEmail?.trim().toLowerCase() === oldEmail) {
+      appointment.customerEmail = newEmail;
+    }
+  });
+  motorcycles.forEach((motorcycle) => {
+    if (motorcycle.ownerEmail?.trim().toLowerCase() === oldEmail) {
+      motorcycle.ownerEmail = newEmail;
+    }
+  });
+  notifications.forEach((notification) => {
+    if (Array.isArray(notification.audiences)) {
+      notification.audiences = notification.audiences.map((audience) =>
+        audience === `customer:${oldEmail}` ? `customer:${newEmail}` : audience,
+      );
+    }
+    if (Array.isArray(notification.readBy)) {
+      notification.readBy = notification.readBy.map((reader) =>
+        reader === `customer:${oldEmail}` ? `customer:${newEmail}` : reader,
+      );
+    }
+  });
+  permissionRequests.forEach((request) => {
+    if (request.requestedBy?.trim().toLowerCase() === oldEmail) request.requestedBy = newEmail;
+    if (request.targetEmail?.trim().toLowerCase() === oldEmail) request.targetEmail = newEmail;
+  });
+
+  const updates = {
+    [PROFILE_KEY]: profiles,
+    motofix_users: users,
+    motofix_appointments: appointments,
+    motofix_motorcycles: motorcycles,
+    [NOTIFICATIONS_KEY]: notifications,
+    [PERMISSION_REQUESTS_KEY]: permissionRequests,
+    motofix_login_aliases: aliases,
+    motofix_replaced_emails: replacedEmails,
+  };
+  const previousCurrentUser = localStorage.getItem("motofix_current_user");
+  const previousValues = Object.fromEntries(
+    Object.keys(updates).map((key) => [key, localStorage.getItem(key)]),
+  );
+  const previousSessionEmail = localStorage.getItem("userEmail");
+  const previousSessionName = localStorage.getItem("userFullName");
+  const oldMigrationKey = `motofix_signup_motorcycle_migrated:${oldEmail}`;
+  const newMigrationKey = `motofix_signup_motorcycle_migrated:${newEmail}`;
+  const previousOldMigrationValue = localStorage.getItem(oldMigrationKey);
+  const previousNewMigrationValue = localStorage.getItem(newMigrationKey);
+  try {
+    Object.entries(updates).forEach(([key, value]) => {
+      localStorage.setItem(key, JSON.stringify(value));
+    });
+    localStorage.setItem("userEmail", newEmail);
+    localStorage.setItem("userFullName", name);
+    if (previousOldMigrationValue !== null) {
+      localStorage.setItem(newMigrationKey, previousOldMigrationValue);
+      localStorage.removeItem(oldMigrationKey);
+    }
+    const currentUser = JSON.parse(localStorage.getItem("motofix_current_user") || "null");
+    if (currentUser && currentUser.email?.trim().toLowerCase() === oldEmail) {
+      currentUser.email = newEmail;
+      currentUser.name = name;
+      localStorage.setItem("motofix_current_user", JSON.stringify(currentUser));
+    }
+  } catch (error) {
+    Object.entries(previousValues).forEach(([key, value]) => {
+      if (value === null) localStorage.removeItem(key);
+      else localStorage.setItem(key, value);
+    });
+    if (previousSessionEmail === null) localStorage.removeItem("userEmail");
+    else localStorage.setItem("userEmail", previousSessionEmail);
+    if (previousSessionName === null) localStorage.removeItem("userFullName");
+    else localStorage.setItem("userFullName", previousSessionName);
+    if (previousCurrentUser === null) localStorage.removeItem("motofix_current_user");
+    else localStorage.setItem("motofix_current_user", previousCurrentUser);
+    if (previousOldMigrationValue === null) localStorage.removeItem(oldMigrationKey);
+    else localStorage.setItem(oldMigrationKey, previousOldMigrationValue);
+    if (previousNewMigrationValue === null) localStorage.removeItem(newMigrationKey);
+    else localStorage.setItem(newMigrationKey, previousNewMigrationValue);
+    throw new Error("Could not save your profile changes. Please try again.");
+  }
+  window.dispatchEvent(new Event("motofix:appointments-updated"));
+  window.dispatchEvent(new Event("motofix:notifications-updated"));
 }
 
 export function renderProfile() {
@@ -51,6 +298,8 @@ export function renderProfile() {
   setText(".popup_user_email", p.email || "—");
   setText(".footer_username", p.name);
   setText(".header_user_initials, .footer_initials", p.initials);
+  const welcome = document.querySelector(".middle_header_sub-label");
+  if (welcome) welcome.textContent = `Welcome back, ${p.name.split(/\s+/)[0] || "Customer"}`;
 
   // NEW: green avatar
   document.querySelectorAll(".header_user_initials, .footer_initials").forEach((el) => {
@@ -82,7 +331,7 @@ function openProfileModal() {
         </div>
         <div class="sc-form-group">
           <label>EMAIL (LOGIN)</label>
-          <input type="text" class="sc-input-field" value="${escapeHtml(p.email)}" disabled />
+          <input type="email" id="profile-email" class="sc-input-field" value="${escapeHtml(p.email)}" required autocomplete="email" />
         </div>
         <div class="sc-form-group">
           <label>PHONE</label>
@@ -90,6 +339,10 @@ function openProfileModal() {
         </div>
         <div id="profile-error" class="sc-booking-error" hidden></div>
         <button type="button" class="sc-submit-btn" id="profile-save-btn">Save Profile</button>
+        <section class="sc-account-danger-zone">
+          <div class="sc-account-danger-description">Warning: this sends a request to the administrator to review removal of your account. It will not delete your account immediately.</div>
+          <button type="button" class="sc-submit-btn sc-danger-btn" id="profile-delete-request-btn">Request Account Deletion</button>
+        </section>
       </div>
     </div>`;
 
@@ -101,6 +354,7 @@ function openProfileModal() {
 
   overlay.querySelector("#profile-save-btn").addEventListener("click", () => {
     const name = overlay.querySelector("#profile-name").value.trim();
+    const email = overlay.querySelector("#profile-email").value.trim().toLowerCase();
     const phone = overlay.querySelector("#profile-phone").value.trim();
     const errorBox = overlay.querySelector("#profile-error");
     const showError = (msg) => {
@@ -109,13 +363,26 @@ function openProfileModal() {
     };
 
     if (!name) return showError("Please enter your name.");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return showError("Please enter a valid email address.");
+    }
     if (phone && !/^[0-9+\-\s()]{7,20}$/.test(phone)) {
       return showError("Please enter a valid phone number.");
     }
 
-    saveProfile({ name, phone });
-    renderProfile();
-    close();
+    if (!window.confirm("Are you sure you want to save these profile changes? If you changed your email, use the new email the next time you sign in.")) return;
+    try {
+      saveCustomerProfile({ name, email, phone });
+      renderProfile();
+      close();
+      alert("Profile updated successfully.");
+    } catch (error) {
+      showError(error.message || "Could not save your profile changes.");
+    }
+  });
+
+  overlay.querySelector("#profile-delete-request-btn").addEventListener("click", () => {
+    if (confirmAccountDeletionRequest(p)) close();
   });
 
   document.body.appendChild(overlay);
