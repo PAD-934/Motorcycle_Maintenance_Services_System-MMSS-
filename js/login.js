@@ -1,6 +1,7 @@
 /* =========================================================
    MOTOFIX LOGIN — client-side form handling
 ========================================================= */
+// Account/session fields and backend replacement notes: ../BACKEND_DATA_CONTRACT.md
 
 const $ = (sel) => document.querySelector(sel);
 
@@ -118,17 +119,14 @@ function authenticate(email, password) {
         resolve({ ok: false, role: null });
         return;
       }
+      let replacedEmails = [];
       try {
-        const replacedEmails = JSON.parse(
+        const storedReplacedEmails = JSON.parse(
           localStorage.getItem("motofix_replaced_emails") || "[]",
         );
-        if (
-          Array.isArray(replacedEmails) &&
-          replacedEmails.some((accountEmail) => String(accountEmail).toLowerCase() === normalizedEmail)
-        ) {
-          resolve({ ok: false, role: null });
-          return;
-        }
+        replacedEmails = Array.isArray(storedReplacedEmails)
+          ? storedReplacedEmails.map((accountEmail) => String(accountEmail).trim().toLowerCase())
+          : [];
         const aliases = JSON.parse(
           localStorage.getItem("motofix_login_aliases") || "{}",
         );
@@ -145,7 +143,18 @@ function authenticate(email, password) {
       // after a Customer changes email, while role metadata routes to the right dashboard.
       // 1. CHECK LOCALSTORAGE DATABASE MOCK FIRST (Catches new signups!)
       const registeredUsers = JSON.parse(localStorage.getItem("motofix_users")) || [];
-      const foundUser = registeredUsers.find(u => u.email.toLowerCase() === normalizedEmail);
+      const foundUser = Array.isArray(registeredUsers)
+        ? registeredUsers.find(
+            (user) => user.email?.trim().toLowerCase() === normalizedEmail,
+          )
+        : null;
+
+      // A current registered account wins over a stale replaced-email marker (for example,
+      // when that address is registered again); otherwise the old address stays blocked.
+      if (!foundUser && replacedEmails.includes(normalizedEmail)) {
+        resolve({ ok: false, role: null });
+        return;
+      }
 
       if (foundUser) {
         // If found in localStorage, verify password matches what they signed up with

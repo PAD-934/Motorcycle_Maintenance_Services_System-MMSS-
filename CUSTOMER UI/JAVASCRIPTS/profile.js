@@ -1,4 +1,5 @@
 // JAVASCRIPTS/profile.js
+// Profile/account email relationships and migration behavior: ../../BACKEND_DATA_CONTRACT.md
 const PROFILE_KEY = "motofix_profiles";
 const PERMISSION_REQUESTS_KEY = "motofix_permission_requests";
 const NOTIFICATIONS_KEY = "motofix_notifications";
@@ -319,7 +320,7 @@ function openProfileModal() {
   overlay.id = "profile-modal-overlay";
   overlay.className = "sc-modal-overlay";
   overlay.innerHTML = `
-    <div class="sc-modal-card" style="max-width: 420px">
+    <div class="sc-modal-card sc-profile-editor-card">
       <div class="sc-modal-header">
         <h2>Edit Profile</h2>
         <button type="button" class="sc-modal-close" id="profile-close-btn" aria-label="Close">✕</button>
@@ -331,7 +332,7 @@ function openProfileModal() {
         </div>
         <div class="sc-form-group">
           <label>EMAIL (LOGIN)</label>
-          <input type="email" id="profile-email" class="sc-input-field" value="${escapeHtml(p.email)}" required autocomplete="email" />
+          <textarea id="profile-email" class="sc-input-field sc-profile-email-input" rows="2" required autocomplete="email" aria-label="Login email address">${escapeHtml(p.email)}</textarea>
         </div>
         <div class="sc-form-group">
           <label>PHONE</label>
@@ -347,6 +348,13 @@ function openProfileModal() {
     </div>`;
 
   const close = () => overlay.remove();
+  const emailInput = overlay.querySelector("#profile-email");
+  const fitEmailInput = () => {
+    emailInput.style.height = "auto";
+    emailInput.style.height = `${emailInput.scrollHeight}px`;
+  };
+  emailInput.addEventListener("input", fitEmailInput);
+  fitEmailInput();
   overlay.querySelector("#profile-close-btn").addEventListener("click", close);
   overlay.addEventListener("click", (e) => {
     if (e.target === overlay) close();
@@ -354,7 +362,7 @@ function openProfileModal() {
 
   overlay.querySelector("#profile-save-btn").addEventListener("click", () => {
     const name = overlay.querySelector("#profile-name").value.trim();
-    const email = overlay.querySelector("#profile-email").value.trim().toLowerCase();
+    const email = overlay.querySelector("#profile-email").value.trim().replace(/\s+/g, "").toLowerCase();
     const phone = overlay.querySelector("#profile-phone").value.trim();
     const errorBox = overlay.querySelector("#profile-error");
     const showError = (msg) => {

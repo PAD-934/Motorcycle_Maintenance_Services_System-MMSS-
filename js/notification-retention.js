@@ -1,4 +1,5 @@
 (() => {
+  // Notification recipients, source links, and retention mapping: ../BACKEND_DATA_CONTRACT.md
   // All four dashboards share one notification collection; retention applies to the
   // shared records regardless of audience or the dashboard that created them.
   const STORAGE_KEY = "motofix_notifications";

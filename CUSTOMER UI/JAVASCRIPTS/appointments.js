@@ -1,4 +1,5 @@
 // js/appointments.js
+// Shared appointment schema and role write paths: ../../BACKEND_DATA_CONTRACT.md
 const APPOINTMENT_STORE_KEY = "motofix_appointments";
 const NOTIFICATION_STORE_KEY = "motofix_notifications";
 

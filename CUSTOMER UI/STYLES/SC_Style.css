@@ -318,6 +318,52 @@
   overflow: hidden;
   animation: scModalFade 0.2s ease-out;
 }
+.sc-profile-editor-card {
+  max-width: 640px;
+  max-height: calc(100vh - 24px);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+.sc-profile-editor-card .sc-modal-body,
+.sc-profile-editor-card .sc-form-group,
+.sc-profile-editor-card .sc-input-field {
+  min-width: 0;
+}
+.sc-profile-editor-card .sc-modal-body {
+  max-height: none;
+  overflow-y: auto;
+}
+.sc-profile-editor-card .sc-profile-email-input {
+  min-height: 64px;
+  resize: none;
+  overflow-y: hidden;
+  color: #e4e4e7;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  line-height: 1.5;
+}
+.profile-email-display {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 10px 14px;
+  border: 1px solid #27272a;
+  border-radius: 8px;
+  background: #121214;
+  color: #e4e4e7;
+  font-family: "DM Sans", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.5;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
 
 @keyframes scModalFade {
   from {
@@ -537,6 +583,14 @@
 }
 
 @media (max-width: 560px) {
+  .sc-modal-overlay {
+    padding: 12px;
+  }
+
+  .sc-profile-editor-card .sc-modal-body {
+    padding: 16px;
+  }
+
   .sc-success-card {
     padding: 22px 16px;
   }

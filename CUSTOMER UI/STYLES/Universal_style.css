@@ -158,11 +158,14 @@ body {
   top: 100%;
   right: 0px;
   margin-top: 8px;
-  width: 180px;
+  width: min(320px, calc(100vw - 24px));
+  max-height: calc(100vh - 32px);
+  box-sizing: border-box;
   background: #18181b;
   border: 1px solid #27272a;
   border-radius: 10px;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   box-shadow: rgba(0, 0, 0, 0.4) 0px 8px 24px;
 
   /* Hidden by default */
@@ -175,8 +178,26 @@ body {
 }
 
 .popup_user_info {
+  min-width: 0;
   padding: 12px 14px;
   border-bottom: 1px solid #27272a;
+}
+.popup_user_name,
+.popup_user_email {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.popup_user_name {
+  line-height: 1.45;
+}
+.popup_user_email {
+  margin-top: 5px;
+  color: #c4c4c8;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.5;
 }
 
 .customer-notif-panel {

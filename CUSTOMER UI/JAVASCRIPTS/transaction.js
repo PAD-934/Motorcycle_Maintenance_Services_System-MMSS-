@@ -1,4 +1,5 @@
 export function initTransactions() {
+    // Invoice projection from appointments and ID relationship: ../../BACKEND_DATA_CONTRACT.md
     const transactionsTableBody = document.getElementById("transactions-table-body");
     const invoiceCountLabel = document.getElementById("invoice-count-label");
     const filterTabs = document.querySelectorAll(".filter-tab");

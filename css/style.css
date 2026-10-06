@@ -377,12 +377,15 @@ body {
   position: absolute;
   top: calc(100% + 10px);
   right: 0;
-  width: 224px;
+  width: min(340px, calc(100vw - 24px));
+  max-height: calc(100vh - 32px);
+  box-sizing: border-box;
   background: #18181a;
   border: 1px solid #2b2b2e;
   border-radius: 14px;
   box-shadow: 0 16px 35px rgba(0, 0, 0, 0.38);
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   opacity: 0;
   visibility: hidden;
   transform: translateY(-5px);
@@ -397,18 +400,30 @@ body {
   transform: translateY(0);
 }
 .user-dropdown-info {
+  min-width: 0;
   padding: 16px 16px 14px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .user-dropdown-info strong {
   display: block;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
   font-size: 14px;
   font-weight: 700;
 }
 .user-dropdown-info span {
   display: block;
+  max-width: 100%;
   margin-top: 5px;
-  color: var(--text-faint);
+  color: #c4c4c8;
   font-size: 12px;
+  font-weight: 500;
+  line-height: 1.5;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .profile-edit-action {
   width: 100%;
@@ -1475,6 +1490,36 @@ body {
   max-height: 86vh;
   overflow-y: auto;
 }
+.modal.profile-editor-modal {
+  max-width: 640px;
+  box-sizing: border-box;
+}
+.modal.profile-editor-modal .modal-body,
+.modal.profile-editor-modal .field {
+  min-width: 0;
+}
+.modal.profile-editor-modal input {
+  box-sizing: border-box;
+  min-width: 0;
+}
+.profile-email-display {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  background: #161616;
+  color: #d4d4d8;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
 .modal-head {
   display: flex;
   align-items: center;
@@ -1512,6 +1557,15 @@ body {
   border-radius: 8px;
   font-family: var(--font-body);
   font-size: 13px;
+}
+
+@media (max-width: 520px) {
+  .modal-backdrop {
+    padding: 12px;
+  }
+  .modal.profile-editor-modal .modal-body {
+    padding: 16px;
+  }
 }
 
 .modal-body textarea {

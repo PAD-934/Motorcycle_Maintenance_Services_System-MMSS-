@@ -1,5 +1,6 @@
 const MASTER_EMPLOYEE_STORAGE_KEY = "motofix_master_employees";
 
+// See ../BACKEND_DATA_CONTRACT.md for account consolidation and employee relationships.
 // Master Control owns this employee collection. Dashboard account creation also
 // mirrors employees into motofix_users; keep this adapter's IDs and role/status
 // fields compatible with that shared authentication record until a backend exists.

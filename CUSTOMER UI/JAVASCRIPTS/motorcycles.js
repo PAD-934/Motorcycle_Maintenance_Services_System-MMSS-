@@ -1,4 +1,5 @@
 // JAVASCRIPTS/motorcycles.js
+// Motorcycle ownership and signup migration mapping: ../../BACKEND_DATA_CONTRACT.md
 const MOTORCYCLE_STORE_KEY = "motofix_motorcycles";
 
 // Motorcycle ownership currently joins to the signed-in user by normalized email.

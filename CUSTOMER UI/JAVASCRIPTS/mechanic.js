@@ -1,4 +1,5 @@
 (function () {
+  // Mechanic account/assignment/status flows: ../../BACKEND_DATA_CONTRACT.md
   const isLoggedIn = localStorage.getItem("isLoggedIn");
   const userRole = localStorage.getItem("userRole");
   if (!isLoggedIn || userRole !== "mechanic") {
@@ -93,7 +94,7 @@
           </div>
           <div class="mechanic-profile-field">
             <label for="mechanic-profile-email">Email (Login)</label>
-            <input id="mechanic-profile-email" type="email" value="${escapeHtml(CURRENT_USER.email)}" disabled>
+            <output id="mechanic-profile-email" class="profile-email-display" aria-label="Login email address">${escapeHtml(CURRENT_USER.email)}</output>
           </div>
           <div class="mechanic-profile-field">
             <label for="mechanic-profile-phone">Phone</label>

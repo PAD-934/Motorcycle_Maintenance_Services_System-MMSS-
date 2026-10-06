@@ -1,4 +1,5 @@
 (() => {
+  // Inventory, appointment-part, and stock-movement mapping: ../BACKEND_DATA_CONTRACT.md
   const INVENTORY_KEY = "motofix_parts";
   const NOTIFICATIONS_KEY = "motofix_notifications";
 

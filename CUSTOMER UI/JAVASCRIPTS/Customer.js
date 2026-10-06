@@ -1,4 +1,5 @@
-// js/main.js
+// JAVASCRIPTS/Customer.js
+// Customer dashboard projections over shared backend entities: ../../BACKEND_DATA_CONTRACT.md
 
 import { initAppointments } from "./appointments.js";
 import { initModals } from "./modals.js";

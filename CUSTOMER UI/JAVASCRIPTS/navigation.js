@@ -1,4 +1,5 @@
 // js/navigation.js
+// Notification audience and source-ID routing contract: ../../BACKEND_DATA_CONTRACT.md
 export function initNavigation() {
   const navLinks = document.querySelectorAll(
     ".Sidebar_main .nav-link, .nav-link",

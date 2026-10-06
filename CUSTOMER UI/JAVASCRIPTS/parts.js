@@ -1,4 +1,5 @@
 // JAVASCRIPTS/parts.js
+// Cart-to-appointment parts and inventory relationship: ../../BACKEND_DATA_CONTRACT.md
 
 const INVENTORY_KEY = "motofix_parts";
 localStorage.removeItem("motofix_inventory");

@@ -384,12 +384,15 @@ button {
   position: absolute;
   top: calc(100% + 10px);
   right: 0;
-  width: 224px;
+  width: min(340px, calc(100vw - 24px));
+  max-height: calc(100vh - 32px);
+  box-sizing: border-box;
   background: #18181a;
   border: 1px solid #2b2b2e;
   border-radius: 14px;
   box-shadow: 0 16px 35px rgba(0, 0, 0, 0.38);
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   opacity: 0;
   visibility: hidden;
   transform: translateY(-5px);
@@ -402,18 +405,30 @@ button {
   transform: translateY(0);
 }
 .user-dropdown-info {
+  min-width: 0;
   padding: 16px 16px 14px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .user-dropdown-info strong {
   display: block;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
   font-size: 14px;
   font-weight: 700;
 }
 .user-dropdown-info span {
   display: block;
+  max-width: 100%;
   margin-top: 5px;
-  color: var(--text-faint);
+  color: #c4c4c8;
   font-size: 12px;
+  font-weight: 500;
+  line-height: 1.5;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .profile-edit-action {
   display: block;
@@ -720,7 +735,10 @@ button {
 .mechanic-profile-form {
   display: grid;
   gap: 16px;
+  flex: 1;
+  min-height: 0;
   padding: 24px;
+  overflow-y: auto;
 }
 .mechanic-profile-backdrop {
   z-index: 1000;
@@ -728,9 +746,12 @@ button {
   backdrop-filter: blur(4px);
 }
 .mechanic-profile-dialog {
-  width: min(420px, 100%);
+  width: min(680px, 100%);
   max-height: min(86vh, 720px);
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
   background: #18181b;
   border: 1px solid #27272a;
   border-radius: 16px;
@@ -781,7 +802,9 @@ button {
 }
 .mechanic-profile-form input {
   width: 100%;
+  min-width: 0;
   min-height: 40px;
+  box-sizing: border-box;
   padding: 10px 14px;
   border: 1px solid #27272a;
   border-radius: 8px;
@@ -798,6 +821,23 @@ button {
   color: #71717a;
   cursor: not-allowed;
 }
+.mechanic-profile-form .profile-email-display {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 10px 14px;
+  border: 1px solid #27272a;
+  border-radius: 8px;
+  background: #121214;
+  color: #e4e4e7;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.5;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
 .mechanic-profile-save {
   width: 100%;
   min-height: 44px;
@@ -811,6 +851,17 @@ button {
 }
 .mechanic-profile-save:hover {
   background: #ea580c;
+}
+@media (max-width: 520px) {
+  .mechanic-profile-backdrop {
+    padding: 12px;
+  }
+  .mechanic-profile-header {
+    padding: 16px;
+  }
+  .mechanic-profile-form {
+    padding: 16px;
+  }
 }
 .job-details-head {
   display: flex;

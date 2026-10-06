@@ -3,7 +3,8 @@ const MASTER_EMPLOYEE_STORAGE_KEY = "motofix_master_employees";
 const MOTORCYCLE_STORAGE_KEY = "motofix_motorcycles";
 const PERMISSION_REQUESTS_STORAGE_KEY = "motofix_permission_requests";
 /*
- * Cross-dashboard data contract (currently LocalStorage-backed):
+ * Cross-dashboard data contract (currently LocalStorage-backed; see
+ * ../BACKEND_DATA_CONTRACT.md for the complete backend schema and role flows):
  * - motofix_appointments is the shared job/invoice source: Customer creates
  *   bookings, Admin/Master Admin manage them, and Mechanic updates assigned jobs.
  * - customerEmail and mechanic identify the linked customer and assigned mechanic;
@@ -1546,6 +1547,7 @@ $("#signOutBtn").addEventListener("click", () => {
 
 /* ===================== MODAL ===================== */
 function openModal(title, bodyHTML) {
+  $("#modalBackdrop .modal")?.classList.remove("profile-editor-modal");
   $("#modalTitle").textContent = title;
   $("#modalBody").innerHTML = bodyHTML;
   $("#modalBackdrop").classList.add("open");
@@ -1572,13 +1574,14 @@ function openAdminProfileEditor() {
     `
       <form id="admin-profile-form">
         <div class="field"><label for="admin-profile-name">Full Name</label><input id="admin-profile-name" value="${escapeDashboardHtml(name)}" required></div>
-        <div class="field"><label for="admin-profile-email">Email</label><input id="admin-profile-email" type="email" value="${escapeDashboardHtml(email)}" disabled></div>
+        <div class="field"><label for="admin-profile-email">Email</label><output id="admin-profile-email" class="profile-email-display" aria-label="Login email address">${escapeDashboardHtml(email)}</output></div>
         <div class="field"><label for="admin-profile-phone">Phone</label><input id="admin-profile-phone" type="tel" value="${escapeDashboardHtml(phone)}"></div>
         <button class="btn-primary" type="submit" style="width:100%;margin-top:6px;">Save Profile</button>
         ${canRequestDeletion ? '<section class="account-danger-action"><div class="account-danger-description">Warning: this sends a private deletion request to the Master Admin for approval. Other store admins will not be notified.</div><button class="btn-view account-delete-request-btn" type="button" id="request-admin-account-deletion">Request Account Deletion</button></section>' : ""}
       </form>
     `,
   );
+  $("#modalBackdrop .modal")?.classList.add("profile-editor-modal");
 
   $("#admin-profile-form")?.addEventListener("submit", (event) => {
     event.preventDefault();
