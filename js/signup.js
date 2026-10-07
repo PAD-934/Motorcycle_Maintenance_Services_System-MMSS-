@@ -3,6 +3,7 @@
    - Validates the form fields on the client side
    - Saves data locally, completely prepped to swap for PHP/MySQL later
 ========================================================= */
+// Account fields and backend replacement notes: ../BACKEND_DATA_CONTRACT.md
 
 document.addEventListener("DOMContentLoaded", () => {
     const signupForm = document.querySelector("form");
@@ -20,7 +21,7 @@ function handleSignupSubmission(event) {
     const firstName = document.getElementById("firstName").value.trim();
     const middleName = document.getElementById("middleName").value.trim();
     const lastName = document.getElementById("lastName").value.trim();
-    const email = document.getElementById("email").value.trim();
+    const email = document.getElementById("email").value.trim().toLowerCase();
     const age = document.getElementById("age").value.trim();
     const gender = document.getElementById("gender").value;
     const suffix = document.getElementById("suffix").value || "";
@@ -69,6 +70,7 @@ function handleSignupSubmission(event) {
  * request pointing to our register.php script connected to PHPMyAdmin!
  */
 function saveUserToDatabaseMock(userData) {
+    // motofix_users is the common account source read by login and dashboard role lookups.
     // Grab existing users from local storage or initialize an empty array if empty
     let users = JSON.parse(localStorage.getItem("motofix_users")) || [];
 
@@ -85,6 +87,28 @@ function saveUserToDatabaseMock(userData) {
     
     // Commit to storage so it stays persistent
     localStorage.setItem("motofix_users", JSON.stringify(users));
+    try {
+        const deletedAccounts = JSON.parse(localStorage.getItem("motofix_deleted_accounts") || "[]");
+        if (Array.isArray(deletedAccounts)) {
+            localStorage.setItem(
+                "motofix_deleted_accounts",
+                JSON.stringify(deletedAccounts.filter((email) => String(email).trim().toLowerCase() !== userData.email.toLowerCase())),
+            );
+        }
+    } catch (error) {
+        console.error("Could not clear the deleted-account marker for the new account:", error);
+    }
+    try {
+        const replacedEmails = JSON.parse(localStorage.getItem("motofix_replaced_emails") || "[]");
+        if (Array.isArray(replacedEmails)) {
+            localStorage.setItem(
+                "motofix_replaced_emails",
+                JSON.stringify(replacedEmails.filter((email) => String(email).trim().toLowerCase() !== userData.email.toLowerCase())),
+            );
+        }
+    } catch (error) {
+        console.error("Could not clear the replaced-email marker for the new account:", error);
+    }
 
     // Save current session state so the app knows who's logged in
     localStorage.setItem("motofix_current_user", JSON.stringify(userData));

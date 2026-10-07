@@ -1,39 +1,38 @@
-// Responsible solely for data operations (fetching, adding, deleting).
-// Right now it uses mock data, but later you will swap the function bodies with fetch() calls.
+const MASTER_EMPLOYEE_STORAGE_KEY = "motofix_master_employees";
 
-let mockDatabaseMechanics = [
-  {
-    id: 1,
-    name: "Ramon Santos",
-    email: "mechanic1@motofix.com",
-    status: "Active",
-  },
-  {
-    id: 2,
-    name: "Jake Reyes",
-    email: "mechanic2@motofix.com",
-    status: "Active",
-  },
-];
+// See ../BACKEND_DATA_CONTRACT.md for account consolidation and employee relationships.
+// Master Control owns this employee collection. Dashboard account creation also
+// mirrors employees into motofix_users; keep this adapter's IDs and role/status
+// fields compatible with that shared authentication record until a backend exists.
+function readEmployees() {
+  try {
+    const employees = JSON.parse(
+      localStorage.getItem(MASTER_EMPLOYEE_STORAGE_KEY) || "[]",
+    );
+    return Array.isArray(employees) ? employees : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeEmployees(employees) {
+  localStorage.setItem(MASTER_EMPLOYEE_STORAGE_KEY, JSON.stringify(employees));
+}
 
 export async function fetchMechanics() {
-  // FUTURE DATABASE SWAP: return fetch('/api/mechanics').then(res => res.json());
-  return Promise.resolve([...mockDatabaseMechanics]);
+  return readEmployees();
 }
 
 export async function addMechanic(mechanicData) {
-  // FUTURE DATABASE SWAP: return fetch('/api/mechanics', { method: 'POST', ... });
-  const newId =
-    mockDatabaseMechanics.length > 0
-      ? mockDatabaseMechanics[mockDatabaseMechanics.length - 1].id + 1
-      : 1;
-  const newEntry = { id: newId, ...mechanicData, status: "Active" };
-  mockDatabaseMechanics.push(newEntry);
-  return Promise.resolve(newEntry);
+  const employees = readEmployees();
+  const newId = employees.reduce((maximum, employee) => Math.max(maximum, Number(employee.id) || 0), 0) + 1;
+  const newEmployee = { id: newId, ...mechanicData, status: "Active" };
+  employees.push(newEmployee);
+  writeEmployees(employees);
+  return newEmployee;
 }
 
 export async function removeMechanic(id) {
-  // FUTURE DATABASE SWAP: return fetch(`/api/mechanics/${id}`, { method: 'DELETE' });
-  mockDatabaseMechanics = mockDatabaseMechanics.filter((m) => m.id !== id);
-  return Promise.resolve(true);
+  writeEmployees(readEmployees().filter((employee) => Number(employee.id) !== Number(id)));
+  return true;
 }

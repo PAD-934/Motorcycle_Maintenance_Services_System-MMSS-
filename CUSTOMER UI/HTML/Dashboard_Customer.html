@@ -75,6 +75,7 @@
     </style>
 
     <!-- SCRIPTS -->
+    <script src="../../js/notification-retention.js"></script>
     <script type="module" src="../JAVASCRIPTS/Customer.js"></script>
 
     <title>MotoFix Customer Dashboard</title>
@@ -167,9 +168,9 @@
             <path d="m9 18 6-6-6-6"></path>
           </svg>
         </button>
-
+<!--  -->
         <!-- SERVICE BUTTON -->
-        <button class="nav-link">
+        <!-- <button class="nav-link">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="16"
@@ -205,7 +206,7 @@
           >
             <path d="m9 18 6-6-6-6"></path>
           </svg>
-        </button>
+        </button> -->
 
         <!-- APPOINTMENTS BUTTON -->
         <button class="nav-link">
@@ -415,31 +416,35 @@
       </div>
 
       <!-- HEADER NOTIFICATION BELL -->
-      <button
-        class="notification_btn"
-        id="customerBellBtn"
-        aria-label="Notifications"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          class="lucide lucide-bell"
-          aria-hidden="true"
+      <div class="customer-bell-wrap">
+        <button
+          class="notification_btn"
+          id="customerBellBtn"
+          aria-label="Notifications"
+          aria-expanded="false"
+          aria-controls="customerNotifPanel"
         >
-          <path d="M10.268 21a2 2 0 0 0 3.464 0"></path>
-          <path
-            d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"
-          ></path>
-        </svg>
-        <span class="orange_circle"></span>
-      </button>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="lucide lucide-bell"
+            aria-hidden="true"
+          >
+            <path d="M10.268 21a2 2 0 0 0 3.464 0"></path>
+            <path
+              d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"
+            ></path>
+          </svg>
+          <span class="orange_circle" aria-hidden="true" hidden></span>
+        </button>
+      </div>
 
       <!-- USER INFO PART (SIGNOUT OPTION) -->
       <div class="user_options">
@@ -496,43 +501,42 @@
       </div>
     </header>
 
-    <!-- MAIN LAYOUT -->
-    <main class="CM">
-      <!-- ORIGINAL DASHBOARD VIEW -->
-      <div id="dashboard-view" class="parent_main">
-        <!-- FIRST DIV SUBPARENT -->
-        <div class="first_widget_sub_parent">
-          <!-- first widget -->
-          <div class="motorcycle_widget">
-            <div class="motorcycle_widget_subparent">
-              <span class="mws_label">My Motorcycles</span>
-              <div class="mws_icon">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  class="lucide lucide-bike"
-                  aria-hidden="true"
-                  style="color: rgb(249, 115, 22)"
-                >
-                  <circle cx="18.5" cy="17.5" r="3.5"></circle>
-                  <circle cx="5.5" cy="17.5" r="3.5"></circle>
-                  <circle cx="15" cy="5" r="1"></circle>
-                  <path d="M12 17.5V14l-3-3 4-3 2 3h2"></path>
-                </svg>
-              </div>
-            </div>
-            <div>
-              <div class="mws_numeral">2</div>
-            </div>
-          </div>
-
+   <!-- MAIN LAYOUT -->
+<main class="CM">
+  <!-- ORIGINAL DASHBOARD VIEW -->
+  <div id="dashboard-view" class="parent_main">
+    <!-- FIRST DIV SUBPARENT -->
+    <div class="first_widget_sub_parent">
+      <!-- first widget -->
+<div class="motorcycle_widget">
+  <div class="motorcycle_widget_subparent">
+    <span class="mws_label">My Motorcycles</span>
+    <div class="mws_icon">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        class="lucide lucide-bike"
+        aria-hidden="true"
+        style="color: rgb(249, 115, 22)"
+      >
+        <circle cx="18.5" cy="17.5" r="3.5"></circle>
+        <circle cx="5.5" cy="17.5" r="3.5"></circle>
+        <circle cx="15" cy="5" r="1"></circle>
+        <path d="M12 17.5V14l-3-3 4-3 2 3h2"></path>
+      </svg>
+    </div>
+  </div>
+  <div>
+    <div class="mws_numeral" id="motorcycle-count">0</div>
+  </div>
+</div>
           <!-- second widget -->
           <div class="appointments_widget">
             <div class="appointments_widget_subparent">
@@ -559,35 +563,7 @@
                 </svg>
               </div>
             </div>
-            <div class="aws_numeral">2</div>
-          </div>
-
-          <!-- third widget -->
-          <div class="job_widget">
-            <div class="jobs_widget_subparent">
-              <span class="jws_label">Pending Jobs</span>
-              <div class="jws_icon">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  class="lucide lucide-wrench"
-                  aria-hidden="true"
-                  style="color: rgb(245, 158, 11)"
-                >
-                  <path
-                    d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.106-3.105c.32-.322.863-.22.983.218a6 6 0 0 1-8.259 7.057l-7.91 7.91a1 1 0 0 1-2.999-3l7.91-7.91a6 6 0 0 1 7.057-8.259c.438.12.54.662.219.984z"
-                  ></path>
-                </svg>
-              </div>
-            </div>
-            <div class="jws_numeral">2</div>
+           <div class="aws_numeral" id="appointments-count">0</div>
           </div>
 
           <!-- fourth widget -->
@@ -614,7 +590,7 @@
                 </svg>
               </div>
             </div>
-            <div class="ews_numeral">₱0.00</div>
+           <div class="ews_numeral" id="total-spent">₱0.00</div>
           </div>
         </div>
 
@@ -710,125 +686,19 @@
         <!-- THIRD DIV SUBPARENT -->
         <div class="third_widget_sub_parent">
           <div class="third_sub_parent_label">My Motorcycles</div>
-          <div class="motorcycle_list_parent">
-            <div class="motorcycle_list_subparent">
-              <div class="moto_label_parent">
-                <div class="moto_label_subparent">
-                  <div class="third_div_moto_icon">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="20"
-                      height="20"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      class="lucide lucide-bike"
-                      aria-hidden="true"
-                      style="color: rgb(249, 115, 22)"
-                    >
-                      <circle cx="18.5" cy="17.5" r="3.5"></circle>
-                      <circle cx="5.5" cy="17.5" r="3.5"></circle>
-                      <circle cx="15" cy="5" r="1"></circle>
-                      <path d="M12 17.5V14l-3-3 4-3 2 3h2"></path>
-                    </svg>
-                  </div>
-                  <div>
-                    <div class="third_div_moto_label">2022 Honda PCX 160</div>
-                    <div class="third_div_moto_sublabel">
-                      Pearl White · ABC 1234
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="moto_km_parent">
-                <div class="moto_km">12,450 km</div>
-                <div class="moto_mods">2 mods</div>
-              </div>
-            </div>
-
-            <div class="motorcycle_list_subparent">
-              <div class="moto_label_parent">
-                <div class="moto_label_subparent">
-                  <div class="third_div_moto_icon">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="20"
-                      height="20"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      class="lucide lucide-bike"
-                      aria-hidden="true"
-                      style="color: rgb(249, 115, 22)"
-                    >
-                      <circle cx="18.5" cy="17.5" r="3.5"></circle>
-                      <circle cx="5.5" cy="17.5" r="3.5"></circle>
-                      <circle cx="15" cy="5" r="1"></circle>
-                      <path d="M12 17.5V14l-3-3 4-3 2 3h2"></path>
-                    </svg>
-                  </div>
-                  <div>
-                    <div class="third_div_moto_label">2021 Yamaha NMAX 155</div>
-                    <div class="third_div_moto_sublabel">
-                      Matte Black · XYZ 5678
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="moto_km_parent">
-                <div class="moto_km">28,300 km</div>
-              </div>
-            </div>
+          <div class="motorcycle_list_parent" id="dashboard-motorcycles-list">
           </div>
         </div>
 
         <div class="fourth_widget_sub_parent">
           <div class="fourth_widget_label_parent">
             <div class="fourth_widget_label">My Appointments</div>
-            <button class="fourth_widget_view_appointment-btn">
+            <button class="fourth_widget_view_appointment-btn" id="dashboard-view-appointments">
               View All →
             </button>
           </div>
 
-          <div class="appoinments_list_parent">
-            <div class="appointments_list_subparent">
-              <div>
-                <div class="appointments_list_label">
-                  Basic Oil Change, Brake System Service
-                </div>
-                <div class="appointments_list_sublabel">
-                  Honda PCX 160 · Mechanic: Ramon Santos
-                </div>
-              </div>
-              <div class="appointments_list_status_and_date">
-                <span class="appointments_list_status">Confirmed</span>
-                <span class="appointments_list_date">2026-07-24 09:00</span>
-              </div>
-            </div>
-
-            <div class="appointments_list_subparent">
-              <div>
-                <div class="appointments_list_label">
-                  Suspension Setup, Performance Exhaust Install
-                </div>
-                <div class="appointments_list_sublabel">
-                  Yamaha NMAX 155 · Awaiting mechanic
-                </div>
-              </div>
-              <div class="appointments_list_status_and_date">
-                <span class="appointments_list_status pending">Pending</span>
-                <span class="appointments_list_date">2026-07-28 14:00</span>
-              </div>
-            </div>
-          </div>
+          <div class="appoinments_list_parent" id="dashboard-appointments-list"></div>
         </div>
       </div>
 
@@ -872,6 +742,9 @@
             <button class="sc-filter-btn" data-filter="In Progress">
               In Progress
             </button>
+            <button class="sc-filter-btn" data-filter="Work Finished">
+              Work Finished
+            </button>
             <button class="sc-filter-btn" data-filter="Completed">
               Completed
             </button>
@@ -911,65 +784,9 @@
                 <th>DATE / TIME</th>
                 <th>MECHANIC</th>
                 <th>STATUS</th>
-                <th>ACTIONS</th>
               </tr>
             </thead>
-            <tbody id="sc-appointments-tbody">
-              <tr data-status="Confirmed">
-                <td class="sc-id-col">A1</td>
-                <td>
-                  <div class="sc-customer-info">
-                    <div class="sc-avatar">MT</div>
-                    <div>
-                      <div class="sc-cust-name">Miguel Torres</div>
-                      <div class="sc-cust-phone">+63 912 100 0001</div>
-                    </div>
-                  </div>
-                </td>
-                <td>2022 Honda PCX 160</td>
-                <td>
-                  <div class="sc-service-tags">
-                    Basic Oil Change<br />Brake System Service
-                  </div>
-                </td>
-                <td>
-                  <div class="sc-datetime">
-                    2026-07-24<br /><span>09:00</span>
-                  </div>
-                </td>
-                <td>Ramon Santos</td>
-                <td>
-                  <span class="sc-status-badge sc-confirmed">CONFIRMED</span>
-                </td>
-                <td></td>
-              </tr>
-              <tr data-status="Pending">
-                <td class="sc-id-col">A4</td>
-                <td>
-                  <div class="sc-customer-info">
-                    <div class="sc-avatar">MT</div>
-                    <div>
-                      <div class="sc-cust-name">Miguel Torres</div>
-                      <div class="sc-cust-phone">+63 912 100 0001</div>
-                    </div>
-                  </div>
-                </td>
-                <td>2021 Yamaha NMAX 155</td>
-                <td>
-                  <div class="sc-service-tags">
-                    Suspension Setup<br />Performance Exhaust Install
-                  </div>
-                </td>
-                <td>
-                  <div class="sc-datetime">
-                    2026-07-28<br /><span>14:00</span>
-                  </div>
-                </td>
-                <td><span class="sc-unassigned">Unassigned</span></td>
-                <td><span class="sc-status-badge sc-pending">PENDING</span></td>
-                <td></td>
-              </tr>
-            </tbody>
+            <tbody id="sc-appointments-tbody"></tbody>
           </table>
         </div>
 
@@ -1006,14 +823,7 @@
               <div class="sc-form-group">
                 <label>MOTORCYCLE</label>
                 <div class="sc-select-row">
-                  <select id="sc-motorcycle-select" class="sc-input-field">
-                    <option value="2022 Honda PCX 160 — ABC 1234">
-                      2022 Honda PCX 160 — ABC 1234
-                    </option>
-                    <option value="2021 Yamaha NMAX 155 — XYZ 5678">
-                      2021 Yamaha NMAX 155 — XYZ 5678
-                    </option>
-                  </select>
+                  <select id="sc-motorcycle-select" class="sc-input-field"></select>
                   <button
                     type="button"
                     id="sc-add-motorbike-btn"
@@ -1093,30 +903,6 @@
                       <input
                         type="checkbox"
                         name="service"
-                        value="Custom Paint Job"
-                        data-price="4500.00"
-                      />
-                      <span>Custom Paint Job</span>
-                      <span class="sc-price">₱4,500.00</span>
-                    </div>
-                  </label>
-                  <label class="sc-service-item">
-                    <div class="sc-service-info">
-                      <input
-                        type="checkbox"
-                        name="service"
-                        value="Performance Exhaust Install"
-                        data-price="2200.00"
-                      />
-                      <span>Performance Exhaust Install</span>
-                      <span class="sc-price">₱2,200.00</span>
-                    </div>
-                  </label>
-                  <label class="sc-service-item">
-                    <div class="sc-service-info">
-                      <input
-                        type="checkbox"
-                        name="service"
                         value="Chain & Sprocket Kit"
                         data-price="950.00"
                       />
@@ -1146,7 +932,7 @@
               <!-- DATE & TIME -->
               <div class="sc-form-row">
                 <div class="sc-form-group half">
-                  <label>DATE</label>
+                  <label for="sc-date-input">DATE</label>
                   <input
                     type="date"
                     id="sc-date-input"
@@ -1167,7 +953,11 @@
                   </select>
                 </div>
               </div>
-
+              <!-- SELECTED PARTS (from Parts & Shop) -->
+      <div class="sc-form-group">
+        <label>SELECTED PARTS</label>
+        <div id="sc-selected-parts" class="sc-services-box"></div>
+      </div>
               <!-- NOTES -->
               <div class="sc-form-group">
                 <label>NOTES</label>
@@ -1273,125 +1063,76 @@
           </button>
         </div>
 
-        <!-- LAYOUT WRAPPER (LIST + DETAILS PANEL) -->
+        <!-- LAYOUT WRAPPER (LIST + DETAILS DIALOG) -->
         <div class="mc-content-layout">
-          <!-- MOTORCYCLE LIST CARDS -->
           <div class="mc-list-column" id="motorcycles-list">
-            <!-- Bike Card 1 -->
-            <div class="mc-bike-card" data-bike-id="1">
-              <div class="mc-bike-info">
-                <div class="mc-bike-title">2022 Honda PCX 160</div>
-                <div class="mc-bike-sub">Pearl White · ABC 1234</div>
-                <div class="mc-tags-row">
-                  <span class="mc-tag">Aftermarket exhaust</span>
-                  <span class="mc-tag">LED headlights</span>
-                </div>
-              </div>
-              <div class="mc-bike-meta">
-                <div class="mc-odometer-val">12,450 km</div>
-                <div class="mc-odometer-label">odometer</div>
-              </div>
-            </div>
-
-            <!-- Bike Card 2 -->
-            <div class="mc-bike-card" data-bike-id="2">
-              <div class="mc-bike-info">
-                <div class="mc-bike-title">2021 Yamaha NMAX 155</div>
-                <div class="mc-bike-sub">Matte Black · XYZ 5678</div>
-              </div>
-              <div class="mc-bike-meta">
-                <div class="mc-odometer-val">28,300 km</div>
-                <div class="mc-odometer-label">odometer</div>
-              </div>
-            </div>
           </div>
 
-          <!-- BIKE DETAILS & CUSTOMIZATIONS PANEL (HIDDEN BY DEFAULT) -->
+          <!-- Centered motorcycle details dialog -->
           <div
             class="mc-details-panel"
             id="bike-details-panel"
             style="display: none"
+            role="presentation"
           >
-            <div class="mc-details-header">
-              <h2>Bike Details & Customizations</h2>
-              <button class="mc-close-panel-btn" id="close-bike-details">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  class="lucide lucide-x"
+            <div
+              class="mc-details-dialog"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="bike-details-title"
+            >
+              <div class="mc-details-header">
+                <h2 id="bike-details-title">Motorcycle Details</h2>
+                <button
+                  class="mc-close-panel-btn"
+                  id="close-bike-details"
+                  type="button"
+                  aria-label="Close motorcycle details"
                 >
-                  <path d="M18 6 6 18"></path>
-                  <path d="m6 6 12 12"></path>
-                </svg>
-              </button>
-            </div>
-
-            <div class="mc-details-body">
-              <!-- Spec Grid -->
-              <div class="mc-specs-grid">
-                <div class="mc-spec-box">
-                  <span class="spec-lbl">MAKE</span
-                  ><span id="detail-make" class="spec-val">Honda</span>
-                </div>
-                <div class="mc-spec-box">
-                  <span class="spec-lbl">MODEL</span
-                  ><span id="detail-model" class="spec-val">PCX 160</span>
-                </div>
-                <div class="mc-spec-box">
-                  <span class="spec-lbl">YEAR</span
-                  ><span id="detail-year" class="spec-val">2022</span>
-                </div>
-                <div class="mc-spec-box">
-                  <span class="spec-lbl">COLOR</span
-                  ><span id="detail-color" class="spec-val">Pearl White</span>
-                </div>
-                <div class="mc-spec-box">
-                  <span class="spec-lbl">PLATE NO.</span
-                  ><span id="detail-plate" class="spec-val">ABC 1234</span>
-                </div>
-                <div class="mc-spec-box">
-                  <span class="spec-lbl">MILEAGE</span
-                  ><span id="detail-mileage" class="spec-val">12,450 km</span>
-                </div>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    class="lucide lucide-x"
+                    aria-hidden="true"
+                  >
+                    <path d="M18 6 6 18"></path>
+                    <path d="m6 6 12 12"></path>
+                  </svg>
+                </button>
               </div>
 
-              <!-- Existing Customizations -->
-              <div class="mc-section-block">
-                <label>Existing Customizations</label>
-                <div class="mc-tags-row" id="detail-customizations">
-                  <span class="mc-tag">Aftermarket exhaust</span>
-                  <span class="mc-tag">LED headlights</span>
-                </div>
-              </div>
-
-              <!-- Available Customization Services -->
-              <div class="mc-section-block">
-                <label>Available Customization Services</label>
-                <div class="mc-services-list">
-                  <div class="mc-service-row">
-                    <div>
-                      <div class="svc-name">Custom Paint Job</div>
-                      <div class="svc-desc">
-                        Full custom paint with clear coat
-                      </div>
-                    </div>
-                    <div class="svc-price">₱4,500.00</div>
+              <div class="mc-details-body">
+                <div class="mc-specs-grid">
+                  <div class="mc-spec-box">
+                    <span class="spec-lbl">BRAND</span
+                    ><span id="detail-make" class="spec-val">Honda</span>
                   </div>
-                  <div class="mc-service-row">
-                    <div>
-                      <div class="svc-name">Performance Exhaust Install</div>
-                      <div class="svc-desc">
-                        Aftermarket exhaust system fitting
-                      </div>
-                    </div>
-                    <div class="svc-price">₱2,200.00</div>
+                  <div class="mc-spec-box">
+                    <span class="spec-lbl">MODEL</span
+                    ><span id="detail-model" class="spec-val">PCX 160</span>
+                  </div>
+                  <div class="mc-spec-box">
+                    <span class="spec-lbl">YEAR</span
+                    ><span id="detail-year" class="spec-val">2022</span>
+                  </div>
+                  <div class="mc-spec-box">
+                    <span class="spec-lbl">COLOR</span
+                    ><span id="detail-color" class="spec-val">Pearl White</span>
+                  </div>
+                  <div class="mc-spec-box">
+                    <span class="spec-lbl">PLATE NO.</span
+                    ><span id="detail-plate" class="spec-val">ABC 1234</span>
+                  </div>
+                  <div class="mc-spec-box">
+                    <span class="spec-lbl">MILEAGE</span
+                    ><span id="detail-mileage" class="spec-val">12,450 km</span>
                   </div>
                 </div>
               </div>
@@ -1427,19 +1168,36 @@
               </button>
             </div>
             <div class="mc-modal-body">
-              <p>
-                To register a new motorcycle, please visit the shop in person
-                with your OR/CR, or contact us at
-                <span class="mc-highlight-email">motofix@shop.com</span> for
-                remote registration assistance.
-              </p>
-              <button
-                type="button"
-                class="mc-got-it-btn"
-                id="got-it-bike-modal"
-              >
-                Got it
-              </button>
+                   <div class="sc-form-group">
+        <label>MAKE</label>
+        <input type="text" id="bike-make" class="sc-input-field" placeholder="e.g. Honda" />
+      </div>
+      <div class="sc-form-group">
+        <label>MODEL</label>
+        <input type="text" id="bike-model" class="sc-input-field" placeholder="e.g. PCX 160" />
+      </div>
+      <div class="sc-form-row">
+        <div class="sc-form-group half">
+          <label>YEAR</label>
+          <input type="number" id="bike-year" class="sc-input-field" placeholder="e.g. 2022" />
+        </div>
+        <div class="sc-form-group half">
+          <label>COLOR</label>
+          <input type="text" id="bike-color" class="sc-input-field" placeholder="e.g. Pearl White" />
+        </div>
+      </div>
+      <div class="sc-form-row">
+        <div class="sc-form-group half">
+          <label>PLATE NO.</label>
+          <input type="text" id="bike-plate" class="sc-input-field" placeholder="e.g. ABC 1234" />
+        </div>
+        <div class="sc-form-group half">
+          <label>MILEAGE (KM)</label>
+          <input type="number" id="bike-mileage" class="sc-input-field" placeholder="e.g. 12450" />
+        </div>
+      </div>
+      <div id="bike-form-error" class="sc-booking-error" hidden></div>
+      <button type="button" class="sc-submit-btn" id="save-bike-btn">Save Motorcycle</button>
             </div>
           </div>
         </div>
@@ -1535,7 +1293,6 @@
                   <th>Stock</th>
                   <th>Unit Price</th>
                   <th>Source</th>
-                  <th>Action</th>
                 </tr>
               </thead>
               <tbody id="parts-table-body">
@@ -1544,26 +1301,28 @@
             </table>
           </div>
 
-          <!-- Right Popup Panel (Parts Selection / Cart) -->
-          <div class="parts-details-panel" id="parts-details-panel">
-            <div class="parts-panel-header">
-              <h3>🛒 Parts Selection</h3>
-              <button class="parts-panel-close" id="close-parts-panel">
-                ✕
-              </button>
-            </div>
-            <div class="parts-panel-body" id="cart-items-container">
-              <!-- Dynamically injected cart rows -->
-            </div>
-            <div class="parts-panel-footer">
-              <div class="parts-subtotal-row">
-                <span class="subtotal-label">Parts Subtotal</span>
-                <span class="subtotal-val" id="cart-subtotal">₱0.00</span>
+          <!-- Centered popup for selected parts -->
+          <div class="parts-selection-overlay" id="parts-details-panel">
+            <div class="parts-details-panel" role="dialog" aria-modal="true" aria-labelledby="parts-selection-title">
+              <div class="parts-panel-header">
+                <h3 id="parts-selection-title">🛒 Parts Selection</h3>
+                <button class="parts-panel-close" id="close-parts-panel" aria-label="Close parts selection">
+                  ✕
+                </button>
               </div>
-              <p class="subtotal-note">Excludes customer-supplied parts</p>
-              <button class="parts-submit-btn" id="add-to-appointment-btn">
-                Add to Appointment
-              </button>
+              <div class="parts-panel-body" id="cart-items-container">
+                <!-- Dynamically injected cart rows -->
+              </div>
+              <div class="parts-panel-footer">
+                <div class="parts-subtotal-row">
+                  <span class="subtotal-label">Parts Subtotal</span>
+                  <span class="subtotal-val" id="cart-subtotal">₱0.00</span>
+                </div>
+                <p class="subtotal-note">Excludes customer-supplied parts</p>
+                <button class="parts-submit-btn" id="add-to-appointment-btn">
+                  Add to Appointment
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -1584,10 +1343,10 @@
             <button class="filter-tab active" data-filter="all">
               All Transactions
             </button>
+            <button class="filter-tab" data-filter="pending">Pending</button>
             <button class="filter-tab" data-filter="completed">
               Completed
             </button>
-            <button class="filter-tab" data-filter="pending">Pending</button>
           </div>
 
           <div class="transactions-count" id="invoice-count-label">
@@ -1605,7 +1364,6 @@
                   <th>Total Amount</th>
                   <th>Status</th>
                   <th>Date</th>
-                  <th>Action</th>
                 </tr>
               </thead>
               <tbody id="transactions-table-body">
