@@ -2,6 +2,10 @@
 // Shared appointment schema and role write paths: ../../BACKEND_DATA_CONTRACT.md
 const APPOINTMENT_STORE_KEY = "motofix_appointments";
 const NOTIFICATION_STORE_KEY = "motofix_notifications";
+const FALLBACK_MECHANICS = [
+  { name: "Ramon Santos", email: "mechanic1@motofix.com" },
+  { name: "Jake Reyes", email: "mechanic2@motofix.com" },
+];
 
 function addSharedNotification(title, message, audiences, details = {}) {
   const current = JSON.parse(

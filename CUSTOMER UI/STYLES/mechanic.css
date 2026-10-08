@@ -852,6 +852,43 @@ button {
 .mechanic-profile-save:hover {
   background: #ea580c;
 }
+.mechanic-password-dialog {
+  width: min(480px, 100%);
+}
+.mechanic-password-message {
+  min-height: 20px;
+  margin: 0;
+  color: #a1a1aa;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.mechanic-password-message.is-error {
+  color: #f87171;
+}
+.mechanic-password-message.is-success {
+  color: #4ade80;
+}
+.mechanic-password-actions {
+  display: flex;
+  gap: 12px;
+}
+.mechanic-password-actions button {
+  flex: 1;
+  min-height: 44px;
+  border-radius: 8px;
+  font: 600 14px "DM Sans", var(--font-body);
+}
+.mechanic-password-actions .mechanic-profile-save {
+  margin-top: 0;
+}
+.mechanic-password-cancel {
+  border: 1px solid #3f3f46;
+  background: transparent;
+  color: #e4e4e7;
+}
+.mechanic-password-cancel:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
 @media (max-width: 520px) {
   .mechanic-profile-backdrop {
     padding: 12px;

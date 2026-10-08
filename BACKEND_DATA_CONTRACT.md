@@ -25,7 +25,7 @@ their shared source of truth.
 | `motofix_deleted_accounts` | Email tombstones for deleted built-in/demo accounts | Account status/audit record; do not identify accounts only by email |
 | `motofix_bikes`, `motofix_inventory` | Legacy keys removed/cleared by current dashboard code | Do not migrate as active stores; verify any production browser data before cleanup |
 | `motofix_current_user`, `userEmail`, `userRole`, `userFullName`, `isLoggedIn` | Browser login/session state | Server-managed session or signed access token; never trust client values for authorization |
-| `motofix_signup_motorcycle_migrated:<email>` | One-time marker for moving signup bike fields onto the motorcycle registry | One-time data migration flag; not a normal domain table |
+| `motofix_signup_motorcycle_migrated:<email>` | Prevents signup motorcycle fields from being imported twice | One-time migration flag; not a normal domain table |
 
 ## Relationships and current role flows
 
@@ -75,8 +75,10 @@ their shared source of truth.
 
 - Customer motorcycle records have their own `id` and currently link to the
   owner through `ownerEmail`.
-- Signup initially stores `moto_model` and `plate_number` on the account; a
-  one-time migration copies those values into `motofix_motorcycles`.
+- Signup stores the account fields and immediately adds any entered motorcycle
+  model and/or plate to `motofix_motorcycles`, linked by normalized `ownerEmail`.
+  The customer dashboard retains a one-time migration for older accounts that
+  have signup motorcycle fields but no registry record.
 - Use `motorcycles.owner_user_id` as a foreign key. If appointments need a
   particular registered motorcycle, add `appointments.motorcycle_id`; keep
   fields such as plate/model snapshots for historical accuracy if appropriate.

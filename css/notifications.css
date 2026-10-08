@@ -3,38 +3,41 @@
 }
 .motofix-notification-dot {
   position: absolute;
-  top: -4px;
+  top: -5px;
   right: -6px;
+  z-index: 1;
   display: grid;
-  min-width: 17px;
-  height: 17px;
+  min-width: 20px;
+  height: 20px;
   place-items: center;
-  padding: 0 4px;
-  border: 1px solid #131313;
-  border-radius: 9px;
-  background: #ff6b1a;
+  padding: 0 5px;
+  border: 2px solid #0a0a0b;
+  border-radius: 999px;
+  background: #ef4444;
   color: #ffffff;
   font:
-    700 8px/1 "JetBrains Mono",
-    monospace;
+    800 10px/1 Inter,
+    sans-serif;
   box-sizing: border-box;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.22);
+  pointer-events: none;
 }
 .motofix-notification-dot[hidden] {
   display: none;
 }
 .motofix-notifications-panel {
   position: fixed;
-  top: 76px;
+  top: 58px;
   right: 20px;
   z-index: 1000;
   display: flex;
-  width: min(440px, calc(100vw - 32px));
-  max-height: min(520px, calc(100vh - 92px));
+  width: min(364px, calc(100vw - 32px));
+  max-height: min(440px, calc(100vh - 74px));
   flex-direction: column;
   overflow: hidden;
   border: 1px solid #292929;
   border-radius: 14px;
-  background: #131313;
+  background: #111111;
   color: #f5f5f5;
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.62);
   font-family: Inter, "DM Sans", sans-serif;
@@ -48,19 +51,19 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 16px 18px 13px;
+  padding: 13px 14px 10px;
 }
 .motofix-notifications-heading {
   display: flex;
   min-width: 0;
   align-items: center;
-  gap: 11px;
+  gap: 9px;
 }
 .motofix-notifications-bell {
   display: grid;
-  width: 38px;
-  height: 38px;
-  flex: 0 0 38px;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
   place-items: center;
   border-radius: 50%;
   background: rgba(255, 107, 26, 0.14);
@@ -69,19 +72,19 @@
 }
 .motofix-notifications-bell svg {
   display: block;
-  width: 19px;
-  height: 19px;
+  width: 16px;
+  height: 16px;
 }
 .motofix-notifications-heading h2 {
   margin: 0;
   color: #f5f5f5;
   font-family: Sora, Inter, sans-serif;
-  font-size: 17px;
+  font-size: 15px;
   font-weight: 700;
   line-height: 1.25;
 }
 .motofix-notifications-heading p {
-  margin: 3px 0 0;
+  margin: 2px 0 0;
   color: #9a9a9a;
   font-size: 11px;
   line-height: 1.4;
@@ -164,14 +167,14 @@
 }
 .motofix-notifications-tabs {
   display: flex;
-  gap: 22px;
-  padding: 0 18px;
+  gap: 18px;
+  padding: 0 15px;
   border-bottom: 1px solid #242424;
 }
 .motofix-notifications-tabs button {
   position: relative;
   display: inline-flex;
-  min-height: 40px;
+  min-height: 36px;
   align-items: center;
   gap: 6px;
   padding: 0 2px;
@@ -203,20 +206,20 @@
   font-size: 10px;
 }
 .motofix-notifications-content {
-  min-height: 150px;
+  min-height: 120px;
   overflow-y: auto;
   overscroll-behavior: contain;
 }
 .motofix-notification-group h3 {
   margin: 0;
-  padding: 12px 18px 6px;
+  padding: 9px 15px 5px;
   color: #a0a0a0;
   font-size: 10px;
   font-weight: 700;
   line-height: 1.3;
 }
 .motofix-notification-group + .motofix-notification-group h3 {
-  padding-top: 15px;
+  padding-top: 12px;
   border-top: 1px solid #202020;
 }
 .motofix-notifications-section {
@@ -246,19 +249,19 @@
 .motofix-notification-row {
   display: flex;
   align-items: flex-start;
-  gap: 9px;
-  padding: 11px 14px 12px 18px;
+  gap: 8px;
+  padding: 9px 12px 10px 15px;
   border-bottom: 1px solid #202020;
 }
 .motofix-notification-row.is-unread {
-  background: rgba(255, 107, 26, 0.045);
+  background: rgba(255, 107, 26, 0.065);
 }
 .motofix-notification-open {
   display: flex;
   min-width: 0;
   flex: 1;
   align-items: flex-start;
-  gap: 11px;
+  gap: 9px;
   padding: 0;
   border: 0;
   border-radius: 7px;
@@ -273,12 +276,12 @@
 }
 .motofix-notification-type {
   display: grid;
-  width: 38px;
-  height: 38px;
-  flex: 0 0 38px;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
   place-items: center;
-  border-radius: 11px;
-  font-size: 19px;
+  border-radius: 10px;
+  font-size: 16px;
 }
 .motofix-notification-type.account {
   background: rgba(34, 197, 94, 0.13);
@@ -309,7 +312,7 @@
 }
 .motofix-notification-title strong {
   color: #f5f5f5;
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 700;
   line-height: 1.4;
 }
@@ -324,7 +327,7 @@
   display: block;
   margin-top: 3px;
   color: #b0b0b0;
-  font-size: 11px;
+  font-size: 10.5px;
   line-height: 1.5;
   overflow-wrap: anywhere;
 }
@@ -332,7 +335,7 @@
   display: block;
   margin-top: 4px;
   color: #737373;
-  font-size: 10px;
+  font-size: 9px;
 }
 .motofix-notification-more {
   width: 27px;
@@ -379,7 +382,7 @@
     top: 68px;
     right: 8px;
     width: calc(100vw - 16px);
-    max-height: min(520px, calc(100vh - 80px));
+    max-height: min(440px, calc(100vh - 80px));
     border-radius: 12px;
   }
   .motofix-notifications-header {

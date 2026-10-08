@@ -422,49 +422,38 @@
         <button
           class="notification_btn"
           id="customerBellBtn"
+          type="button"
           aria-label="Notifications"
           aria-expanded="false"
           aria-controls="customerNotifPanel"
+          aria-haspopup="dialog"
         >
-          <path d="M10.268 21a2 2 0 0 0 3.464 0"></path>
-          <path
-            d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"
-          ></path>
-        </svg>
-      </button>
-
-      <!-- USER INFO PART (SIGNOUT OPTION) -->
-      <div class="user_options">
-        <button class="user_options-btn">
-          <!-- USER ICON -->
-          <div class="header_user_icon">
-            <span class="header_user_initials">US</span>
-          </div>
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            width="14"
-            height="14"
+            width="20"
+            height="20"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            stroke-width="2"
+            stroke-width="1.8"
             stroke-linecap="round"
             stroke-linejoin="round"
-            class="lucide lucide-chevron-down"
             aria-hidden="true"
-            style="color: #71717a"
           >
-            <path d="m6 9 6 6 6-6"></path>
+            <path d="M10.268 21a2 2 0 0 0 3.464 0"></path>
+            <path
+              d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"
+            ></path>
           </svg>
         </button>
 
-        <!-- POPUP USER INFO -->
-        <div class="popup_user_options">
-          <div class="popup_user_info">
-            <div class="popup_user_name">Your Username</div>
-            <div class="popup_user_email">Username@email.com</div>
-          </div>
-          <button class="popup_signout-btn" id="logout-btn">
+        <!-- USER INFO PART (SIGNOUT OPTION) -->
+        <div class="user_options">
+          <button class="user_options-btn">
+            <!-- USER ICON -->
+            <div class="header_user_icon">
+              <span class="header_user_initials">US</span>
+            </div>
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="14"
@@ -475,15 +464,41 @@
               stroke-width="2"
               stroke-linecap="round"
               stroke-linejoin="round"
-              class="lucide lucide-log-out"
+              class="lucide lucide-chevron-down"
               aria-hidden="true"
+              style="color: #71717a"
             >
-              <path d="m16 17 5-5-5-5"></path>
-              <path d="M21 12H9"></path>
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <path d="m6 9 6 6 6-6"></path>
             </svg>
-            Sign Out
           </button>
+
+          <!-- POPUP USER INFO -->
+          <div class="popup_user_options">
+            <div class="popup_user_info">
+              <div class="popup_user_name">Your Username</div>
+              <div class="popup_user_email">Username@email.com</div>
+            </div>
+            <button class="popup_signout-btn" id="logout-btn">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="lucide lucide-log-out"
+                aria-hidden="true"
+              >
+                <path d="m16 17 5-5-5-5"></path>
+                <path d="M21 12H9"></path>
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              </svg>
+              Sign Out
+            </button>
+          </div>
         </div>
       </div>
     </header>

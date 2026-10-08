@@ -15,122 +15,31 @@ export function initNavigation() {
   const dashPartsBtn = document.getElementById("dash-view-parts-btn");
   const dashTransactionsBtn = document.getElementById("dash-transactions-btn");
   const dashboardAppointmentsBtn = document.getElementById("dashboard-view-appointments");
-  const escapeHtml = (value) => String(value ?? "").replace(/[&<>\"']/g, (character) => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#39;",
-  })[character]);
 
   function renderCustomerNotifications() {
     const button = document.getElementById("customerBellBtn");
     if (!button) return;
-    if (window.MotoFixNotifications) {
-      window.MotoFixNotifications.init({
-        buttonId: "customerBellBtn",
-        panelId: "customerNotifPanel",
-        role: "customer",
-        email: localStorage.getItem("userEmail") || "",
-        onOpen: () => switchToTransactionsPage(),
-      });
+    if (!window.MotoFixNotifications) {
+      console.error("The shared MotoFix notifications component is unavailable.");
       return;
     }
-    const email = (localStorage.getItem("userEmail") || "").toLowerCase();
-    const allNotifications = JSON.parse(
-      localStorage.getItem("motofix_notifications") || "[]",
-    );
-    // Customer-specific audiences are keyed by the current email; shared "customer"
-    // audiences are broadcasts. readBy uses the same role/email key per account.
-    const notifications = allNotifications.filter((notification) =>
-      notification.audiences?.includes("customer") ||
-      notification.audiences?.includes(`customer:${email}`),
-    );
-    const userKey = `customer:${email}`;
-    const unreadNotifications = notifications.filter(
-      (notification) => !notification.readBy?.includes(userKey),
-    );
-    const dot = button.querySelector(".orange_circle");
-    if (dot) {
-      dot.hidden = unreadNotifications.length === 0;
-      dot.textContent = unreadNotifications.length > 9 ? "9+" : String(unreadNotifications.length);
-      dot.setAttribute("aria-label", `${unreadNotifications.length} unread notifications`);
-    }
-    let panel = document.getElementById("customerNotifPanel");
-    if (!panel) {
-      panel = document.createElement("div");
-      panel.id = "customerNotifPanel";
-      panel.className = "customer-notif-panel";
-      button.parentElement.appendChild(panel);
-    }
-    panel.innerHTML = `<div class="customer-notif-head">Notifications</div>${
-      notifications.length
-        ? notifications
-            .slice(0, 8)
-            .map(
-              (notification) => `<button type="button" class="customer-notification-link" data-notification-id="${escapeHtml(notification.id)}"><span class="customer-notification-title">${escapeHtml(notification.title)}</span><span class="customer-notification-message">${escapeHtml(notification.message)}</span></button>`,
-            )
-            .join("")
-        : '<div class="customer-notif-empty">No notifications yet.</div>'
-    }`;
+    window.MotoFixNotifications.init({
+      buttonId: "customerBellBtn",
+      panelId: "customerNotifPanel",
+      role: "customer",
+      email: localStorage.getItem("userEmail") || "",
+      onOpen: openCustomerNotification,
+    });
   }
 
   function closeCustomerNotifications() {
     const panel = document.getElementById("customerNotifPanel");
     const button = document.getElementById("customerBellBtn");
-    panel?.classList.remove("show");
+    if (panel) panel.hidden = true;
     button?.setAttribute("aria-expanded", "false");
   }
 
   renderCustomerNotifications();
-  const customerBellButton = document.getElementById("customerBellBtn");
-  customerBellButton?.addEventListener("click", (event) => {
-    event.stopPropagation();
-    const panel = document.getElementById("customerNotifPanel");
-    if (!panel) return;
-    const opening = !panel.classList.contains("show");
-    panel.classList.toggle("show");
-    customerBellButton.setAttribute("aria-expanded", String(opening));
-    if (opening) {
-      const email = (localStorage.getItem("userEmail") || "").toLowerCase();
-      const allNotifications = JSON.parse(
-        localStorage.getItem("motofix_notifications") || "[]",
-      );
-      const visible = allNotifications.filter((notification) =>
-        notification.audiences?.includes("customer") ||
-        notification.audiences?.includes(`customer:${email}`),
-      );
-      const userKey = `customer:${email}`;
-      visible.forEach((notification) => {
-        const readBy = Array.isArray(notification.readBy) ? notification.readBy : [];
-        if (!readBy.includes(userKey)) notification.readBy = [...readBy, userKey];
-      });
-      localStorage.setItem("motofix_notifications", JSON.stringify(allNotifications));
-      renderCustomerNotifications();
-      panel.classList.add("show");
-    }
-  });
-  document.addEventListener(
-    "click",
-    (event) => {
-      const panel = document.getElementById("customerNotifPanel");
-      if (
-        panel?.classList.contains("show") &&
-        !panel.contains(event.target) &&
-        !customerBellButton?.contains(event.target)
-      ) {
-        closeCustomerNotifications();
-      }
-    },
-    true,
-  );
-  document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") closeCustomerNotifications();
-  });
-  window.addEventListener("storage", (event) => {
-    if (event.key === "motofix_notifications") renderCustomerNotifications();
-  });
-  window.addEventListener("motofix:notifications-changed", renderCustomerNotifications);
 
   // --- View Switching Logic ---
   function switchToServicePage() {
@@ -207,19 +116,7 @@ export function initNavigation() {
       middleHeaderSub.textContent = "Manage service scheduling";
   }
 
-  customerBellButton?.parentElement?.addEventListener("click", (event) => {
-    const item = event.target.closest(".customer-notification-link[data-notification-id]");
-    if (!item) return;
-    const allNotifications = JSON.parse(
-      localStorage.getItem("motofix_notifications") || "[]",
-    );
-    // destination and entity IDs are the notification-to-record contract used by all dashboards.
-    const notification = allNotifications.find(
-      (entry) => entry.id === item.dataset.notificationId,
-    );
-    if (!notification) return;
-
-    event.preventDefault();
+  function openCustomerNotification(notification) {
     const request = notification.permissionRequestId
       ? JSON.parse(localStorage.getItem("motofix_permission_requests") || "[]")
           .find((entry) => entry.id === notification.permissionRequestId)
@@ -283,7 +180,7 @@ export function initNavigation() {
       switchToDashboardPage();
     }
     closeCustomerNotifications();
-  });
+  }
 
   function switchToMotorcyclesPage() {
     if (dashView) dashView.style.display = "none";

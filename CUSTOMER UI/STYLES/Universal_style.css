@@ -60,8 +60,20 @@ body {
 
 /* Header Right Side Group */
 
+.customer-bell-wrap {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 24px;
+}
+
 .notification_btn {
   position: relative;
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  place-items: center;
   background: none;
   border-width: medium;
   border-style: none;

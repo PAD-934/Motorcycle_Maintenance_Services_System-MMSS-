@@ -123,6 +123,18 @@
     );
   }
 
+  function hasBeenReadBy(instance, notification) {
+    if (!Array.isArray(notification.readBy)) return false;
+    const identity = instance.email || instance.role;
+    return (
+      notification.readBy.includes(identity) ||
+      Boolean(
+        instance.email &&
+          notification.readBy.includes(`${instance.role}:${instance.email}`),
+      )
+    );
+  }
+
   function render(instance) {
     const button = document.getElementById(instance.buttonId);
     if (!button) return;
@@ -187,8 +199,12 @@
           notification.readBy = Array.isArray(notification.readBy)
             ? notification.readBy
             : [];
-          notification.readBy = notification.readBy.includes(identity)
-            ? notification.readBy.filter((reader) => reader !== identity)
+          notification.readBy = hasBeenReadBy(current, notification)
+            ? notification.readBy.filter(
+                (reader) =>
+                  reader !== identity &&
+                  reader !== `${current.role}:${current.email}`,
+              )
             : [...notification.readBy, identity];
           localStorage.setItem(STORAGE_KEY, JSON.stringify(notifications));
           panel.dataset.openMenu = "";
@@ -237,9 +253,7 @@
 
     const notifications = getInstanceNotifications(instance);
     const identity = instance.email || instance.role;
-    const isRead = (notification) =>
-      Array.isArray(notification.readBy) &&
-      notification.readBy.includes(identity);
+    const isRead = (notification) => hasBeenReadBy(instance, notification);
     const unreadCount = notifications.filter(
       (notification) => !isRead(notification),
     ).length;

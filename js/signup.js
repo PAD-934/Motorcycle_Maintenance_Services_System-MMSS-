@@ -71,22 +71,114 @@ function handleSignupSubmission(event) {
  */
 function saveUserToDatabaseMock(userData) {
     // motofix_users is the common account source read by login and dashboard role lookups.
-    // Grab existing users from local storage or initialize an empty array if empty
-    let users = JSON.parse(localStorage.getItem("motofix_users")) || [];
+    const usersStorageValue = localStorage.getItem("motofix_users");
+    let users;
+    try {
+        users = usersStorageValue ? JSON.parse(usersStorageValue) : [];
+    } catch (error) {
+        console.error("Could not read registered accounts:", error);
+        alert("Account data could not be read. Please try again or contact support.");
+        return;
+    }
+    if (!Array.isArray(users)) {
+        alert("Account data is invalid. Please contact support.");
+        return;
+    }
 
     // Check if someone's already using this email address
-    const emailExists = users.some(user => user.email.toLowerCase() === userData.email.toLowerCase());
+    const emailExists = users.some(
+        (user) => String(user?.email || "").trim().toLowerCase() === userData.email.toLowerCase(),
+    );
     
     if (emailExists) {
         alert("An account with this email already exists!");
         return;
     }
 
+    const bikesStorageValue = localStorage.getItem("motofix_motorcycles");
+    let motorcycles;
+    try {
+        motorcycles = bikesStorageValue ? JSON.parse(bikesStorageValue) : [];
+    } catch (error) {
+        console.error("Could not read registered motorcycles:", error);
+        alert("Motorcycle data could not be read. Your account was not created.");
+        return;
+    }
+    if (!Array.isArray(motorcycles)) {
+        alert("Motorcycle data is invalid. Your account was not created.");
+        return;
+    }
+
+    const model = String(userData.moto_model || "").trim();
+    const plate = String(userData.plate_number || "").trim().toUpperCase();
+    const hasModel = model && model.toLowerCase() !== "none specified";
+    const hasPlate = plate && plate.toLowerCase() !== "unregistered";
+    const hasSignupMotorcycle = Boolean(hasModel || hasPlate);
+    const signupMotorcycle = hasSignupMotorcycle
+        ? {
+            id: `signup-${encodeURIComponent(userData.email.toLowerCase())}`,
+            ownerEmail: userData.email.toLowerCase(),
+            make: "",
+            model: hasModel ? model : "Motorcycle",
+            year: "",
+            color: "",
+            plate: hasPlate ? plate : "",
+            mileage: 0,
+            createdAt: userData.created_at || new Date().toISOString(),
+        }
+        : null;
+    let existingMotorcycleIndex = -1;
+    if (signupMotorcycle) {
+        existingMotorcycleIndex = motorcycles.findIndex(
+            (motorcycle) =>
+                String(motorcycle?.ownerEmail || "").trim().toLowerCase() === signupMotorcycle.ownerEmail &&
+                (hasPlate
+                    ? String(motorcycle.plate || "").trim().toUpperCase() === signupMotorcycle.plate
+                    : String(motorcycle.model || "").trim().toLowerCase() === signupMotorcycle.model.toLowerCase()),
+        );
+        if (existingMotorcycleIndex >= 0) {
+            const existingMotorcycle = motorcycles[existingMotorcycleIndex];
+            motorcycles[existingMotorcycleIndex] = {
+                ...existingMotorcycle,
+                model: hasModel ? signupMotorcycle.model : existingMotorcycle.model || "Motorcycle",
+                plate: hasPlate ? signupMotorcycle.plate : existingMotorcycle.plate || "",
+            };
+        } else {
+            motorcycles.push(signupMotorcycle);
+        }
+    }
+
     // Push the new user (simulating an SQL INSERT query)
     users.push(userData);
     
-    // Commit to storage so it stays persistent
-    localStorage.setItem("motofix_users", JSON.stringify(users));
+    const previousCurrentUser = localStorage.getItem("motofix_current_user");
+    const migrationKey = `motofix_signup_motorcycle_migrated:${userData.email.toLowerCase()}`;
+    const previousMigrationValue = localStorage.getItem(migrationKey);
+    try {
+        localStorage.setItem("motofix_users", JSON.stringify(users));
+        if (signupMotorcycle) {
+            localStorage.setItem("motofix_motorcycles", JSON.stringify(motorcycles));
+            localStorage.setItem(migrationKey, "true");
+        }
+        localStorage.setItem("motofix_current_user", JSON.stringify(userData));
+    } catch (error) {
+        console.error("Could not save the account and motorcycle registration:", error);
+        try {
+            if (usersStorageValue === null) localStorage.removeItem("motofix_users");
+            else localStorage.setItem("motofix_users", usersStorageValue);
+            if (bikesStorageValue === null) localStorage.removeItem("motofix_motorcycles");
+            else localStorage.setItem("motofix_motorcycles", bikesStorageValue);
+            if (previousCurrentUser === null) localStorage.removeItem("motofix_current_user");
+            else localStorage.setItem("motofix_current_user", previousCurrentUser);
+            if (previousMigrationValue === null) localStorage.removeItem(migrationKey);
+            else localStorage.setItem(migrationKey, previousMigrationValue);
+        } catch (rollbackError) {
+            console.error("Could not restore storage after an incomplete signup:", rollbackError);
+        }
+        alert("Your account and motorcycle could not be saved. Please try again.");
+        return;
+    }
+
     try {
         const deletedAccounts = JSON.parse(localStorage.getItem("motofix_deleted_accounts") || "[]");
         if (Array.isArray(deletedAccounts)) {

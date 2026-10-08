@@ -164,6 +164,181 @@
     });
   }
 
+  function openMechanicPasswordEditor() {
+    const overlay = document.createElement("div");
+    overlay.className = "job-details-backdrop mechanic-profile-backdrop";
+    overlay.innerHTML = `
+      <section class="mechanic-profile-dialog mechanic-password-dialog" role="dialog" aria-modal="true" aria-labelledby="mechanic-password-title">
+        <div class="mechanic-profile-header">
+          <h2 id="mechanic-password-title">Change Password</h2>
+          <button type="button" class="mechanic-profile-close" aria-label="Close password editor">×</button>
+        </div>
+        <form id="mechanic-password-form" class="mechanic-profile-form">
+          <div class="mechanic-profile-field">
+            <label for="mechanic-current-password">Current Password</label>
+            <input id="mechanic-current-password" type="password" autocomplete="current-password" required>
+          </div>
+          <div class="mechanic-profile-field">
+            <label for="mechanic-new-password">New Password</label>
+            <input id="mechanic-new-password" type="password" autocomplete="new-password" minlength="8" required>
+          </div>
+          <div class="mechanic-profile-field">
+            <label for="mechanic-confirm-password">Confirm New Password</label>
+            <input id="mechanic-confirm-password" type="password" autocomplete="new-password" minlength="8" required>
+          </div>
+          <p class="mechanic-password-message" id="mechanic-password-message" role="status" aria-live="polite"></p>
+          <div class="mechanic-password-actions">
+            <button class="mechanic-password-cancel" type="button">Cancel</button>
+            <button class="mechanic-profile-save" type="submit">Update Password</button>
+          </div>
+        </form>
+      </section>`;
+    document.body.appendChild(overlay);
+
+    const form = overlay.querySelector("#mechanic-password-form");
+    const currentPasswordInput = overlay.querySelector("#mechanic-current-password");
+    const newPasswordInput = overlay.querySelector("#mechanic-new-password");
+    const confirmPasswordInput = overlay.querySelector("#mechanic-confirm-password");
+    const message = overlay.querySelector("#mechanic-password-message");
+    const closeButton = overlay.querySelector(".mechanic-profile-close");
+    const close = () => {
+      overlay.remove();
+      document.getElementById("changeMechanicPasswordBtn")?.focus();
+    };
+    const setMessage = (text, isError = false) => {
+      message.textContent = text;
+      message.classList.toggle("is-error", isError);
+      message.classList.toggle("is-success", Boolean(text) && !isError);
+    };
+
+    closeButton.addEventListener("click", close);
+    overlay.querySelector(".mechanic-password-cancel").addEventListener("click", close);
+    overlay.addEventListener("click", (event) => {
+      if (event.target === overlay) close();
+    });
+    overlay.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        close();
+        return;
+      }
+      if (event.key !== "Tab") return;
+
+      const focusable = [...overlay.querySelectorAll("button, input")]
+        .filter((element) => !element.disabled);
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    });
+    form.addEventListener("input", () => setMessage(""));
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const currentPassword = currentPasswordInput.value;
+      const newPassword = newPasswordInput.value;
+      const confirmPassword = confirmPasswordInput.value;
+      if (newPassword.length < 8) {
+        setMessage("Your new password must be at least 8 characters long.", true);
+        newPasswordInput.focus();
+        return;
+      }
+      if (newPassword === currentPassword) {
+        setMessage("Choose a new password that is different from your current password.", true);
+        newPasswordInput.focus();
+        return;
+      }
+      if (newPassword !== confirmPassword) {
+        setMessage("The new password and confirmation do not match.", true);
+        confirmPasswordInput.focus();
+        return;
+      }
+
+      const usersRaw = localStorage.getItem("motofix_users");
+      const employeesRaw = localStorage.getItem("motofix_master_employees");
+      let users;
+      let employees;
+      try {
+        users = usersRaw ? JSON.parse(usersRaw) : [];
+        employees = employeesRaw ? JSON.parse(employeesRaw) : [];
+      } catch {
+        setMessage("Account data could not be read. Please contact an administrator.", true);
+        return;
+      }
+      if (!Array.isArray(users) || !Array.isArray(employees)) {
+        setMessage("Account data is not in the expected format. Please contact an administrator.", true);
+        return;
+      }
+
+      const matchingUsers = users.filter(
+        (account) => account && String(account.email || "").toLowerCase() === currentEmail,
+      );
+      const matchingEmployees = employees.filter(
+        (account) => account && String(account.email || "").toLowerCase() === currentEmail,
+      );
+      const authAccount = matchingUsers[0];
+      const credentialAccount = authAccount || matchingEmployees.find(
+        (account) => typeof account.password === "string",
+      );
+      if (!credentialAccount) {
+        setMessage("This account has no saved password to verify. Ask an administrator to update the account record first.", true);
+        currentPasswordInput.focus();
+        return;
+      }
+      if (credentialAccount.password !== currentPassword) {
+        setMessage("The current password is incorrect.", true);
+        currentPasswordInput.focus();
+        return;
+      }
+
+      const accountSnapshot = JSON.stringify(users);
+      const employeeSnapshot = JSON.stringify(employees);
+      try {
+        if (matchingUsers.length) {
+          matchingUsers.forEach((account) => {
+            account.password = newPassword;
+            account.updated_at = new Date().toISOString();
+          });
+        } else {
+          users.push({
+            email: currentEmail,
+            name: matchingEmployees[0]?.name || CURRENT_USER.name,
+            role: "mechanic",
+            password: newPassword,
+            updated_at: new Date().toISOString(),
+          });
+        }
+        matchingEmployees.forEach((account) => {
+          account.password = newPassword;
+          account.updated_at = new Date().toISOString();
+        });
+
+        localStorage.setItem("motofix_users", JSON.stringify(users));
+        if (matchingEmployees.length) {
+          localStorage.setItem("motofix_master_employees", JSON.stringify(employees));
+        }
+        form.reset();
+        setMessage("Your password has been updated.", false);
+      } catch (error) {
+        try {
+          localStorage.setItem("motofix_users", accountSnapshot);
+          if (employeesRaw !== null) {
+            localStorage.setItem("motofix_master_employees", employeeSnapshot);
+          }
+        } catch (rollbackError) {
+          console.error("Unable to restore account data after a failed password update:", rollbackError);
+        }
+        console.error("Unable to save the mechanic password update:", error);
+        setMessage("The password could not be saved. Please try again.", true);
+      }
+    });
+
+    currentPasswordInput.focus();
+  }
+
   // Mechanic Jobs is a role-filtered view of shared appointments; status writes
   // update the source record so Admin reports and Customer tracking stay consistent.
   function syncJobsFromSharedAppointments() {
@@ -274,126 +449,29 @@
   }
 
   function renderMechanicNotifications() {
-    if (window.MotoFixNotifications) {
-      window.MotoFixNotifications.init({
-        buttonId: "bellBtn",
-        panelId: "notifPanel",
-        role: "mechanic",
-        email: CURRENT_USER.email,
-        name: CURRENT_USER.name,
-        onOpen: (notification) => {
-          syncJobsFromSharedAppointments();
-          const appointmentId = String(notification.appointmentId || "");
-          const job = jobs.find(
-            (item) =>
-              String(item.apptRef || item.id) === appointmentId ||
-              String(item.id) === appointmentId,
-          );
-          if (job) openJobDetails(job);
-          else renderJobs();
-        },
-      });
+    if (!window.MotoFixNotifications) {
+      console.error("The shared notification panel could not be initialized.");
       return;
     }
-    const panel = document.getElementById("notifPanel");
-    const dot = document.getElementById("bellDot");
-    if (!panel) return;
-    const notifications = JSON.parse(
-      localStorage.getItem("motofix_notifications") || "[]",
-    ).filter(
-      (notification) =>
-        notification.audiences?.includes("mechanic") ||
-        notification.audiences?.includes(`mechanic:${CURRENT_USER.name}`),
-    );
-  }
 
-  function renderMechanicNotifications() {
-    const panel = document.getElementById("notifPanel");
-    const dot = document.getElementById("bellDot");
-    if (!panel) return;
-    const notifications = getMechanicNotifications();
-    const userKey = `mechanic:${CURRENT_USER.email.trim().toLowerCase()}`;
-    const hasUnread = notifications.some(
-      (notification) => !notification.readBy?.includes(userKey),
-    );
-    const unreadCount = notifications.filter(
-      (notification) => !notification.readBy?.includes(userKey),
-    ).length;
-    panel.innerHTML = `<div class="notif-head">Notifications</div>${
-      notifications.length
-        ? notifications
-            .slice(0, 8)
-            .map(
-              (notification, index) => `
-      <button type="button" class="notif-item" data-mechanic-notification="${index}">
-        <div class="t">${escapeHtml(notification.title)}</div>
-        <div class="d">${escapeHtml(notification.message)}</div>
-      </button>
-    `,
-            )
-            .join("")
-        : '<div class="notif-item"><div class="d">No new notifications.</div></div>'
-    }`;
-    if (dot) {
-      dot.hidden = !hasUnread;
-      dot.textContent = unreadCount > 9 ? "9+" : String(unreadCount);
-      dot.setAttribute("aria-label", `${unreadCount} unread notifications`);
-    }
-  }
-
-  function markMechanicNotificationsRead() {
-    const allNotifications = readStoredArray("motofix_notifications");
-    const visible = getMechanicNotifications();
-    const visibleIds = new Set(visible.map((notification) => notification.id));
-    const userKey = `mechanic:${CURRENT_USER.email.trim().toLowerCase()}`;
-    allNotifications.forEach((notification) => {
-      if (!visibleIds.has(notification.id)) return;
-      const readBy = Array.isArray(notification.readBy) ? notification.readBy : [];
-      if (!readBy.includes(userKey)) notification.readBy = [...readBy, userKey];
+    window.MotoFixNotifications.init({
+      buttonId: "bellBtn",
+      panelId: "notifPanel",
+      role: "mechanic",
+      email: CURRENT_USER.email,
+      name: CURRENT_USER.name,
+      onOpen: (notification) => {
+        syncJobsFromSharedAppointments();
+        const appointmentId = String(notification.appointmentId || "");
+        const job = jobs.find(
+          (item) =>
+            String(item.apptRef || item.id) === appointmentId ||
+            String(item.id) === appointmentId,
+        );
+        if (job) openJobDetails(job);
+        else renderJobs();
+      },
     });
-    localStorage.setItem("motofix_notifications", JSON.stringify(allNotifications));
-  }
-
-  function openNotificationDetails(notification) {
-    const existing = document.getElementById("notificationDetailsModal");
-    if (existing) existing.remove();
-    const createdAt = notification.createdAt
-      ? new Date(notification.createdAt).toLocaleString("en-PH", {
-          dateStyle: "medium",
-          timeStyle: "short",
-        })
-      : "Time not available";
-    const modal = document.createElement("div");
-    modal.id = "notificationDetailsModal";
-    modal.className = "job-details-backdrop";
-    modal.innerHTML = `
-      <section class="job-details-modal" role="dialog" aria-modal="true" aria-labelledby="notificationDetailsTitle">
-        <div class="job-details-head">
-          <div><div class="job-details-kicker">Notification</div><h2 id="notificationDetailsTitle">${escapeHtml(notification.title || "Update")}</h2></div>
-          <button class="job-details-close" type="button" aria-label="Close notification">&times;</button>
-        </div>
-        <div class="job-details-grid">
-          <div class="full"><span>Message</span><strong>${escapeHtml(notification.message || "No additional details")}</strong></div>
-          <div class="full"><span>Received</span><strong>${escapeHtml(createdAt)}</strong></div>
-        </div>
-      </section>`;
-    document.body.appendChild(modal);
-    const close = () => modal.remove();
-    modal.querySelector(".job-details-close").addEventListener("click", close);
-    modal.addEventListener("click", (event) => {
-      if (event.target === modal) close();
-    });
-  }
-
-  function openMechanicNotification(notification) {
-    const appointment = jobs.find(
-      (job) => job.id === notification.appointmentId,
-    );
-    if (appointment) {
-      openJobDetails(appointment);
-      return;
-    }
-    openNotificationDetails(notification);
   }
 
   window.addEventListener("storage", (event) => {
@@ -871,22 +949,33 @@
   /* ---------------- User dropdown ---------------- */
   const userTrigger = document.getElementById("userTrigger");
   const userMenu = document.getElementById("userMenu");
+  const closeUserMenu = () => {
+    userMenu.classList.remove("open");
+    userTrigger.setAttribute("aria-expanded", "false");
+  };
   userTrigger.addEventListener("click", (e) => {
     e.stopPropagation();
-    userDropdown.classList.toggle("show");
-    userTrigger.classList.toggle("open");
+    const isOpening = !userMenu.classList.contains("open");
+    userMenu.classList.toggle("open", isOpening);
+    userTrigger.setAttribute("aria-expanded", String(isOpening));
     const notificationPanel = document.getElementById("notifPanel");
-    if (notificationPanel) notificationPanel.hidden = true;
+    if (isOpening && notificationPanel) {
+      notificationPanel.hidden = true;
+      document.getElementById("bellBtn")?.setAttribute("aria-expanded", "false");
+    }
   });
   document.getElementById("editMechanicProfileBtn")?.addEventListener("click", (event) => {
     event.stopPropagation();
-    userMenu.classList.remove("open");
-    userTrigger.setAttribute("aria-expanded", "false");
+    closeUserMenu();
     openMechanicProfileEditor();
   });
+  document.getElementById("changeMechanicPasswordBtn")?.addEventListener("click", (event) => {
+    event.stopPropagation();
+    closeUserMenu();
+    openMechanicPasswordEditor();
+  });
   document.getElementById("signOutBtn").addEventListener("click", () => {
-    userMenu.classList.remove("open");
-    userTrigger.setAttribute("aria-expanded", "false");
+    closeUserMenu();
     localStorage.removeItem("isLoggedIn");
     localStorage.removeItem("userEmail");
     localStorage.removeItem("userRole");
@@ -896,13 +985,14 @@
   /* ---------------- Notifications ---------------- */
   renderMechanicNotifications();
   document.getElementById("bellBtn").addEventListener("click", () => {
-    userDropdown.classList.remove("show");
-    userTrigger.classList.remove("open");
+    closeUserMenu();
   });
 
-  document.addEventListener("click", () => {
-    userDropdown.classList.remove("show");
-    userTrigger.classList.remove("open");
+  document.addEventListener("click", (event) => {
+    if (!userMenu.contains(event.target)) closeUserMenu();
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") closeUserMenu();
   });
 
   /* ---------------- Appointments filters ---------------- */
