@@ -58,8 +58,8 @@
           <button class="nav-item" data-page="services">
             <span class="nav-ico">🔧</span> Services &amp; Types
           </button>
-          <button class="nav-item" data-page="customization">
-            <span class="nav-ico">⚙</span> Customization
+          <button class="nav-item" data-page="registered-motorcycles">
+            <span class="nav-ico">🏍</span> Registered Motorcycle
           </button>
           <button class="nav-item" data-page="inventory">
             <span class="nav-ico">📦</span> Inventory &amp; Parts
@@ -112,12 +112,12 @@
         </nav>
 
         <div class="sidebar-footer">
-          <div class="avatar avatar-lg">CR</div>
+          <div class="avatar avatar-lg" id="adminFooterAvatar">AD</div>
           <div>
-            <div class="footer-name">Carlos Reyes</div>
+            <div class="footer-name" id="adminFooterName">Carlos Reyes</div>
             <div
               class="footer-role footer-role-subadmin"
-              id="sidebarAccountRole"
+              id="adminFooterRole"
             >
               Sub-Admin
             </div>
@@ -142,27 +142,30 @@
             </button>
             <div>
               <h1 id="pageTitle">Dashboard</h1>
-              <p id="pageSubtitle">Welcome back, Carlos</p>
+              <p id="pageSubtitle">Welcome back</p>
             </div>
           </div>
           <div class="topbar-right">
-            <button
-              class="icon-btn bell"
-              id="adminBellBtn"
-              aria-label="Notifications"
-              aria-controls="adminNotifPanel"
-              aria-expanded="false"
-            >
-              <svg viewBox="0 0 24 24" aria-hidden="true" fill="none">
-                <path
-                  d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"
-                  stroke="currentColor"
-                  stroke-width="1.8"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
-              </svg>
-            </button>
+            <div class="admin-bell-wrap">
+              <button
+                class="icon-btn bell"
+                id="adminBellBtn"
+                aria-label="Notifications"
+                aria-controls="adminNotifPanel"
+                aria-expanded="false"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true" fill="none">
+                  <path
+                    d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </button>
+              <span class="dot" aria-hidden="true" hidden></span>
+            </div>
             <div class="user-menu" id="userMenu">
               <button
                 class="user-trigger"
@@ -171,21 +174,38 @@
                 aria-expanded="false"
                 aria-haspopup="true"
               >
-                <div class="avatar">CR</div>
+                <div class="avatar" id="adminAvatar">AD</div>
                 <span class="caret">⌄</span>
               </button>
               <div class="user-dropdown" id="userDropdown" role="menu">
                 <div class="user-dropdown-info">
-                  <strong>Carlos Reyes</strong>
-                  <span>admin@motofix.com</span>
+                  <strong id="adminName">Admin</strong>
+                  <span id="adminEmail"></span>
                 </div>
+                <button class="profile-edit-action" id="editAdminProfileBtn" type="button" role="menuitem">Edit Profile</button>
                 <button
-                  class="sign-out"
+                  class="sign-out popup_signout-btn"
                   id="signOutBtn"
                   type="button"
                   role="menuitem"
                 >
-                  <span aria-hidden="true">↪</span> Sign Out
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="m16 17 5-5-5-5"></path>
+                    <path d="M21 12H9"></path>
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                  </svg>
+                  Sign Out
                 </button>
               </div>
             </div>
@@ -198,12 +218,11 @@
             <div class="stat-grid">
               <div class="stat-card">
                 <div class="stat-top">
-                  <span class="stat-title">Total Revenue (Jul)</span>
+                  <span class="stat-title" id="totalRevenueTitle">Total Revenue</span>
                   <span class="stat-icon icon-orange">$</span>
                 </div>
-                <div class="stat-value">₱12,891.20</div>
-                <div class="stat-desc">Paid invoices</div>
-                <div class="stat-trend up">↗ +12% vs last month</div>
+                <div class="stat-value" id="totalRevenueValue">₱0.00</div>
+                <div class="stat-desc" id="totalRevenueDesc">Completed appointments</div>
               </div>
 
               <div class="stat-card">
@@ -211,7 +230,7 @@
                   <span class="stat-title">Active Jobs</span>
                   <span class="stat-icon icon-blue">🔧</span>
                 </div>
-                <div class="stat-value">4</div>
+                <div class="stat-value" id="activeJobsValue">0</div>
                 <div class="stat-desc">Pending + in progress</div>
               </div>
 
@@ -240,9 +259,8 @@
                   <span class="stat-title">Total Customers</span>
                   <span class="stat-icon icon-green">👥</span>
                 </div>
-                <div class="stat-value">3</div>
+                <div class="stat-value" id="customerCount">0</div>
                 <div class="stat-desc">Registered accounts</div>
-                <div class="stat-trend up">↗ +8% vs last month</div>
               </div>
             </div>
 
@@ -251,7 +269,7 @@
                 <div class="panel-head">
                   <div>
                     <h3>Monthly Revenue</h3>
-                    <p class="muted">Feb – Jul 2026</p>
+                    <p class="muted" id="revenuePeriod">No stored revenue yet</p>
                   </div>
                   <span class="panel-ico">📊</span>
                 </div>
@@ -262,7 +280,7 @@
                 <div class="panel-head">
                   <div>
                     <h3>Service Mix</h3>
-                    <p class="muted">By category — all time</p>
+                    <p class="muted">By category — completed jobs</p>
                   </div>
                 </div>
                 <div class="pie-wrap">
@@ -299,11 +317,14 @@
               <div class="filter-pills" id="apptFilters">
                 <button class="pill active" data-filter="All">All</button>
                 <button class="pill" data-filter="Pending">Pending</button>
-                <button class="pill" data-filter="Confirmed">Confirmed</button>
                 <button class="pill" data-filter="In Progress">
                   In Progress
                 </button>
+                <button class="pill" data-filter="Unpaid">
+                  Work Finished (unpaid)
+                </button>
                 <button class="pill" data-filter="Completed">Completed</button>
+                <button class="pill" data-filter="Unassigned">Unassigned</button>
                 <button class="pill" data-filter="Cancelled">Cancelled</button>
               </div>
               <button class="btn-primary" id="newApptBtn">
@@ -340,31 +361,26 @@
             <div class="card-grid" id="servicesGrid"></div>
           </section>
 
-          <!-- ================= CUSTOMIZATION ================= -->
-          <section class="page" id="page-customization">
-            <!-- Toolbar for filtering, searching, and adding new custom builds -->
+          <!-- ================= REGISTERED MOTORCYCLE ================= -->
+          <section class="page" id="page-registered-motorcycles">
             <div class="toolbar">
               <div class="search-box">
                 <span>🔍</span>
                 <input
-                  type="text"
-                  id="customSearch"
-                  placeholder="Search bike profiles, plates, mods..."
+                  type="search"
+                  id="registeredMotorcycleSearch"
+                  placeholder="Search owner, motorcycle, or plate..."
                 />
               </div>
-              <div class="filter-pills" id="customFilters">
-                <button class="pill active" data-filter="All">All Bikes</button>
-                <button class="pill" data-filter="Customized">
-                  Customized
-                </button>
-                <button class="pill" data-filter="Stock">Stock Setup</button>
-              </div>
-              <button class="btn-primary" id="openAddCustomModalBtn">
-                + Add Custom Build
+              <button class="btn-primary" id="openRegisterMotorcycleBtn">
+                + Register Bike
               </button>
             </div>
-
-            <div class="stack-list" id="bikeList"></div>
+            <div class="panel table-panel">
+              <div class="table-scroll">
+                <table class="data-table" id="registeredMotorcyclesTable"></table>
+              </div>
+            </div>
           </section>
 
           <!-- ================= INVENTORY & PARTS ================= -->
@@ -473,14 +489,7 @@
               </div>
 
               <!-- Side-by-Side Panels for Chart and Category Breakdown -->
-              <div
-                style="
-                  display: grid;
-                  grid-template-columns: 1fr 1fr;
-                  gap: 16px;
-                  margin-top: 16px;
-                "
-              >
+              <div class="revenue-breakdown-grid">
                 <div class="panel">
                   <div class="panel-head"><h3>Monthly Revenue</h3></div>
                   <div class="bar-chart" id="revenueChart2"></div>
@@ -489,7 +498,7 @@
                   <div class="panel-head">
                     <h3>Service Category Breakdown</h3>
                   </div>
-                  <div id="category-breakdown-container" style="padding: 16px">
+                  <div id="category-breakdown-container" class="category-breakdown-list">
                     <!-- Dynamically populated via script_5.js -->
                     <span class="muted"
                       >No service breakdown data available.</span
@@ -517,7 +526,11 @@
                 <button class="pill" data-status="In Progress">
                   In Progress
                 </button>
+                <button class="pill" data-status="Unpaid">
+                  Work Finished (unpaid)
+                </button>
                 <button class="pill" data-status="Completed">Completed</button>
+                <button class="pill" data-status="Unassigned">Unassigned</button>
                 <button class="pill" data-status="Cancelled">Cancelled</button>
               </div>
               <span class="jobs-admin-summary muted" id="jobsAdminSummary"
@@ -600,20 +613,18 @@
                     credentials.
                   </p>
                 </div>
+                <div class="filter-pills" id="masterEmployeeFilters">
+                  <button class="pill active" data-filter="All">All Employees</button>
+                  <button class="pill" data-filter="Admin">Admin</button>
+                  <button class="pill" data-filter="Mechanic">Mechanic</button>
+                </div>
                 <button class="btn-primary" id="openAddMechanicModalBtn">
                   + Add Employee Account
                 </button>
               </div>
 
-              <div class="panel table-panel">
-                <div class="table-scroll">
-                  <table class="data-table" id="masterMechanicsTable">
-                    <!-- Will be populated dynamically via JavaScript -->
-                  </table>
-                </div>
-              </div>
-            </section>
-          </div>
+              <div class="card-grid users-grid" id="masterEmployeesGrid"></div>
+          </section>
         </main>
       </div>
     </div>
@@ -630,6 +641,8 @@
     </div>
 
     <script src="js/notifications.js"></script>
+    <script src="js/notification-retention.js"></script>
+    <script src="js/inventory-usage.js"></script>
     <script src="js/script.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   </body>

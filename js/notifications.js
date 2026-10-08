@@ -44,7 +44,12 @@
       ? notification.audiences
       : [];
     if (instance.role === "master_admin") return audiences.length > 0;
-    if (instance.role === "admin") return audiences.includes("admin");
+    if (instance.role === "admin") {
+      return (
+        audiences.includes("admin") ||
+        audiences.includes(`admin:${instance.email}`)
+      );
+    }
 
     if (instance.role === "mechanic") {
       return (

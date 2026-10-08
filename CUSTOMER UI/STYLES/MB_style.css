@@ -48,7 +48,7 @@
     background-color: #ea580c;
 }
 
-/* Content Layout (List + Side Panel Grid) */
+/* Motorcycle list and centered details dialog */
 .mc-content-layout {
     display: flex;
     gap: 20px;
@@ -141,28 +141,47 @@
     color: #71717a;
 }
 
-/* ==========================================
-   BIKE DETAILS SIDE PANEL
-   ========================================== */
 .mc-details-panel {
-    width: 450px;
-    background-color: #18181b;
-    border: 1px solid #27272a;
-    border-radius: 12px;
+    position: fixed;
+    inset: 0;
+    z-index: 120;
     display: flex;
-    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(0, 0, 0, 0.68);
     box-sizing: border-box;
-    animation: slideInRight 0.25s ease-out;
+    animation: detailsFadeIn 0.18s ease-out;
 }
 
-@keyframes slideInRight {
+@keyframes detailsFadeIn {
     from {
         opacity: 0;
-        transform: translateX(20px);
     }
     to {
         opacity: 1;
-        transform: translateX(0);
+    }
+}
+
+.mc-details-dialog {
+    width: min(100%, 520px);
+    max-height: min(85vh, 640px);
+    overflow-y: auto;
+    background-color: #18181b;
+    border: 1px solid #3f3f46;
+    border-radius: 12px;
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55);
+    animation: detailsDialogIn 0.18s ease-out;
+}
+
+@keyframes detailsDialogIn {
+    from {
+        opacity: 0;
+        transform: translateY(8px) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
     }
 }
 
@@ -203,7 +222,6 @@
     display: flex;
     flex-direction: column;
     gap: 20px;
-    overflow-y: auto;
 }
 
 /* Specs Grid */
@@ -234,6 +252,16 @@
     font-size: 14px;
     color: #ffffff;
     font-weight: 500;
+}
+
+@media (max-width: 520px) {
+    .mc-details-panel {
+        padding: 16px;
+    }
+
+    .mc-specs-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 /* Section Blocks */

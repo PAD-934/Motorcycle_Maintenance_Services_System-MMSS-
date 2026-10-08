@@ -1,6 +1,7 @@
 /* =========================================================
    MOTOFIX LOGIN — client-side form handling
 ========================================================= */
+// Account/session fields and backend replacement notes: ../BACKEND_DATA_CONTRACT.md
 
 const $ = (sel) => document.querySelector(sel);
 
@@ -96,6 +97,40 @@ function authenticate(email, password) {
         .trim()
         .toLowerCase();
       let role = null;
+      let deletedAccounts = [];
+      try {
+        const storedDeletedAccounts = JSON.parse(
+          localStorage.getItem("motofix_deleted_accounts") || "[]",
+        );
+        deletedAccounts = Array.isArray(storedDeletedAccounts)
+          ? storedDeletedAccounts.map((accountEmail) => String(accountEmail).toLowerCase())
+          : [];
+      } catch {
+        deletedAccounts = [];
+      }
+      if (deletedAccounts.includes(normalizedEmail)) {
+        resolve({ ok: false, role: null });
+        return;
+      }
+      let replacedEmails = [];
+      try {
+        const storedReplacedEmails = JSON.parse(
+          localStorage.getItem("motofix_replaced_emails") || "[]",
+        );
+        replacedEmails = Array.isArray(storedReplacedEmails)
+          ? storedReplacedEmails.map((accountEmail) => String(accountEmail).trim().toLowerCase())
+          : [];
+        const aliases = JSON.parse(
+          localStorage.getItem("motofix_login_aliases") || "{}",
+        );
+        if (aliases && typeof aliases === "object" && !Array.isArray(aliases)) {
+          Object.entries(aliases).forEach(([alias, aliasRole]) => {
+            if (aliasRole) knownUsers[alias.trim().toLowerCase()] = String(aliasRole).toLowerCase();
+          });
+        }
+      } catch (error) {
+        console.error("Unable to load customer login email changes:", error);
+      }
 
       const disabledEmails = JSON.parse(
         localStorage.getItem("motofix_disabled_accounts") || "[]",

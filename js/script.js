@@ -1,20 +1,44 @@
-/* =========================================================
-   MOTOFIX ADMIN DASHBOARD — sample data + rendering logic
-   Replace the DATA object contents with real API calls
-   whenever you're ready to connect a backend.
-========================================================= */
+const APPOINTMENT_STORAGE_KEY = "motofix_appointments";
+const MASTER_EMPLOYEE_STORAGE_KEY = "motofix_master_employees";
+const MOTORCYCLE_STORAGE_KEY = "motofix_motorcycles";
+const PERMISSION_REQUESTS_STORAGE_KEY = "motofix_permission_requests";
+/*
+ * Cross-dashboard data contract (currently LocalStorage-backed; see
+ * ../BACKEND_DATA_CONTRACT.md for the complete backend schema and role flows):
+ * - motofix_appointments is the shared job/invoice source: Customer creates
+ *   bookings, Admin/Master Admin manage them, and Mechanic updates assigned jobs.
+ * - customerEmail and mechanic identify the linked customer and assigned mechanic;
+ *   motorcycle/parts/services and transaction amounts are currently embedded snapshots.
+ * - motofix_parts is the shared inventory catalog; appointment parts consume stock.
+ * - motofix_users is the shared login/account list; Master Control employee records
+ *   are also stored in motofix_master_employees and mirrored here for authentication.
+ * - motofix_notifications and motofix_permission_requests carry cross-role messages
+ *   and approvals, linked by audience/readBy and permissionRequestId/source IDs.
+ * Keep these joins and write paths in sync when replacing LocalStorage with a backend.
+ */
+const FALLBACK_MECHANICS = [
+  { name: "Ramon Santos", email: "mechanic1@motofix.com" },
+  { name: "Jake Reyes", email: "mechanic2@motofix.com" },
+];
+const FALLBACK_ADMIN_ACCOUNT = {
+  name: "Admin",
+  email: "admin@motofix.com",
+  role: "Admin",
+  phone: "+63 912 000 0001",
+  status: "Active",
+};
 
 const DATA = {
   pageMeta: {
-    dashboard: { title: "Dashboard", sub: "Welcome back, Carlos" },
+    dashboard: { title: "Dashboard", sub: "Welcome back" },
     appointments: { title: "Appointments", sub: "Manage service scheduling" },
     services: {
       title: "Services & Types",
       sub: "Browse all service offerings",
     },
-    customization: {
-      title: "Motorcycle Customization",
-      sub: "Bike profiles & custom builds",
+    "registered-motorcycles": {
+      title: "Registered Motorcycle",
+      sub: "Customer motorcycle registry",
     },
     inventory: {
       title: "Inventory & Parts",
@@ -32,452 +56,24 @@ const DATA = {
     },
   },
 
-  revenue: [
-    { month: "Feb", value: 52000 },
-    { month: "Mar", value: 63000 },
-    { month: "Apr", value: 58000 },
-    { month: "May", value: 71000 },
-    { month: "Jun", value: 83000 },
-    { month: "Jul", value: 34000 },
-  ],
+  revenue: [],
+  serviceMix: [],
+  appointments: [],
 
-  serviceMix: [
-    { label: "Maintenance", pct: 38, color: "#ff6b1a" },
-    { label: "Engine", pct: 22, color: "#f5b942" },
-    { label: "Customization", pct: 18, color: "#3b82f6" },
-    { label: "Brakes", pct: 12, color: "#22c55e" },
-    { label: "Other", pct: 10, color: "#a78bfa" },
-  ],
-
-  appointments: [
-    {
-      id: "A1",
-      customer: "Miguel Torres",
-      phone: "+63 912 100 0001",
-      initials: "MT",
-      bike: "2022 Honda PCX 160",
-      services: ["Basic Oil Change", "Brake System Service"],
-      date: "2026-07-24",
-      time: "09:00",
-      mechanic: "Ramon Santos",
-      status: "Confirmed",
-    },
-    {
-      id: "A2",
-      customer: "Jose Bautista",
-      phone: "+63 912 100 0002",
-      initials: "JB",
-      bike: "2023 Kawasaki Dominar 400",
-      services: ["Full Tune-Up"],
-      date: "2026-07-24",
-      time: "11:00",
-      mechanic: "Jake Reyes",
-      status: "In Progress",
-    },
-    {
-      id: "A3",
-      customer: "Ana Flores",
-      phone: "+63 912 100 0003",
-      initials: "AF",
-      bike: "2020 Suzuki Gixxer 150",
-      services: ["Chain & Sprocket Kit"],
-      date: "2026-07-25",
-      time: "10:00",
-      mechanic: "Ramon Santos",
-      status: "Pending",
-    },
-    {
-      id: "A4",
-      customer: "Miguel Torres",
-      phone: "+63 912 100 0001",
-      initials: "MT",
-      bike: "2021 Yamaha NMAX 155",
-      services: ["Suspension Setup", "Performance Exhaust Install"],
-      date: "2026-07-28",
-      time: "14:00",
-      mechanic: null,
-      status: "Pending",
-    },
-    {
-      id: "A5",
-      customer: "Jose Bautista",
-      phone: "+63 912 100 0002",
-      initials: "JB",
-      bike: "2023 Kawasaki Dominar 400",
-      services: ["Engine Overhaul"],
-      date: "2026-07-22",
-      time: "08:00",
-      mechanic: "Ramon Santos",
-      status: "Complete transaction",
-    },
-  ],
-
-  services: [
-    {
-      code: "S1",
-      name: "Basic Oil Change",
-      category: "Maintenance",
-      price: 350,
-      hours: 0.75,
-      hoursLabel: "45 min",
-      desc: "Engine oil + filter replacement",
-    },
-    {
-      code: "S2",
-      name: "Full Tune-Up",
-      category: "Maintenance",
-      price: 1200,
-      hours: 2,
-      hoursLabel: "2.0 hrs",
-      desc: "Spark plugs, air filter, carburetor clean, chain adj.",
-    },
-    {
-      code: "S3",
-      name: "Brake System Service",
-      category: "Safety",
-      price: 800,
-      hours: 1.5,
-      hoursLabel: "1.5 hrs",
-      desc: "Brake pads, fluid flush, rotor inspection",
-    },
-    {
-      code: "S4",
-      name: "Tire Replacement",
-      category: "Tires",
-      price: 600,
-      hours: 1,
-      hoursLabel: "1.0 hrs",
-      desc: "Front or rear tire mount & balance",
-    },
-    {
-      code: "S5",
-      name: "Engine Overhaul",
-      category: "Engine",
-      price: 8500,
-      hours: 8,
-      hoursLabel: "8.0 hrs",
-      desc: "Full engine rebuild, gaskets, valves",
-    },
-    {
-      code: "S6",
-      name: "Electrical Diagnostics",
-      category: "Electrical",
-      price: 500,
-      hours: 1,
-      hoursLabel: "1.0 hrs",
-      desc: "Battery, charging system, wiring inspection",
-    },
-    {
-      code: "S7",
-      name: "Suspension Setup",
-      category: "Suspension",
-      price: 1500,
-      hours: 2.5,
-      hoursLabel: "2.5 hrs",
-      desc: "Fork oil, rear shock, alignment",
-    },
-    {
-      code: "S8",
-      name: "Custom Paint Job",
-      category: "Customization",
-      price: 4500,
-      hours: 48,
-      hoursLabel: "48.0 hrs",
-      desc: "Full custom paint with clear coat",
-    },
-    {
-      code: "S9",
-      name: "Performance Exhaust Install",
-      category: "Customization",
-      price: 2200,
-      hours: 3,
-      hoursLabel: "3.0 hrs",
-      desc: "Aftermarket exhaust system fitting",
-    },
-    {
-      code: "S10",
-      name: "Chain & Sprocket Kit",
-      category: "Drivetrain",
-      price: 950,
-      hours: 1.5,
-      hoursLabel: "1.5 hrs",
-      desc: "Chain + front/rear sprocket replacement",
-    },
-  ],
-
-  bikes: [
-    {
-      name: "2022 Honda PCX 160",
-      detail: "Pearl White · ABC 1234",
-      owner: "Miguel Torres",
-      odo: "12,450",
-      mods: ["Aftermarket exhaust", "LED headlights"],
-    },
-    {
-      name: "2021 Yamaha NMAX 155",
-      detail: "Matte Black · XYZ 5678",
-      owner: "Miguel Torres",
-      odo: "28,300",
-      mods: [],
-    },
-    {
-      name: "2023 Kawasaki Dominar 400",
-      detail: "Ebony Black · KLM 9012",
-      owner: "Jose Bautista",
-      odo: "5,200",
-      mods: ["Crash guards", "Tank bag"],
-    },
-    {
-      name: "2020 Suzuki Gixxer 150",
-      detail: "Metallic Triton Blue · QRS 3456",
-      owner: "Ana Flores",
-      odo: "41,600",
-      mods: ["Racing exhaust", "Custom decals"],
-    },
-  ],
-
-  inventory: [
-    {
-      name: "Engine Oil 10W-40 (1L)",
-      sku: "OIL-10W40-1L",
-      brand: "Motul",
-      category: "Fluids",
-      stock: 48,
-      max: 60,
-      price: 180,
-    },
-    {
-      name: "Oil Filter — Honda PCX",
-      sku: "FLT-OIL-PCX",
-      brand: "Honda Genuine",
-      category: "Filters",
-      stock: 22,
-      max: 60,
-      price: 95,
-    },
-    {
-      name: "Spark Plug CR8E",
-      sku: "SPK-CR8E",
-      brand: "NGK",
-      category: "Ignition",
-      stock: 64,
-      max: 70,
-      price: 75,
-    },
-    {
-      name: "Air Filter — Yamaha NMAX",
-      sku: "FLT-AIR-NMAX",
-      brand: "Yamaha Genuine",
-      category: "Filters",
-      stock: 18,
-      max: 60,
-      price: 220,
-    },
-    {
-      name: "Brake Pad Set — Front",
-      sku: "BRK-PAD-FR",
-      brand: "EBC",
-      category: "Brakes",
-      stock: 30,
-      max: 60,
-      price: 450,
-    },
-    {
-      name: "Brake Fluid DOT4 (500ml)",
-      sku: "FLD-DOT4-500",
-      brand: "Brembo",
-      category: "Fluids",
-      stock: 25,
-      max: 60,
-      price: 130,
-    },
-    {
-      name: "Chain Kit 428 (110L)",
-      sku: "CHN-428-110",
-      brand: "DID",
-      category: "Drivetrain",
-      stock: 12,
-      max: 60,
-      price: 680,
-    },
-    {
-      name: "Front Sprocket 15T",
-      sku: "SPR-FR-15T",
-      brand: "Renthal",
-      category: "Drivetrain",
-      stock: 20,
-      max: 60,
-      price: 240,
-    },
-    {
-      name: "Rear Sprocket 42T",
-      sku: "SPR-RR-42T",
-      brand: "Renthal",
-      category: "Drivetrain",
-      stock: 15,
-      max: 60,
-      price: 380,
-    },
-    {
-      name: "Fork Oil 15W (1L)",
-      sku: "OIL-FRK-15W",
-      brand: "Motul",
-      category: "Fluids",
-      stock: 16,
-      max: 60,
-      price: 210,
-    },
-    {
-      name: "Carburetor Jet Kit",
-      sku: "CARB-JET-UNI",
-      brand: "Universal",
-      category: "Engine",
-      stock: 8,
-      max: 60,
-      price: 350,
-    },
-    {
-      name: "Battery 12V 5Ah",
-      sku: "BAT-12V-5AH",
-      brand: "Yuasa",
-      category: "Electrical",
-      stock: 10,
-      max: 60,
-      price: 850,
-    },
-  ],
-
-  invoices: [
-    {
-      id: "#INV001",
-      customer: "Jose Bautista",
-      jobRef: "J1",
-      items: 4,
-      subtotal: 11510,
-      vat: 1381.2,
-      total: 12891.2,
-      status: "Paid",
-      date: "2026-07-22",
-    },
-  ],
-
-  jobs: [
-    {
-      id: "J1",
-      customer: "Jose Bautista",
-      bike: "2023 Kawasaki Dominar 400",
-      mechanic: "Ramon Santos",
-      initials: "RS",
-      parts: 2,
-      cost: 3010,
-      note: "Found worn piston rings",
-      status: "Completed",
-    },
-    {
-      id: "J2",
-      customer: "Jose Bautista",
-      bike: "2023 Kawasaki Dominar 400",
-      mechanic: "Jake Reyes",
-      initials: "DC",
-      parts: 3,
-      cost: 1275,
-      note: "Carburetor very dirty",
-      status: "In Progress",
-    },
-  ],
-
-  users: [
-    {
-      name: "Carlos Reyes",
-      role: "Admin",
-      email: "admin@motofix.com",
-      phone: "+63 912 000 0001",
-      since: "2022-01-15",
-      initials: "CR",
-    },
-    {
-      name: "Ramon Santos",
-      role: "Mechanic",
-      email: "mechanic1@motofix.com",
-      phone: "+63 912 000 0002",
-      since: "2022-03-10",
-      initials: "RS",
-    },
-    {
-      name: "Jake Reyes",
-      role: "Mechanic",
-      email: "mechanic2@motofix.com",
-      phone: "+63 912 000 0003",
-      since: "2023-06-01",
-      initials: "DC",
-    },
-    {
-      name: "Miguel Torres",
-      role: "Customer",
-      email: "miguel@email.com",
-      phone: "+63 912 100 0001",
-      since: "2023-08-20",
-      initials: "MT",
-    },
-    {
-      name: "Jose Bautista",
-      role: "Customer",
-      email: "jose@email.com",
-      phone: "+63 912 100 0002",
-      since: "2024-01-05",
-      initials: "JB",
-    },
-    {
-      name: "Ana Flores",
-      role: "Customer",
-      email: "ana@email.com",
-      phone: "+63 912 100 0003",
-      since: "2024-03-12",
-      initials: "AF",
-    },
-  ],
-
-  masterEmployees: [
-    {
-      id: 1,
-      name: "Carlos Reyes",
-      role: "Admin",
-      email: "admin@motofix.com",
-      status: "Active",
-    },
-    {
-      id: 2,
-      name: "Ramon Santos",
-      role: "Mechanic",
-      email: "mechanic1@motofix.com",
-      status: "Active",
-    },
-    {
-      id: 3,
-      name: "Jake Reyes",
-      role: "Mechanic",
-      email: "mechanic2@motofix.com",
-      status: "Active",
-    },
-  ],
+  services: [],
+  inventory: [],
+  invoices: [],
+  jobs: [],
+  users: [],
+  masterEmployees: [],
 };
 
-/* =========================================================
-   UPDATE BLOCK 1: LOCAL STORAGE SYNC & INITIALIZATION
-   Ensures local storage gets populated with default dataset
-   if empty, and syncs DATA variables for seamless live demo.
-========================================================= */
-function initLocalStorageData() {
-  if (!localStorage.getItem("motofix_parts")) {
-    localStorage.setItem("motofix_parts", JSON.stringify(DATA.inventory));
-  } else {
-    DATA.inventory = JSON.parse(localStorage.getItem("motofix_parts"));
-  }
-
-  if (!localStorage.getItem("motofix_services")) {
-    localStorage.setItem("motofix_services", JSON.stringify(DATA.services));
-  } else {
-    DATA.services = JSON.parse(localStorage.getItem("motofix_services"));
+function readStoredArray(key) {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(key) || "[]");
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
   }
 
   const savedAccounts = JSON.parse(
@@ -518,7 +114,216 @@ function initLocalStorageData() {
   });
   localStorage.setItem("motofix_account_directory", JSON.stringify(DATA.users));
 }
+
+function writeStoredArray(key, records) {
+  localStorage.setItem(key, JSON.stringify(records));
+}
+
+function readProfileMap() {
+  try {
+    const profiles = JSON.parse(localStorage.getItem("motofix_profiles") || "{}");
+    return profiles && typeof profiles === "object" && !Array.isArray(profiles) ? profiles : {};
+  } catch {
+    return {};
+  }
+}
+
+function normalizeAccountRole(role) {
+  const normalized = String(role || "Customer").toLowerCase();
+  if (normalized === "master_admin") return "Master Admin";
+  if (normalized === "admin" || normalized === "store admin") return "Admin";
+  if (normalized === "mechanic") return "Mechanic";
+  return "Customer";
+}
+
+function storedAmount(value) {
+  const amount = Number.parseFloat(String(value ?? "").replace(/[^0-9.-]/g, ""));
+  return Number.isFinite(amount) ? amount : 0;
+}
+
+function canonicalAppointmentStatus(value) {
+  const status = String(value || "Pending").trim();
+  const aliases = {
+    "complete transaction": "Completed",
+    completed: "Completed",
+    "work finished (unpaid)": "Unpaid",
+  };
+  return aliases[status.toLowerCase()] || status;
+}
+
+function rebuildDerivedDashboardData() {
+  DATA.invoices = DATA.appointments.map((appointment) => {
+    const services = Array.isArray(appointment.services)
+      ? appointment.services
+      : [appointment.services || "Service"];
+    const parts = Array.isArray(appointment.parts) ? appointment.parts : [];
+    const transaction = appointment.transaction || {};
+    const status = canonicalAppointmentStatus(appointment.status);
+    const isCancelled = status === "Cancelled";
+    const total = isCancelled
+      ? 0
+      : storedAmount(transaction.total ?? appointment.total);
+    const vat = isCancelled ? 0 : storedAmount(transaction.vat);
+
+    return {
+      id: transaction.id || `INV-${appointment.id}`,
+      customer: appointment.customer || "Customer",
+      jobRef: `J-${appointment.id}`,
+      items: services.length + parts.length,
+      subtotal: isCancelled ? 0 : storedAmount(transaction.subtotal ?? total - vat),
+      vat,
+      total,
+      status,
+      date: appointment.date || "",
+      appointmentId: appointment.id,
+    };
+  });
+
+  DATA.jobs = DATA.appointments.map((appointment) => ({
+    id: `J-${appointment.id}`,
+    apptRef: appointment.id,
+    customer: appointment.customer || "Customer",
+    bike: appointment.bike || appointment.motorcycle || "Unknown Motorcycle",
+    mechanic: appointment.mechanic || "",
+    initials: appointment.mechanic ? avatarInitials(appointment.mechanic) : "—",
+    completedJobEditAuthorizedBy: appointment.completedJobEditAuthorizedBy || "",
+    parts: Array.isArray(appointment.parts) ? appointment.parts.length : 0,
+    cost: storedAmount(appointment.transaction?.total ?? appointment.total),
+    note: appointment.notes || `Service requested: ${(Array.isArray(appointment.services) ? appointment.services : [appointment.services || "Service"]).join(", ")}`,
+    status: canonicalAppointmentStatus(appointment.status),
+  }));
+
+  const monthlyRevenue = new Map();
+  DATA.invoices.forEach((invoice) => {
+    if (invoice.status !== "Completed" || !invoice.date) return;
+    const month = invoice.date.slice(0, 7);
+    monthlyRevenue.set(month, (monthlyRevenue.get(month) || 0) + invoice.total);
+  });
+  DATA.revenue = [...monthlyRevenue]
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([month, value]) => ({
+      month: new Date(`${month}-01T00:00:00`).toLocaleDateString("en", { month: "short" }),
+      value,
+    }));
+
+  const categoryCounts = new Map();
+  DATA.appointments.forEach((appointment) => {
+    if (canonicalAppointmentStatus(appointment.status) !== "Completed") return;
+    const services = Array.isArray(appointment.services)
+      ? appointment.services
+      : [appointment.services || "Service"];
+    services.forEach((serviceName) => {
+      const category = getServiceCategory(serviceName);
+      categoryCounts.set(category, (categoryCounts.get(category) || 0) + 1);
+    });
+  });
+  const totalServices = [...categoryCounts.values()].reduce((sum, count) => sum + count, 0);
+  const chartColors = ["#ff6b1a", "#f5b942", "#22c55e", "#3b82f6", "#a78bfa", "#06b6d4"];
+  DATA.serviceMix = [...categoryCounts].map(([label, count], index) => ({
+    label,
+    count,
+    pct: totalServices ? (count / totalServices) * 100 : 0,
+    color: chartColors[index % chartColors.length],
+  }));
+}
+
+function getServiceCategory(serviceName) {
+  return DATA.services.find((service) => service.name === serviceName)?.category?.trim() || "Needs category";
+}
+
+function initLocalStorageData() {
+  DATA.inventory = readStoredArray("motofix_parts");
+  DATA.services = readStoredArray("motofix_services");
+  DATA.appointments = readStoredArray(APPOINTMENT_STORAGE_KEY);
+  DATA.masterEmployees = readStoredArray(MASTER_EMPLOYEE_STORAGE_KEY);
+
+  const registeredUsers = readStoredArray("motofix_users").map((user) => {
+    const baseName = user.name || [user.first_name, user.middle_name, user.last_name]
+      .filter(Boolean)
+      .join(" ");
+    const savedProfile = readProfileMap()[user.email?.toLowerCase()] || {};
+    const name = savedProfile.name || baseName;
+    return {
+      ...user,
+      name,
+      role: normalizeAccountRole(user.role),
+      phone: savedProfile.phone || user.phone || "",
+      since: user.created_at || "",
+      initials: user.initials || avatarInitials(name || "User"),
+    };
+  });
+  const userEmails = new Set(registeredUsers.map((user) => user.email?.toLowerCase()));
+  const employeeUsers = DATA.masterEmployees
+    .filter((employee) => !userEmails.has(employee.email?.toLowerCase()))
+    .map((employee) => ({
+      ...employee,
+      name: readProfileMap()[employee.email?.toLowerCase()]?.name || employee.name,
+      role: normalizeAccountRole(employee.role),
+      phone: readProfileMap()[employee.email?.toLowerCase()]?.phone || employee.phone || "",
+      since: employee.createdAt || "",
+      initials: employee.initials || avatarInitials(employee.name || "Employee"),
+    }));
+  const users = [...registeredUsers, ...employeeUsers];
+  const hasFallbackAdmin = users.some(
+    (user) => user.email?.toLowerCase() === FALLBACK_ADMIN_ACCOUNT.email,
+  );
+  const fallbackAdminDeleted = readStoredArray("motofix_deleted_accounts")
+    .some((email) => String(email).toLowerCase() === FALLBACK_ADMIN_ACCOUNT.email);
+  const fallbackAdminProfile =
+    readProfileMap()[FALLBACK_ADMIN_ACCOUNT.email.toLowerCase()] || {};
+  DATA.users = [
+    ...users,
+    ...(!hasFallbackAdmin && !fallbackAdminDeleted
+      ? [{
+          ...FALLBACK_ADMIN_ACCOUNT,
+          name: fallbackAdminProfile.name || FALLBACK_ADMIN_ACCOUNT.name,
+          phone: fallbackAdminProfile.phone || FALLBACK_ADMIN_ACCOUNT.phone,
+          initials: avatarInitials(fallbackAdminProfile.name || FALLBACK_ADMIN_ACCOUNT.name),
+          since: "Built-in account",
+        }]
+      : []),
+  ];
+  rebuildDerivedDashboardData();
+}
 initLocalStorageData();
+
+function renderAdminDashboardStats() {
+  const email = (localStorage.getItem("userEmail") || "").trim().toLowerCase();
+  const account = DATA.users.find((user) => user.email?.toLowerCase() === email);
+  const savedProfile = readProfileMap()[email] || {};
+  const name = savedProfile.name || account?.name || localStorage.getItem("userFullName") || email || "Admin";
+  const setText = (id, value) => {
+    const element = document.getElementById(id);
+    if (element) element.textContent = value;
+  };
+  const totalRevenue = DATA.revenue.reduce((sum, month) => sum + month.value, 0);
+  const activeJobs = DATA.appointments.filter(
+    (appointment) => !["Completed", "Cancelled"].includes(canonicalAppointmentStatus(appointment.status)),
+  ).length;
+  const lowStock = DATA.inventory.filter(
+    (part) => Number(part.stock) <= Number(part.reorderLevel ?? 10),
+  ).length;
+  const customers = DATA.users.filter((user) => user.role === "Customer").length;
+  const firstName = name.split(/\s+/)[0];
+  const period = DATA.revenue.length
+    ? `${DATA.revenue[0].month} – ${DATA.revenue.at(-1).month}`
+    : "No stored revenue yet";
+
+  setText("adminName", name);
+  setText("adminEmail", email);
+  setText("adminAvatar", avatarInitials(name));
+  setText("adminFooterAvatar", avatarInitials(name));
+  setText("adminFooterName", name);
+  setText("adminFooterRole", account?.role || normalizeAccountRole(localStorage.getItem("userRole")));
+  setText("pageSubtitle", `Welcome back, ${firstName}`);
+  DATA.pageMeta.dashboard.sub = `Welcome back, ${firstName}`;
+  setText("totalRevenueTitle", "Total Revenue");
+  setText("totalRevenueValue", peso(totalRevenue));
+  setText("activeJobsValue", activeJobs);
+  setText("lowStockCount", lowStock);
+  setText("customerCount", customers);
+  setText("revenuePeriod", period);
+}
 
 /* ===================== HELPERS ===================== */
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -536,23 +341,32 @@ function statusBadge(status) {
     Confirmed: "badge-confirmed",
     "In Progress": "badge-inprogress",
     Completed: "badge-completed",
+    Unpaid: "badge-unpaid",
     Cancelled: "badge-cancelled",
     Paid: "badge-paid",
     Active: "badge-active",
     Healthy: "badge-healthy",
     Warning: "badge-warning",
     Critical: "badge-critical",
+    "In Stock": "badge-active",
+    "Low on Stock": "badge-warning",
     "Out of Stock": "badge-out-of-stock",
   };
-  return `<span class="badge ${map[status] || ""}">${status.toUpperCase()}</span>`;
+  const label = status === "Unpaid" ? "Work Finished (unpaid)" : status;
+  return `<span class="badge ${map[status] || ""}">${label.toUpperCase()}</span>`;
 }
 
-function getInventoryStockStatus(stock) {
-  const quantity = Number(stock) || 0;
-  if (quantity === 0) return { label: "Out of Stock", color: "var(--red)" };
-  if (quantity < 10) return { label: "Critical", color: "var(--red)" };
-  if (quantity < 20) return { label: "Warning", color: "var(--amber)" };
-  return { label: "Healthy", color: "var(--green)" };
+function getInventoryStockStatus(part) {
+  const stock = Number(typeof part === "object" ? part.stock : part) || 0;
+  const configuredThreshold =
+    typeof part === "object" ? Number(part.reorderLevel ?? 10) : 10;
+  const threshold = Number.isFinite(configuredThreshold)
+    ? configuredThreshold
+    : 10;
+  if (stock <= 0) return { label: "Out of Stock", color: "var(--red)" };
+  if (stock <= threshold)
+    return { label: "Low on Stock", color: "var(--amber)" };
+  return { label: "In Stock", color: "var(--green)" };
 }
 
 function renderLowStockAlert() {
@@ -561,27 +375,22 @@ function renderLowStockAlert() {
   const summaryElement = $("#lowStockSummary");
   if (!card || !countElement || !summaryElement) return;
 
-  const statuses = DATA.inventory.map((part) =>
-    getInventoryStockStatus(part.stock),
-  );
+  const statuses = DATA.inventory.map(getInventoryStockStatus);
   const outOfStock = statuses.filter(
     (status) => status.label === "Out of Stock",
   ).length;
-  const critical = statuses.filter(
-    (status) => status.label === "Critical",
+  const lowStock = statuses.filter(
+    (status) => status.label === "Low on Stock",
   ).length;
-  const warning = statuses.filter(
-    (status) => status.label === "Warning",
-  ).length;
-  const needsAttention = outOfStock + critical + warning;
+  const needsAttention = outOfStock + lowStock;
 
   countElement.textContent = String(needsAttention);
   summaryElement.textContent = needsAttention
-    ? `${outOfStock} out of stock · ${critical} critical · ${warning} warning`
+    ? `${outOfStock} out of stock · ${lowStock} low stock`
     : "All parts sufficiently stocked";
 
   card.classList.toggle("has-stock-alert", needsAttention > 0);
-  card.classList.toggle("stock-alert-critical", critical > 0 || outOfStock > 0);
+  card.classList.toggle("stock-alert-critical", outOfStock > 0);
 }
 
 function avatarInitials(name) {
@@ -591,6 +400,16 @@ function avatarInitials(name) {
     .slice(0, 2)
     .join("")
     .toUpperCase();
+}
+
+function escapeDashboardHtml(value) {
+  return String(value ?? "").replace(/[&<>\"']/g, (character) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  })[character]);
 }
 
 function renderAdminNotifications() {
@@ -967,16 +786,11 @@ function toggleSidebar() {
     sidebar.classList.toggle("collapsed");
   }
 
-  // Keep desktop dashboards readable while the sidebar is open.
   if (sidebarBackdrop) {
-    if (isMobile) {
-      sidebarBackdrop.classList.toggle(
-        "active",
-        sidebar.classList.contains("open"),
-      );
-    } else {
-      sidebarBackdrop.classList.remove("active");
-    }
+    const isOpen = isMobile
+      ? sidebar.classList.contains("open")
+      : !sidebar.classList.contains("collapsed");
+    sidebarBackdrop.classList.toggle("active", isOpen);
   }
 
   updateSidebarState();
@@ -992,14 +806,12 @@ if (menuToggle) {
 window.addEventListener("resize", () => {
   updateSidebarState();
 
-  // Only mobile uses a scrim; desktop keeps the dashboard unobstructed.
   if (sidebarBackdrop) {
     const isMobile = window.innerWidth <= 860;
-    const isOpen = isMobile ? sidebar.classList.contains("open") : false;
-
-    if (!isOpen) {
-      sidebarBackdrop.classList.remove("active");
-    }
+    const isOpen = isMobile
+      ? sidebar.classList.contains("open")
+      : !sidebar.classList.contains("collapsed");
+    sidebarBackdrop.classList.toggle("active", isOpen);
   }
 });
 
@@ -1029,6 +841,7 @@ $("#signOutBtn").addEventListener("click", () => {
 
 /* ===================== MODAL ===================== */
 function openModal(title, bodyHTML) {
+  $("#modalBackdrop .modal")?.classList.remove("profile-editor-modal");
   $("#modalTitle").textContent = title;
   $("#modalBody").innerHTML = bodyHTML;
   $("#modalBackdrop").classList.add("open");
@@ -1039,6 +852,89 @@ $("#modalClose").addEventListener("click", () =>
 $("#modalBackdrop").addEventListener("click", (e) => {
   if (e.target.id === "modalBackdrop")
     $("#modalBackdrop").classList.remove("open");
+});
+
+function openAdminProfileEditor() {
+  const email = (localStorage.getItem("userEmail") || "").trim().toLowerCase();
+  if (!email) return;
+  const canRequestDeletion = localStorage.getItem("userRole") === "admin";
+  const savedProfile = readProfileMap()[email] || {};
+  const account = DATA.users.find((user) => user.email?.toLowerCase() === email);
+  const name = savedProfile.name || account?.name || localStorage.getItem("userFullName") || email;
+  const phone = savedProfile.phone || account?.phone || "";
+
+  openModal(
+    "Edit Profile",
+    `
+      <form id="admin-profile-form">
+        <div class="field"><label for="admin-profile-name">Full Name</label><input id="admin-profile-name" value="${escapeDashboardHtml(name)}" required></div>
+        <div class="field"><label for="admin-profile-email">Email</label><output id="admin-profile-email" class="profile-email-display" aria-label="Login email address">${escapeDashboardHtml(email)}</output></div>
+        <div class="field"><label for="admin-profile-phone">Phone</label><input id="admin-profile-phone" type="tel" value="${escapeDashboardHtml(phone)}"></div>
+        <button class="btn-primary" type="submit" style="width:100%;margin-top:6px;">Save Profile</button>
+        ${canRequestDeletion ? '<section class="account-danger-action"><div class="account-danger-description">Warning: this sends a private deletion request to the Master Admin for approval. Other store admins will not be notified.</div><button class="btn-view account-delete-request-btn" type="button" id="request-admin-account-deletion">Request Account Deletion</button></section>' : ""}
+      </form>
+    `,
+  );
+  $("#modalBackdrop .modal")?.classList.add("profile-editor-modal");
+
+  $("#admin-profile-form")?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const nextName = $("#admin-profile-name").value.trim();
+    const nextPhone = $("#admin-profile-phone").value.trim();
+    if (!nextName) return window.alert("Please enter your name.");
+    if (nextPhone && !/^[0-9+\-\s()]{7,20}$/.test(nextPhone)) {
+      return window.alert("Please enter a valid phone number.");
+    }
+    if (!window.confirm("Are you sure you want to save these profile changes?")) return;
+
+    const profiles = readProfileMap();
+    profiles[email] = { ...(profiles[email] || {}), name: nextName, phone: nextPhone };
+    localStorage.setItem("motofix_profiles", JSON.stringify(profiles));
+    localStorage.setItem("userFullName", nextName);
+
+    const users = readStoredArray("motofix_users");
+    const user = users.find((record) => record.email?.toLowerCase() === email);
+    if (user) {
+      user.name = nextName;
+      user.first_name = nextName.split(/\s+/)[0];
+      user.phone = nextPhone;
+      user.initials = avatarInitials(nextName);
+      user.updated_at = new Date().toISOString();
+      writeStoredArray("motofix_users", users);
+    }
+
+    const employees = readStoredArray(MASTER_EMPLOYEE_STORAGE_KEY);
+    const employee = employees.find((record) => record.email?.toLowerCase() === email);
+    if (employee) {
+      employee.name = nextName;
+      employee.phone = nextPhone;
+      writeStoredArray(MASTER_EMPLOYEE_STORAGE_KEY, employees);
+    }
+
+    initLocalStorageData();
+    renderAdminDashboardStats();
+    renderUsers();
+    renderMasterEmployees();
+    renderRegisteredMotorcycles();
+    $("#modalBackdrop").classList.remove("open");
+  });
+
+  $("#request-admin-account-deletion")?.addEventListener("click", () => {
+    const target = account || {
+      email,
+      name,
+      role: localStorage.getItem("userRole") || "Admin",
+    };
+    if (confirmAccountDeletionRequest(target, true)) {
+      $("#modalBackdrop")?.classList.remove("open");
+    }
+  });
+}
+
+$("#editAdminProfileBtn")?.addEventListener("click", () => {
+  $("#userMenu")?.classList.remove("open");
+  $("#userMenuToggle")?.setAttribute("aria-expanded", "false");
+  openAdminProfileEditor();
 });
 
 // 1. Hooks up the "Add New Part" button to your existing modal
@@ -1131,8 +1027,15 @@ document.addEventListener("submit", (e) => {
 
     // Update local storage array
     let partsList = JSON.parse(localStorage.getItem("motofix_parts")) || [];
-    partsList.push(newPart);
-    localStorage.setItem("motofix_parts", JSON.stringify(partsList));
+    try {
+      partsList.push(newPart);
+      partsList = window.updateInventoryLowStockAlerts(partsList);
+      localStorage.setItem("motofix_parts", JSON.stringify(partsList));
+    } catch (error) {
+      console.error("Unable to save new inventory part:", error);
+      window.alert(error.message || "Unable to save the new part.");
+      return;
+    }
 
     // Sync main DATA object and re-render inventory view
     DATA.inventory = partsList;
@@ -1178,6 +1081,10 @@ document.addEventListener("submit", (e) => {
 function renderBarChart(containerId, data) {
   const el = $("#" + containerId);
   if (!el) return;
+  if (!data.length) {
+    el.innerHTML = '<div class="empty-chart">No revenue data stored.</div>';
+    return;
+  }
   const max = Math.max(...data.map((d) => d.value));
   const step = Math.ceil(max / 4 / 25000) * 25000 || 25000;
   const top = step * 4;
@@ -1206,6 +1113,11 @@ function renderPieChart(pieId, legendId, data) {
   const pieEl = $("#" + pieId);
   const legendEl = $("#" + legendId);
   if (!pieEl || !legendEl) return;
+  if (!data.length) {
+    pieEl.style.background = "transparent";
+    legendEl.innerHTML = '<li class="empty-chart">No appointment data stored.</li>';
+    return;
+  }
   let acc = 0;
   const stops = data
     .map((d) => {
@@ -1222,7 +1134,7 @@ function renderPieChart(pieId, legendId, data) {
     <li>
       <span class="swatch" style="background:${d.color}"></span>
       <span class="lname">${d.label}</span>
-      <span class="lval">${d.pct}%</span>
+      <span class="lval">${d.pct.toFixed(2)}%</span>
     </li>
   `,
     )
@@ -1230,8 +1142,6 @@ function renderPieChart(pieId, legendId, data) {
 }
 
 /* ===================== SHARED APPOINTMENT STORAGE ===================== */
-const APPOINTMENT_STORAGE_KEY = "motofix_appointments";
-
 function syncAppointmentsFromStorage() {
   const stored = JSON.parse(
     localStorage.getItem(APPOINTMENT_STORAGE_KEY) || "[]",
@@ -1259,10 +1169,16 @@ function syncAppointmentsFromStorage() {
 }
 
 function persistAppointments() {
-  localStorage.setItem(
-    APPOINTMENT_STORAGE_KEY,
-    JSON.stringify(DATA.appointments),
-  );
+  // Admin and Master Admin write the same appointment records consumed by Customer and Mechanic.
+  writeStoredArray(APPOINTMENT_STORAGE_KEY, DATA.appointments);
+  rebuildDerivedDashboardData();
+  renderInvoices();
+  renderJobs();
+  renderBarChart("revenueChart", DATA.revenue);
+  renderBarChart("revenueChart2", DATA.revenue);
+  renderPieChart("serviceMixPie", "serviceMixLegend", DATA.serviceMix);
+  renderAdminDashboardStats();
+  renderRevenueStatsAndBreakdown();
 }
 
 /* ===================== APPOINTMENTS TABLE & NATIVE MODAL ===================== */
@@ -1271,9 +1187,17 @@ const STATUS_FLOW = [
   "Pending",
   "Confirmed",
   "In Progress",
-  "Work Finished (unpaid)",
-  "Complete transaction",
+  "Completed",
   "Cancelled",
+  "Unpaid",
+];
+
+const MECHANIC_JOB_STATUS_FLOW = [
+  { value: "Pending", label: "Pending" },
+  { value: "In Progress", label: "In Progress" },
+  { value: "Unpaid", label: "Work Finished (unpaid)" },
+  { value: "Complete transaction", label: "Complete" },
+  { value: "Cancelled", label: "Cancelled" },
 ];
 
 // Consistent Custom Status Badge Generator for Table Rows & Modals
@@ -1291,7 +1215,7 @@ function getCustomStatusBadge(status) {
     bg = "rgba(249, 115, 22, 0.15)";
     color = "#fb923c";
   } // Distinct Orange
-  else if (status === "Work Finished (unpaid)") {
+  else if (status === "Work Finished (unpaid)" || status === "Unpaid") {
     bg = "rgba(168, 85, 247, 0.15)";
     color = "#c084fc";
   } // Distinct Purple
@@ -1358,9 +1282,14 @@ function renderAppointmentsPage() {
   const activeFilter = $("#apptFilters .pill.active")?.dataset.filter || "All";
   const query = ($("#apptSearch").value || "").toLowerCase();
 
-  let rows = DATA.appointments.filter(
-    (a) => activeFilter === "All" || a.status === activeFilter,
-  );
+  let rows = DATA.appointments.filter((appointment) => {
+    const status = canonicalAppointmentStatus(appointment.status);
+    if (activeFilter === "All") return true;
+    if (activeFilter === "Unassigned") {
+      return status !== "Cancelled" && !appointment.mechanic;
+    }
+    return status === canonicalAppointmentStatus(activeFilter);
+  });
   if (query)
     rows = rows.filter((a) =>
       (a.customer + a.bike).toLowerCase().includes(query),
@@ -1382,6 +1311,14 @@ function renderAppointmentsPage() {
 
 // Global variable to keep track of the selected appointment for actions/printing
 let currentSelectedAppointmentId = null;
+
+function isLockedCompletedAppointment(app) {
+  const canEditCompletedJob =
+    String(localStorage.getItem("userRole") || "").toLowerCase() === "master_admin" ||
+    app.completedJobEditAuthorizedBy?.toLowerCase() ===
+      (localStorage.getItem("userEmail") || "").trim().toLowerCase();
+  return canonicalAppointmentStatus(app.status) === "Completed" && !canEditCompletedJob;
+}
 
 // Use your native dashboard openModal() function
 function openAppointmentModal(appId) {
@@ -1437,38 +1374,103 @@ function openAppointmentModal(appId) {
                <div style="font-size: 11px; color: var(--text-sub, #9ca3af); margin-bottom: 4px;">Update Status (Dropdown):</div>
                <div id="modalStatusActionContainer">${getStatusAdvancementDropdown(app)}</div>
             </div>
-            <button type="button" onclick="generateAppointmentReceipt()" style="background: rgba(255, 255, 255, 0.08); color: #ffffff; border: 1px solid rgba(255, 255, 255, 0.15); padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: background 0.2s;">
-                <i class="fas fa-print"></i> Print Receipt
-            </button>
         </div>
     `;
 
   openModal(`Appointment Details: #${app.id}`, modalBodyHTML);
+  $("#requestCompletedJobEditFromAppointment")?.addEventListener("click", () =>
+    openCompletedJobEditRequestModal(app),
+  );
+  $("#cancelAppointmentFromDetails")?.addEventListener("click", () => {
+    if (canonicalAppointmentStatus(app.status) === "Cancelled") return;
+    const role = String(localStorage.getItem("userRole") || "").toLowerCase();
+    if (role === "admin") {
+      openCompletedJobCancellationRequestModal(app);
+      return;
+    }
+    if (role === "master_admin") {
+      if (window.confirm(`Cancel appointment ${app.id}? This action cannot be undone here.`)) {
+        updateAppointmentStatus(app.id, "Cancelled");
+      }
+      return;
+    }
+    window.alert("Only an admin or the Master Admin can cancel this appointment.");
+  });
 }
 
-// Styled Status Dropdown Selector with Cancelled Option
-function getStatusAdvancementDropdown(app) {
-  return `
-        <select onchange="updateAppointmentStatus('${app.id}', this.value)" style="background-color: #1e1e2d; color: #ffffff; border: 1px solid rgba(255, 255, 255, 0.2); padding: 7px 12px; border-radius: 6px; font-size: 13px; cursor: pointer; outline: none;">
-            ${STATUS_FLOW.map((status) => {
-              const isCancelled = status === "Cancelled";
-              const textColor = isCancelled ? "#ef4444" : "#ffffff";
-              const fontWeight = isCancelled ? "font-weight: 600;" : "";
-              return `
-                    <option value="${status}" ${app.status === status ? "selected" : ""} style="background-color: #1e1e2d; color: ${textColor}; ${fontWeight} padding: 8px;">
-                        ${status}
-                    </option>
-                `;
-            }).join("")}
-        </select>
-    `;
+function refreshAppointmentStatusViews(appId) {
+  renderAppointmentsPage();
+  renderDashboardAppointments();
+  renderJobs();
+  if (
+    currentSelectedAppointmentId === appId &&
+    $("#modalBackdrop")?.classList.contains("open")
+  ) {
+    openAppointmentModal(appId);
+  }
 }
 
 function updateAppointmentStatus(appId, newStatus) {
   const app = DATA.appointments.find((a) => a.id === appId);
   if (app) {
+    const currentStatus = canonicalAppointmentStatus(app.status);
+    const requestedStatus = canonicalAppointmentStatus(newStatus);
+    const isMasterAdmin =
+      String(localStorage.getItem("userRole") || "").toLowerCase() === "master_admin";
+    const currentEmail = (localStorage.getItem("userEmail") || "").trim().toLowerCase();
+    const hasCompletedJobEditAuthority =
+      isMasterAdmin || app.completedJobEditAuthorizedBy?.toLowerCase() === currentEmail;
+    if (requestedStatus === currentStatus) {
+      refreshAppointmentStatusViews(appId);
+      return;
+    }
+
+    if (
+      requestedStatus === "Completed" &&
+      currentStatus !== "Completed" &&
+      !window.confirm(
+        "Confirm this job is fully completed? After confirmation, it will be locked and can only be edited again with Master Admin approval.",
+      )
+    ) {
+      refreshAppointmentStatusViews(appId);
+      return;
+    }
+
+    const isCompletedJob =
+      ["Completed", "Unpaid"].includes(canonicalAppointmentStatus(app.status));
+    const isStoreAdmin =
+      String(localStorage.getItem("userRole") || "").toLowerCase() === "admin";
+    if (newStatus === "Cancelled" && isCompletedJob && isStoreAdmin) {
+      openCompletedJobCancellationRequestModal(app);
+      return;
+    }
+    if (
+      currentStatus === "Completed" &&
+      requestedStatus !== "Cancelled" &&
+      !hasCompletedJobEditAuthority
+    ) {
+      window.alert("This completed job is locked. Request Master Admin approval before editing it.");
+      refreshAppointmentStatusViews(appId);
+      return;
+    }
+
+    let inventoryUpdate = { ok: true, deducted: false };
+    if (requestedStatus === "Completed" && currentStatus !== "Completed") {
+      inventoryUpdate = window.consumeAppointmentInventory(app);
+      if (!inventoryUpdate.ok) {
+        window.alert(inventoryUpdate.message);
+        refreshAppointmentStatusViews(appId);
+        return;
+      }
+    }
+
     app.status = newStatus;
+    app.completedJobEditAuthorizedBy = "";
     persistAppointments();
+    if (inventoryUpdate.deducted) {
+      DATA.inventory = readStoredArray("motofix_parts");
+      renderInventoryTable();
+    }
     const notifications = JSON.parse(
       localStorage.getItem("motofix_notifications") || "[]",
     );
@@ -1655,16 +1657,80 @@ if (newApptBtnEl) {
     openModal(
       "New Appointment",
       `
-      <div class="field"><label>Customer Name</label><input id="newApptCustomer" placeholder="e.g. Miguel Torres"></div>
+      <div class="field"><label>Customer Name</label><input id="newApptCustomer" placeholder="Full customer name"></div>
       <div class="field"><label>Contact Number</label><input id="newApptPhone" placeholder="e.g. 09123456789"></div>
       <div class="field"><label>Motorcycle Model</label><input id="newApptBike" placeholder="e.g. 2022 Honda PCX 160"></div>
       <div class="field"><label>Service</label><select id="newApptService">${DATA.services.map((s) => `<option>${s.name}</option>`).join("")}</select></div>
-      <div class="field"><label>Assigned Mechanic</label><select id="newApptMechanic"><option value="">Unassigned</option>${DATA.mechanics ? DATA.mechanics.map((m) => `<option>${m.name || m}</option>`).join("") : ""}</select></div>
+      <div class="field"><label>Assigned Mechanic</label><select id="newApptMechanic"><option value="">Unassigned</option>${getActiveMechanics().map((mechanic) => `<option value="${mechanic.name}" ${isMechanicUnavailableForAssignment(mechanic.name) ? "disabled" : ""}>${mechanic.name}${isMechanicUnavailableForAssignment(mechanic.name) ? " (Busy)" : ""}</option>`).join("")}</select></div>
       <div class="field"><label>Date &amp; Time</label><input id="newApptDateTime" type="datetime-local"></div>
       <button class="btn-primary" style="width:100%;margin-top:6px;" onclick="saveNewAppointment()">Create Appointment</button>
       `,
     ),
   );
+}
+
+function saveNewAppointment() {
+  const customer = $("#newApptCustomer")?.value.trim();
+  const phone = $("#newApptPhone")?.value.trim() || "N/A";
+  const bike = $("#newApptBike")?.value.trim();
+  const service = $("#newApptService")?.value;
+  const mechanic = $("#newApptMechanic")?.value || null;
+  const dateTime = $("#newApptDateTime")?.value;
+  if (!customer || !bike || !service || !dateTime) {
+    window.alert("Complete the customer, motorcycle, service, and date fields.");
+    return;
+  }
+  if (
+    mechanic &&
+    !getActiveMechanics().some((user) => user.name === mechanic)
+  ) {
+    window.alert("Choose a valid mechanic from the available list.");
+    return;
+  }
+  if (mechanic && isMechanicUnavailableForAssignment(mechanic)) {
+    window.alert(`${mechanic} is currently assigned to an active job and is unavailable.`);
+    return;
+  }
+
+  const idNumber = DATA.appointments.reduce((maximum, appointment) => {
+    const value = Number(String(appointment.id).replace(/\D/g, ""));
+    return Number.isFinite(value) ? Math.max(maximum, value) : maximum;
+  }, 0) + 1;
+  const [date, time] = dateTime.split("T");
+  const serviceRecord = DATA.services.find((item) => item.name === service);
+  const total = Number(serviceRecord?.price) || 0;
+  const id = `A${idNumber}`;
+  DATA.appointments.unshift({
+    id,
+    customer,
+    customerEmail: DATA.users.find((user) => user.name === customer)?.email || "",
+    phone,
+    initials: avatarInitials(customer),
+    bike,
+    services: [service],
+    date,
+    time,
+    mechanic,
+    status: "Pending",
+    notes: "",
+    parts: [],
+    total: peso(total),
+    transaction: { id: `INV-${id}`, total: peso(total), date },
+    createdAt: new Date().toISOString(),
+  });
+
+  if (mechanic) {
+    notifyMechanicOfAssignment(
+      DATA.appointments[0],
+      mechanic,
+      "New job assigned",
+      "is assigned to you",
+    );
+  }
+  persistAppointments();
+  renderAppointmentsPage();
+  renderDashboardAppointments();
+  document.getElementById("modalBackdrop")?.classList.remove("open");
 }
 
 /* =========================================================
@@ -1692,7 +1758,7 @@ function updateAppointmentMechanicDropdown(
   }
 
   selectEl.disabled = false;
-  const availableList = getAvailableMechanics(dateVal, timeVal, currentApptId);
+  const availableList = getAvailableMechanics(currentApptId);
 
   // Build dropdown options, clearly flagging busy mechanics
   selectEl.innerHTML =
@@ -1787,6 +1853,10 @@ function renderServicesGrid() {
   `,
       )
       .join("") || `<p class="subtext">No services match your search.</p>`;
+
+  rebuildDerivedDashboardData();
+  renderPieChart("serviceMixPie", "serviceMixLegend", DATA.serviceMix);
+  renderRevenueStatsAndBreakdown();
 
   // Attach click listener to open service details modal
   $$(".svc-row").forEach((card) => {
@@ -1929,186 +1999,6 @@ if (servicesSearchEl) {
 }
 
 /* =========================================================
-   UPDATE BLOCK: LOCAL STORAGE SYNC FOR CUSTOMIZATION/BIKES
-   Ensures local storage gets populated with default bike dataset
-   if empty, and syncs DATA variables for persistent custom builds.
-========================================================= */
-function initCustomizationStorage() {
-  if (!localStorage.getItem("motofix_bikes")) {
-    localStorage.setItem("motofix_bikes", JSON.stringify(DATA.bikes));
-  } else {
-    DATA.bikes = JSON.parse(localStorage.getItem("motofix_bikes"));
-  }
-}
-initCustomizationStorage();
-
-/* ===================== CUSTOMIZATION PAGE RENDER & CRUD ===================== */
-function renderCustomizationFilters() {
-  const container = $("#customFilters");
-  if (!container) return;
-
-  // Attach filter event listeners for custom build pills
-  $$("#customFilters .pill").forEach((p) => {
-    p.addEventListener("click", () => {
-      $$("#customFilters .pill").forEach((x) => x.classList.remove("active"));
-      p.classList.add("active");
-      renderBikes();
-    });
-  });
-}
-
-function renderBikes() {
-  const listEl = $("#bikeList");
-  if (!listEl) return;
-
-  const activeFilter =
-    $("#customFilters .pill.active")?.dataset.filter || "All";
-  const query = ($("#customSearch")?.value || "").toLowerCase();
-
-  // Filter bikes based on category pills and search query
-  let filteredBikes = DATA.bikes.filter((b) => {
-    const hasMods = b.mods && b.mods.length > 0;
-    if (activeFilter === "Customized" && !hasMods) return false;
-    if (activeFilter === "Stock" && hasMods) return false;
-    return true;
-  });
-
-  if (query) {
-    filteredBikes = filteredBikes.filter((b) =>
-      (b.name + b.detail + b.owner + (b.mods ? b.mods.join(" ") : ""))
-        .toLowerCase()
-        .includes(query),
-    );
-  }
-
-  listEl.innerHTML =
-    filteredBikes
-      .map(
-        (b, index) => `
-    <div class="bike-card" style="cursor: pointer;" onclick="openBikeDetailsModal(${index})">
-      <div class="bike-top">
-        <div>
-          <div class="bike-name">${b.name}</div>
-          <div class="bike-sub">${b.detail}</div>
-          <div class="bike-owner">Owner: ${b.owner}</div>
-        </div>
-        <div class="bike-odo">
-          <div class="bike-odo-val">${b.odo} km</div>
-          <div class="bike-odo-label">odometer</div>
-        </div>
-      </div>
-      ${b.mods && b.mods.length ? `<div class="bike-mods">${b.mods.map((m) => `<span class="mod-tag">${m}</span>`).join("")}</div>` : `<div class="subtext" style="font-size:12px; margin-top:8px;">No custom modifications recorded (Stock setup).</div>`}
-    </div>
-  `,
-      )
-      .join("") ||
-    `<p class="subtext" style="padding: 20px;">No registered motorcycle profiles found.</p>`;
-}
-
-// Search input event listener for real-time filtering
-const customSearchEl = $("#customSearch");
-if (customSearchEl) {
-  customSearchEl.addEventListener("input", renderBikes);
-}
-
-// Modal view to inspect or delete a specific bike profile
-function openBikeDetailsModal(index) {
-  const b = DATA.bikes[index];
-  if (!b) return;
-
-  openModal(
-    `Motorcycle Profile: ${b.name}`,
-    `
-    <div style="margin-bottom: 16px; line-height: 1.6;">
-      <p><strong>Model & Details:</strong> ${b.name} (${b.detail})</p>
-      <p><strong>Registered Owner:</strong> ${b.owner}</p>
-      <p><strong>Odometer Reading:</strong> ${b.odo} km</p>
-      <p><strong>Modifications:</strong> ${b.mods && b.mods.length ? b.mods.join(", ") : "None (Stock)"}</p>
-    </div>
-    <div style="display: flex; gap: 10px; margin-top: 20px;">
-      <button type="button" class="btn-view" onclick="deleteBikeProfile(${index})" style="flex:1; color:var(--red); border-color:rgba(239,68,68,0.3);">Delete Profile</button>
-    </div>
-  `,
-  );
-}
-
-function deleteBikeProfile(index) {
-  if (
-    confirm(
-      "Are you sure you want to remove this motorcycle customization profile?",
-    )
-  ) {
-    DATA.bikes.splice(index, 1);
-    localStorage.setItem("motofix_bikes", JSON.stringify(DATA.bikes));
-    $("#modalBackdrop").classList.remove("open");
-    renderBikes();
-  }
-}
-
-// Hook up "+ Add Custom Build" button to open the creation modal
-const openAddCustomModalBtn = $("#openAddCustomModalBtn");
-if (openAddCustomModalBtn) {
-  openAddCustomModalBtn.addEventListener("click", () => {
-    openModal(
-      "Add New Motorcycle Customization Profile",
-      `
-      <form id="addCustomBikeForm">
-        <div style="margin-bottom: 12px;">
-          <label style="display:block; margin-bottom:4px; font-weight:500;">Motorcycle Name / Model</label>
-          <input type="text" id="newBikeName" placeholder="e.g. 2024 Honda Click 125i" required style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;">
-        </div>
-        <div style="margin-bottom: 12px;">
-          <label style="display:block; margin-bottom:4px; font-weight:500;">Color & Plate Number</label>
-          <input type="text" id="newBikeDetail" placeholder="e.g. Matte Gray · NEV 9876" required style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;">
-        </div>
-        <div style="margin-bottom: 12px;">
-          <label style="display:block; margin-bottom:4px; font-weight:500;">Owner Name</label>
-          <input type="text" id="newBikeOwner" placeholder="e.g. Juan Dela Cruz" required style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;">
-        </div>
-        <div style="margin-bottom: 12px;">
-          <label style="display:block; margin-bottom:4px; font-weight:500;">Odometer (km)</label>
-          <input type="text" id="newBikeOdo" value="1,200" required style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;">
-        </div>
-        <div style="margin-bottom: 12px;">
-          <label style="display:block; margin-bottom:4px; font-weight:500;">Modifications (comma separated)</label>
-          <input type="text" id="newBikeMods" placeholder="e.g. Upgraded suspension, Custom seat, LED pods" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;">
-        </div>
-        <button type="submit" class="btn-primary" style="width:100%; margin-top:10px;">Save Bike Profile</button>
-      </form>
-      `,
-    );
-  });
-}
-
-// Handle submission of the new custom build form
-document.addEventListener("submit", (e) => {
-  if (e.target && e.target.id === "addCustomBikeForm") {
-    e.preventDefault();
-
-    const rawMods = document.getElementById("newBikeMods").value;
-    const modsArray = rawMods
-      ? rawMods
-          .split(",")
-          .map((m) => m.trim())
-          .filter(Boolean)
-      : [];
-
-    const newBike = {
-      name: document.getElementById("newBikeName").value,
-      detail: document.getElementById("newBikeDetail").value,
-      owner: document.getElementById("newBikeOwner").value,
-      odo: document.getElementById("newBikeOdo").value,
-      mods: modsArray,
-    };
-
-    DATA.bikes.push(newBike);
-    localStorage.setItem("motofix_bikes", JSON.stringify(DATA.bikes));
-
-    $("#modalBackdrop").classList.remove("open");
-    renderBikes();
-  }
-});
-
 /* ===================== INVENTORY PAGE ===================== */
 function renderInvFilters() {
   const container = $("#invFilters");
@@ -2157,13 +2047,13 @@ function renderInventoryTable() {
         <td>
           <div style="display:flex;align-items:center;gap:10px;">
             <div style="width:70px;height:5px;background:#232323;border-radius:3px;overflow:hidden;">
-              <div style="width:${Math.min(100, (i.stock / (i.max || 60)) * 100)}%;height:100%;background:${getInventoryStockStatus(i.stock).color};"></div>
+              <div style="width:${Math.min(100, (i.stock / (i.max || 60)) * 100)}%;height:100%;background:${getInventoryStockStatus(i).color};"></div>
             </div>
             <span>${i.stock}</span>
           </div>
         </td>
         <td style="color:var(--orange);font-weight:700;font-family:var(--font-mono);">${peso(i.price)}</td>
-        <td>${statusBadge(getInventoryStockStatus(i.stock).label)}</td>
+        <td>${statusBadge(getInventoryStockStatus(i).label)}</td>
       </tr>
     `,
         )
@@ -2176,6 +2066,7 @@ function renderInventoryTable() {
   $$(".inv-row").forEach((row) => {
     row.addEventListener("click", () => openPartDetailsModal(row.dataset.sku));
   });
+  renderAdminDashboardStats();
 }
 
 function openPartDetailsModal(sku) {
@@ -2190,6 +2081,7 @@ function openPartDetailsModal(sku) {
       <p><strong>Brand:</strong> ${part.brand}</p>
       <p><strong>Category:</strong> ${part.category}</p>
       <p><strong>Stock Level:</strong> ${part.stock} / ${part.max || 60}</p>
+      <p><strong>Status:</strong> ${statusBadge(getInventoryStockStatus(part).label)}</p>
       <p><strong>Unit Price:</strong> <span style="color:var(--orange); font-weight:700;">${peso(part.price)}</span></p>
     </div>
     <div style="display: flex; gap: 10px; margin-top: 20px;">
@@ -2495,7 +2387,9 @@ function printCustomerReceipt(invId) {
 // Download Revenue Report Function (Direct PDF download via jsPDF & Word .doc export)
 function downloadRevenueReport(fileType) {
   const totalRev = DATA.revenue.reduce((acc, r) => acc + r.value, 0);
-  const totalVAT = totalRev * 0.12;
+  const totalVAT = DATA.invoices
+    .filter((invoice) => invoice.status === "Completed")
+    .reduce((sum, invoice) => sum + invoice.vat, 0);
   const currentDate = new Date().toISOString().split("T")[0];
 
   if (fileType === "docx") {
@@ -2642,9 +2536,9 @@ $$(".tab-row .tab").forEach((tabBtn) => {
 // <-- ADD THIS HELPER FUNCTION BELOW YOUR EVENT LISTENER -->
 function renderRevenueStatsAndBreakdown() {
   const totalRev = DATA.revenue.reduce((acc, r) => acc + r.value, 0);
-  const totalVAT = totalRev * 0.12;
-  const invoiceCount = DATA.invoices.length;
-  const avgVal = invoiceCount > 0 ? totalRev / invoiceCount : 0;
+  const completedInvoices = DATA.invoices.filter((invoice) => invoice.status === "Completed");
+  const totalVAT = completedInvoices.reduce((sum, invoice) => sum + invoice.vat, 0);
+  const avgVal = completedInvoices.length > 0 ? totalRev / completedInvoices.length : 0;
 
   // Update Stat Card Values on the UI
   const totalEl = $("#rev-total-val");
@@ -2659,51 +2553,219 @@ function renderRevenueStatsAndBreakdown() {
   if (aovEl)
     aovEl.textContent = `₱${avgVal.toLocaleString("en-PH", { minimumFractionDigits: 2 })}`;
   if (aovDescEl)
-    aovDescEl.textContent = `Based on ${invoiceCount} invoice${invoiceCount === 1 ? "" : "s"}`;
+    aovDescEl.textContent = `Based on ${completedInvoices.length} completed invoice${completedInvoices.length === 1 ? "" : "s"}`;
 
   // Populate Service Category Breakdown Panel
   const breakdownContainer = $("#category-breakdown-container");
   if (breakdownContainer) {
-    breakdownContainer.innerHTML = `
-      <div style="display: flex; flex-direction: column; gap: 10px;">
-        <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.08);">
-          <span>🔧 Engine Maintenance</span>
-          <strong style="color:var(--orange);">₱${(totalRev * 0.5).toLocaleString("en-PH", { minimumFractionDigits: 2 })} (50%)</strong>
-        </div>
-        <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.08);">
-          <span>⚙️ Custom Parts & Upgrades</span>
-          <strong style="color:var(--orange);">₱${(totalRev * 0.3).toLocaleString("en-PH", { minimumFractionDigits: 2 })} (30%)</strong>
-        </div>
-        <div style="display: flex; justify-content: space-between; padding: 8px 0;">
-          <span>🛠️ General Repairs</span>
-          <strong style="color:var(--orange);">₱${(totalRev * 0.2).toLocaleString("en-PH", { minimumFractionDigits: 2 })} (20%)</strong>
-        </div>
-      </div>
-    `;
+    breakdownContainer.innerHTML = DATA.serviceMix.length
+      ? DATA.serviceMix.map((category) => `
+          <button type="button" class="revenue-category-row" data-service-category="${escapeDashboardHtml(category.label)}" aria-label="View completed jobs in ${escapeDashboardHtml(category.label)}">
+            <span>${escapeDashboardHtml(category.label)}</span>
+            <strong>${category.count} service${category.count === 1 ? "" : "s"} · ${category.pct.toFixed(1)}%</strong>
+          </button>
+        `).join("")
+      : '<p class="muted">No appointment service data stored.</p>';
+
+    if (!breakdownContainer.dataset.categoryClickHandler) {
+      breakdownContainer.dataset.categoryClickHandler = "true";
+      breakdownContainer.addEventListener("click", (event) => {
+        const categoryButton = event.target.closest("[data-service-category]");
+        if (!categoryButton) return;
+        openCompletedJobsForServiceCategory(categoryButton.dataset.serviceCategory);
+      });
+    }
   }
+}
+
+function openCompletedJobsForServiceCategory(category) {
+  const serviceNames = new Set(DATA.services
+    .filter((service) => getServiceCategory(service.name) === category)
+    .map((service) => service.name));
+  const appointments = DATA.appointments.filter((appointment) => {
+    if (canonicalAppointmentStatus(appointment.status) !== "Completed") return false;
+    const services = Array.isArray(appointment.services)
+      ? appointment.services
+      : [appointment.services || "Service"];
+    return services.some((serviceName) =>
+      category === "Needs category"
+        ? getServiceCategory(serviceName) === category
+        : serviceNames.has(serviceName) && getServiceCategory(serviceName) === category,
+    );
+  });
+
+  const jobs = appointments;
+  const body = jobs.length
+    ? `<div class="category-completed-jobs">
+        ${jobs.map((appointment) => `
+          <button type="button" class="category-completed-job" data-appointment-id="${escapeDashboardHtml(appointment.id)}">
+            <span class="category-completed-job-heading">
+              <strong>${escapeDashboardHtml(appointment.id)}</strong>
+              <span>${escapeDashboardHtml(appointment.customer || "Customer")}</span>
+            </span>
+            <span>${escapeDashboardHtml(appointment.bike || appointment.motorcycle || "Unknown Motorcycle")}</span>
+            <span>${escapeDashboardHtml((Array.isArray(appointment.services) ? appointment.services : [appointment.services || "Service"]).join(", "))}</span>
+            <span>${escapeDashboardHtml(appointment.date || "Date not set")} · ${escapeDashboardHtml(appointment.mechanic || "Mechanic not recorded")}</span>
+            <strong class="category-completed-job-total">${peso(storedAmount(appointment.transaction?.total ?? appointment.total))}</strong>
+          </button>
+        `).join("")}
+      </div>`
+    : '<p class="muted">There are no completed jobs in this service category yet.</p>';
+
+  openModal(`Completed Jobs — ${category}`, body);
+  $("#modalBody")?.querySelectorAll(".category-completed-job").forEach((button) => {
+    button.addEventListener("click", () => {
+      const job = DATA.jobs.find(
+        (item) => item.apptRef === button.dataset.appointmentId,
+      );
+      if (job) openAdminJobDetails(job);
+    });
+  });
 }
 
 /* =========================================================
    MECHANIC JOBS & APPOINTMENT SYNC LOGIC
 ========================================================= */
 
-// Helper to check if a mechanic is already booked on a specific date/time
-function isMechanicBusy(mechanicName, date, time, excludeApptId = null) {
+// Active mechanic assignments block new work until the appointment is finished.
+function isMechanicBusy(mechanicName, excludeApptId = null) {
+  if (!mechanicName) return false;
   return DATA.appointments.some((a) => {
     if (excludeApptId && a.id === excludeApptId) return false;
-    if (a.status === "Cancelled" || a.status === "Complete transaction")
+    if (a.mechanic !== mechanicName) return false;
+    if (["Cancelled", "Completed", "Unpaid"].includes(canonicalAppointmentStatus(a.status)))
       return false;
-    return a.mechanic === mechanicName && a.date === date && a.time === time;
+    return true;
   });
 }
 
-// Get list of available mechanics for a given date/time slot
-function getAvailableMechanics(date, time, excludeApptId = null) {
-  const allMechanics = DATA.users.filter((u) => u.role === "Mechanic");
+function isMechanicUnavailableForAssignment(mechanicName, excludeApptId = null) {
+  if (!mechanicName) return false;
+  return DATA.appointments.some((a) => {
+    if (excludeApptId && a.id === excludeApptId) return false;
+    if (a.mechanic !== mechanicName) return false;
+    if (["Cancelled", "Completed", "Unpaid"].includes(canonicalAppointmentStatus(a.status)))
+      return false;
+    return true;
+  });
+}
+
+function getAvailableMechanics(excludeApptId = null) {
+  const allMechanics = getActiveMechanics();
   return allMechanics.map((m) => {
-    const busy = isMechanicBusy(m.name, date, time, excludeApptId);
+    const busy = isMechanicBusy(m.name, excludeApptId);
     return { name: m.name, initials: m.initials, busy };
   });
+}
+
+function getActiveMechanics() {
+  const activeMechanics = DATA.users.filter(
+    (user) =>
+      user.role === "Mechanic" &&
+      !["inactive", "deactivated", "disabled"].includes(
+        String(user.status || "Active").toLowerCase(),
+      ),
+  );
+  const storedEmails = new Set(
+    DATA.users.map((user) => user.email?.toLowerCase()).filter(Boolean),
+  );
+  const activeNames = new Set(activeMechanics.map((user) => user.name.toLowerCase()));
+  FALLBACK_MECHANICS.forEach((mechanic) => {
+    if (storedEmails.has(mechanic.email) || activeNames.has(mechanic.name.toLowerCase())) return;
+    activeMechanics.push({
+      ...mechanic,
+      role: "Mechanic",
+      status: "Active",
+      initials: avatarInitials(mechanic.name),
+    });
+  });
+  return activeMechanics;
+}
+
+function getMechanicOptionsForJob(job) {
+  const currentName = job?.mechanic || "";
+  return getActiveMechanics().map((mechanic) => {
+    const isCurrentSelection = mechanic.name === currentName;
+    const unavailable = !isCurrentSelection && isMechanicUnavailableForAssignment(mechanic.name, job?.apptRef || null);
+    return {
+      name: mechanic.name,
+      current: isCurrentSelection,
+      unavailable,
+    };
+  });
+}
+
+function getMechanicAvailabilityBadge(mechanicName) {
+  if (!mechanicName) {
+    return '<span class="mechanic-availability is-unassigned">No mechanic assigned</span>';
+  }
+  const unavailable = isMechanicUnavailableForAssignment(mechanicName);
+  return `<span class="mechanic-availability ${unavailable ? "is-unavailable" : "is-available"}">${unavailable ? "Unavailable" : "Available"}</span>`;
+}
+
+function assignMechanicToJob(jobId, mechanicName) {
+  const job = DATA.jobs.find((item) => item.id === jobId);
+  if (!job) return;
+
+  const appointment = DATA.appointments.find((item) => item.id === job.apptRef);
+  if (!appointment) return;
+  const currentEmail = (localStorage.getItem("userEmail") || "").trim().toLowerCase();
+  const hasCompletedJobEditAuthority =
+    String(localStorage.getItem("userRole") || "").toLowerCase() === "master_admin" ||
+    appointment.completedJobEditAuthorizedBy?.toLowerCase() === currentEmail;
+  if (
+    canonicalAppointmentStatus(appointment.status) === "Completed" &&
+    !hasCompletedJobEditAuthority
+  ) {
+    window.alert("This completed job is locked. Request Master Admin approval before editing it.");
+    renderJobs();
+    return;
+  }
+
+  const normalized = (mechanicName || "").trim();
+  if (normalized) {
+    const mechanicExists = getActiveMechanics().some(
+      (user) => user.name === normalized,
+    );
+    if (!mechanicExists) {
+      window.alert("Choose a valid mechanic from the available list.");
+      renderJobs();
+      return;
+    }
+    if (isMechanicUnavailableForAssignment(normalized, job.apptRef)) {
+      window.alert(`${normalized} is already assigned to another active job.`);
+      renderJobs();
+      return;
+    }
+  }
+  const previousMechanic = appointment.mechanic || "";
+  appointment.mechanic = normalized || "";
+  appointment.completedJobEditAuthorizedBy = "";
+  job.mechanic = normalized || "";
+  job.initials = normalized ? avatarInitials(normalized) : "—";
+
+  if (normalized && normalized !== previousMechanic) {
+    notifyMechanicOfAssignment(
+      appointment,
+      normalized,
+      "New job assigned",
+      "is assigned to you",
+    );
+  }
+  if (previousMechanic && previousMechanic !== normalized) {
+    notifyMechanicOfAssignment(
+      appointment,
+      previousMechanic,
+      "Job assignment updated",
+      "is no longer assigned to you",
+    );
+  }
+
+  persistAppointments();
+  rebuildDerivedDashboardData();
+  renderJobs();
+  renderAppointmentsPage();
+  renderDashboardAppointments();
 }
 
 /* ===================== MECHANIC JOBS PAGE RENDER ===================== */
@@ -2715,36 +2777,15 @@ function renderJobs() {
     $("#jobsAdminFilters .pill.active")?.dataset.status || "All";
   const searchTerm = ($("#jobsAdminSearch")?.value || "").trim().toLowerCase();
 
-  // Dynamically sync jobs from active/confirmed/in-progress appointments if not already present
-  DATA.appointments.forEach((app) => {
-    if (app.mechanic && app.status !== "Cancelled") {
-      let existingJob = DATA.jobs.find(
-        (j) =>
-          j.id === "J-" + app.id ||
-          (j.customer === app.customer && j.bike === app.bike),
-      );
-      if (!existingJob) {
-        DATA.jobs.push({
-          id: "J-" + app.id,
-          apptRef: app.id,
-          customer: app.customer,
-          bike: app.bike,
-          mechanic: app.mechanic,
-          initials: avatarInitials(app.mechanic),
-          parts: 1,
-          cost: 500, // Base estimated inspection/service cost
-          note: `Service requested: ${Array.isArray(app.services) ? app.services.join(", ") : app.services}`,
-          status: app.status === "In Progress" ? "In Progress" : "Pending",
-        });
-      }
-    }
-  });
-
   const filteredJobs = DATA.jobs.filter((job) => {
     const searchable = [job.id, job.customer, job.bike, job.mechanic, job.note]
       .join(" ")
       .toLowerCase();
-    const matchesStatus = activeStatus === "All" || job.status === activeStatus;
+    const jobStatus = canonicalAppointmentStatus(job.status);
+    const matchesStatus = activeStatus === "All"
+      || (activeStatus === "Unassigned"
+        ? jobStatus !== "Cancelled" && !job.mechanic
+        : jobStatus === canonicalAppointmentStatus(activeStatus));
     return matchesStatus && (!searchTerm || searchable.includes(searchTerm));
   });
 
@@ -2754,18 +2795,55 @@ function renderJobs() {
 
   jobsList.innerHTML =
     filteredJobs
-      .map(
-        (j) => `
-      <div class="job-card" style="background: #1e1e2d; border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 16px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 10px;">
+      .map((j) => {
+        const isCompleted = canonicalAppointmentStatus(j.status) === "Completed";
+        const isCancelled = canonicalAppointmentStatus(j.status) === "Cancelled";
+        const isMasterAdmin =
+          String(localStorage.getItem("userRole") || "").toLowerCase() === "master_admin";
+        const currentEmail = (localStorage.getItem("userEmail") || "").trim().toLowerCase();
+        const isLockedCompleted =
+          isCompleted &&
+          !isMasterAdmin &&
+          j.completedJobEditAuthorizedBy?.toLowerCase() !== currentEmail;
+        const mechanicAssignment = isLockedCompleted || isCancelled
+          ? `<div style="font-size: 13px; font-weight: 600; color: #fff;">${escapeDashboardHtml(j.mechanic || "Mechanic not recorded")}</div>`
+          : `
+              <select class="job-mechanic-select" data-job-id="${j.id}" aria-label="Assign mechanic to ${j.id}" style="width: 100%; max-width: 220px; background: #111827; color: #fff; border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; padding: 6px 8px;">
+                <option value="">Unassigned</option>
+                ${getMechanicOptionsForJob(j)
+                  .map(
+                    (mechanic) => `
+                      <option value="${mechanic.name}" ${mechanic.current ? "selected" : ""} ${!mechanic.current && mechanic.unavailable ? "disabled" : ""}>
+                        ${mechanic.name}${!mechanic.current && mechanic.unavailable ? " (Busy)" : ""}
+                      </option>
+                    `,
+                  )
+                  .join("")}
+              </select>
+              ${getMechanicAvailabilityBadge(j.mechanic)}`;
+        const jobAction = isCancelled
+          ? ""
+          : isLockedCompleted
+          ? `<button type="button" class="btn-secondary request-completed-job-edit" data-appointment-id="${escapeDashboardHtml(j.apptRef)}">Request Edit</button>`
+          : `<label class="job-status-control">Update job status
+              <select class="job-status-select" data-appointment-id="${j.apptRef}" aria-label="Update job status for ${j.id}">
+                ${MECHANIC_JOB_STATUS_FLOW.map((status) => `<option value="${status.value}" ${canonicalAppointmentStatus(j.status) === canonicalAppointmentStatus(status.value) ? "selected" : ""}>${status.label}</option>`).join("")}
+              </select>
+            </label>`;
+        return `
+      <div class="job-card" data-job-id="${j.id}" style="background: #1e1e2d; border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 16px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 10px; cursor: pointer;">
       <div style="display: flex; justify-content: space-between; align-items: center;">
         <span style="font-family: var(--font-mono); font-weight: 700; color: var(--orange);">${j.id}</span>
-        <div style="display:flex; align-items:center; gap:10px;">${statusBadge(j.status)}<button class="job-view-details" type="button" data-admin-job-details="${j.id}">View Details</button></div>
+        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;"><span class="job-card-status">${statusBadge(j.status)}</span>${jobAction}</div>
       </div>
       <div style="font-size: 16px; font-weight: 600; color: #fff;">${j.customer} — <span style="font-weight: 400; color: var(--text-sub, #9ca3af);">${j.bike}</span></div>
-      <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.03); padding: 8px 12px; border-radius: 6px;">
-        <div style="display: flex; align-items: center; gap: 8px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.03); padding: 8px 12px; border-radius: 6px; gap: 12px; flex-wrap: wrap;">
+        <div style="display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1;">
           <div class="avatar" style="width: 28px; height: 28px; font-size: 12px;">${j.initials}</div>
-          <span style="font-weight: 500; font-size: 13px;">${j.mechanic}</span>
+          <div style="display:flex; flex-direction:column; gap:4px; min-width:0; flex:1;">
+            <span style="font-weight: 500; font-size: 13px;">${isLockedCompleted ? "Completed by" : "Assigned mechanic"}</span>
+            ${mechanicAssignment}
+          </div>
         </div>
         <div style="display: flex; align-items: center; gap: 14px; font-size: 13px;">
           <span class="subtext">📦 ${j.parts} parts allocated</span>
@@ -2774,16 +2852,41 @@ function renderJobs() {
       </div>
       <div style="font-size: 13px; color: var(--text-sub, #9ca3af); font-style: italic;">Notes: ${j.note}</div>
     </div>
-  `,
-      )
+  `;
+      })
       .join("") ||
     `<div class="jobs-admin-empty">No mechanic jobs match the selected filters.</div>`;
 
-  document.querySelectorAll("[data-admin-job-details]").forEach((button) => {
-    button.addEventListener("click", () => {
-      const job = DATA.jobs.find(
-        (item) => item.id === button.dataset.adminJobDetails,
+  jobsList.querySelectorAll(".job-mechanic-select").forEach((select) => {
+    select.addEventListener("change", (event) => {
+      const jobId = event.target.dataset.jobId;
+      if (!jobId) return;
+      assignMechanicToJob(jobId, event.target.value);
+    });
+  });
+
+  jobsList.querySelectorAll(".request-completed-job-edit").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      const appointment = DATA.appointments.find(
+        (item) => item.id === button.dataset.appointmentId,
       );
+      if (appointment) openCompletedJobEditRequestModal(appointment);
+    });
+  });
+
+  jobsList.querySelectorAll(".job-status-select").forEach((select) => {
+    select.addEventListener("change", (event) => {
+      const appointmentId = event.target.dataset.appointmentId;
+      if (!appointmentId) return;
+      updateAppointmentStatus(appointmentId, event.target.value);
+    });
+  });
+
+  jobsList.querySelectorAll(".job-card").forEach((card) => {
+    card.addEventListener("click", (event) => {
+      if (event.target.closest(".job-mechanic-select, .job-status-select, .request-completed-job-edit")) return;
+      const job = DATA.jobs.find((item) => item.id === card.dataset.jobId);
       if (job) openAdminJobDetails(job);
     });
   });
@@ -2809,7 +2912,7 @@ function openAdminJobDetails(job) {
         <div><span>Customer</span><strong>${job.customer}</strong></div>
         <div><span>Contact</span><strong>${appointment?.phone || "N/A"}</strong></div>
         <div><span>Motorcycle</span><strong>${job.bike}</strong></div>
-        <div><span>Assigned mechanic</span><strong>${job.mechanic}</strong></div>
+        <div><span>Assigned mechanic</span><strong>${job.mechanic || "Unassigned"}</strong></div>
         <div><span>Service requested</span><strong>${Array.isArray(services) ? services.join(", ") : services}</strong></div>
         <div><span>Status</span><strong>${statusBadge(job.status)}</strong></div>
         <div><span>Scheduled date</span><strong>${appointment?.date || "Not set"}</strong></div>
@@ -3230,63 +3333,126 @@ const addUserBtnEl = $("#addUserBtn");
 if (addUserBtnEl)
   addUserBtnEl.addEventListener("click", () => openAccountEditor());
 
-/* ===================== MASTER EMPLOYEE MANAGER (INLINE) ===================== */
-function renderMasterMechanicsTable() {
-  const table = $("#masterMechanicsTable");
-  if (!table) return;
+/* ===================== MASTER EMPLOYEE MANAGER ===================== */
+function renderMasterEmployees() {
+  const grid = $("#masterEmployeesGrid");
+  if (!grid) return;
 
-  table.innerHTML = `
-    <thead>
-        <tr>
-            <th>ID</th>
-            <th>Name</th>
-            <th>Role</th>
-            <th>Email</th>
-            <th>Status</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        ${DATA.masterEmployees
-          .map(
-            (e) => `
-            <tr>
-                <td>${e.id}</td>
-                <td>
-                    <div class="person">
-                        <div class="avatar">${avatarInitials(e.name)}</div>
-                        <div>
-                            <div class="person-name">${e.name}</div>
-                        </div>
-                    </div>
-                </td>
-                <td><span class="role-badge role-${e.role.toLowerCase()}">${e.role}</span></td>
-                <td>${e.email}</td>
-                <td>${statusBadge(e.status)}</td>
-                <td>
-                    <button class="btn-view delete-emp-inline" data-id="${e.id}" style="color: var(--red); border-color: rgba(239,68,68,0.2);">Deactivate</button>
-                </td>
-            </tr>
-        `,
-          )
-          .join("")}
-    </tbody>
-  `;
+  const activeFilter = $("#masterEmployeeFilters .pill.active")?.dataset.filter || "All";
+  const employees = DATA.masterEmployees.filter(
+    (employee) => activeFilter === "All" || employee.role === activeFilter,
+  );
 
-  document.querySelectorAll(".delete-emp-inline").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const id = Number(btn.getAttribute("data-id"));
-      if (
-        confirm(
-          "Are you sure you want to deactivate this store employee account?",
-        )
-      ) {
-        DATA.masterEmployees = DATA.masterEmployees.filter((e) => e.id !== id);
-        renderMasterMechanicsTable();
-      }
+  grid.innerHTML = employees
+    .map(
+      (employee) => `
+        <div class="user-card master-employee-card" data-employee-id="${escapeDashboardHtml(employee.id)}" tabindex="0" role="button" aria-label="View details for ${escapeDashboardHtml(employee.name)}">
+          <div class="user-head">
+            <div class="user-id">
+              <div class="avatar">${escapeDashboardHtml(avatarInitials(employee.name))}</div>
+              <div>
+                <div class="user-name">${escapeDashboardHtml(employee.name)}</div>
+                <span class="role-badge role-${escapeDashboardHtml(employee.role.toLowerCase())}">${escapeDashboardHtml(employee.role)}</span>
+              </div>
+            </div>
+          </div>
+          <div class="user-detail">✉ ${escapeDashboardHtml(employee.email)}</div>
+          <div class="user-detail">Status: ${statusBadge(employee.status)}</div>
+          <div style="display:flex;gap:8px;margin-top:12px;">
+            <button type="button" class="btn-view edit-employee-inline" data-email="${escapeDashboardHtml(employee.email)}">Edit</button>
+            <button type="button" class="btn-view delete-emp-inline" data-id="${escapeDashboardHtml(employee.id)}" style="color:var(--red);border-color:rgba(239,68,68,0.2);">Deactivate</button>
+          </div>
+        </div>
+      `,
+    )
+    .join("") || `<p class="subtext">No employees in this category.</p>`;
+
+  grid.querySelectorAll(".master-employee-card").forEach((card) => {
+    const openDetails = () => {
+      const employee = DATA.masterEmployees.find(
+        (item) => String(item.id) === card.dataset.employeeId,
+      );
+      if (employee) openMasterEmployeeDetails(employee);
+    };
+
+    card.addEventListener("click", (event) => {
+      if (event.target.closest("button")) return;
+      openDetails();
+    });
+    card.addEventListener("keydown", (event) => {
+      if (event.target !== card || (event.key !== "Enter" && event.key !== " ")) return;
+      event.preventDefault();
+      openDetails();
+    });
+  });
+
+  grid.querySelectorAll(".delete-emp-inline").forEach((button) => {
+    button.addEventListener("click", () => {
+      const id = Number(button.dataset.id);
+      if (!confirm("Are you sure you want to deactivate this store employee account?")) return;
+      const employee = DATA.masterEmployees.find((item) => item.id === id);
+      const email = employee?.email?.toLowerCase();
+      DATA.masterEmployees = DATA.masterEmployees.filter((employee) => employee.id !== id);
+      writeStoredArray(MASTER_EMPLOYEE_STORAGE_KEY, DATA.masterEmployees);
+      // Employee accounts are mirrored in motofix_users for authentication and shared user views.
+      writeStoredArray(
+        "motofix_users",
+        readStoredArray("motofix_users").filter((user) => user.email?.toLowerCase() !== email),
+      );
+      initLocalStorageData();
+      renderMasterEmployees();
+      renderUsers();
+      renderAdminDashboardStats();
+    });
+  });
+  grid.querySelectorAll(".edit-employee-inline").forEach((button) => {
+    button.addEventListener("click", () => {
+      const employee = DATA.users.find((user) => user.email === button.dataset.email);
+      if (employee) openAccountEditor(employee.email);
     });
   });
 }
+
+function openMasterEmployeeDetails(employee) {
+  // The employee and shared user records are joined by normalized email in localStorage.
+  const registeredUser = DATA.users.find(
+    (user) => user.email?.toLowerCase() === employee.email?.toLowerCase(),
+  );
+  const memberSinceDate =
+    registeredUser?.since && registeredUser.since !== "Built-in account"
+      ? new Date(registeredUser.since)
+      : null;
+  const memberSince = memberSinceDate && !Number.isNaN(memberSinceDate.getTime())
+    ? memberSinceDate.toLocaleDateString("en-PH", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      })
+    : registeredUser?.since || "Not available";
+
+  openModal(
+    `Employee Details: ${escapeDashboardHtml(employee.name || "Employee")}`,
+    `
+      <div class="admin-job-details-grid">
+        <div><span>Employee ID</span><strong>${escapeDashboardHtml(employee.id)}</strong></div>
+        <div><span>Full name</span><strong>${escapeDashboardHtml(employee.name || "Not provided")}</strong></div>
+        <div><span>Role</span><strong>${escapeDashboardHtml(employee.role || "Not provided")}</strong></div>
+        <div><span>Email</span><strong>${escapeDashboardHtml(employee.email || "Not provided")}</strong></div>
+        <div><span>Phone</span><strong>${escapeDashboardHtml(employee.phone || "Not provided")}</strong></div>
+        <div><span>Status</span><strong>${escapeDashboardHtml(employee.status || "Not provided")}</strong></div>
+        <div class="full"><span>Member since</span><strong>${escapeDashboardHtml(memberSince)}</strong></div>
+      </div>
+    `,
+  );
+}
+
+$("#masterEmployeeFilters")?.addEventListener("click", (event) => {
+  const filter = event.target.closest(".pill");
+  if (!filter) return;
+  $$("#masterEmployeeFilters .pill").forEach((pill) => pill.classList.remove("active"));
+  filter.classList.add("active");
+  renderMasterEmployees();
+});
 
 const openAddMechanicModalBtn = $("#openAddMechanicModalBtn");
 if (openAddMechanicModalBtn) {
@@ -3294,14 +3460,15 @@ if (openAddMechanicModalBtn) {
     openModal(
       "Add Store Employee Account",
       `
-      <div class="field"><label>Full Name</label><input id="newEmpName" placeholder="e.g. Juan Perez"></div>
+      <div class="field"><label>Full Name</label><input id="newEmpName" required></div>
       <div class="field"><label>Employee Role</label>
         <select id="newEmpRole">
           <option value="Mechanic">Mechanic</option>
           <option value="Admin">Store Admin</option>
         </select>
       </div>
-      <div class="field"><label>Email Address</label><input id="newEmpEmail" placeholder="employee@motofix.com"></div>
+      <div class="field"><label>Email Address</label><input id="newEmpEmail" type="email" required></div>
+      <div class="field"><label>Password</label><input id="newEmpPassword" type="password" minlength="6" required></div>
       <button class="btn-primary" id="saveNewEmpBtn" style="width:100%;margin-top:6px;">Create Account</button>
       `,
     );
@@ -3312,26 +3479,193 @@ if (openAddMechanicModalBtn) {
         const nameInput = $("#newEmpName");
         const roleInput = $("#newEmpRole");
         const emailInput = $("#newEmpEmail");
+        const passwordInput = $("#newEmpPassword");
+        const email = emailInput?.value.trim().toLowerCase();
+        const registeredUsers = readStoredArray("motofix_users");
+        if (
+          !nameInput?.value.trim() ||
+          !email ||
+          !passwordInput?.value ||
+          [...registeredUsers, ...DATA.masterEmployees].some((account) => account.email?.toLowerCase() === email)
+        ) {
+          return window.alert("Enter a name, a unique email, and a password of at least 6 characters.");
+        }
 
         if (nameInput && nameInput.value) {
           const newId =
-            DATA.masterEmployees.length > 0
-              ? Math.max(...DATA.masterEmployees.map((e) => e.id)) + 1
-              : 1;
-          DATA.masterEmployees.push({
+            [...DATA.masterEmployees, ...registeredUsers].reduce(
+              (maximum, account) => Math.max(maximum, Number(account.id) || 0),
+              0,
+            ) + 1;
+          const newEmployee = {
             id: newId,
             name: nameInput.value,
             role: roleInput ? roleInput.value : "Mechanic",
-            email: emailInput ? emailInput.value : "employee@motofix.com",
+            email,
+            phone: "",
             status: "Active",
+            password: passwordInput.value,
+          };
+          DATA.masterEmployees.push(newEmployee);
+          writeStoredArray(MASTER_EMPLOYEE_STORAGE_KEY, DATA.masterEmployees);
+          // Keep the account in the shared user collection so login and role-based dashboards can resolve it.
+          registeredUsers.push({
+            ...newEmployee,
+            first_name: newEmployee.name.split(/\s+/)[0],
+            role: newEmployee.role,
+            created_at: new Date().toISOString(),
           });
-          renderMasterMechanicsTable();
+          writeStoredArray("motofix_users", registeredUsers);
+          initLocalStorageData();
+          renderMasterEmployees();
+          renderUsers();
+          renderAdminDashboardStats();
           $("#modalBackdrop").classList.remove("open");
         }
       });
     }
   });
 }
+
+function renderRegisteredMotorcycles() {
+  const table = $("#registeredMotorcyclesTable");
+  if (!table) return;
+
+  const query = ($("#registeredMotorcycleSearch")?.value || "").trim().toLowerCase();
+  const motorcycles = readStoredArray(MOTORCYCLE_STORAGE_KEY).filter((bike) => {
+    const owner = DATA.users.find(
+      (user) => user.email?.toLowerCase() === bike.ownerEmail?.toLowerCase(),
+    );
+    const ownerText = `${owner?.name || bike.ownerName || ""} ${bike.ownerEmail || ""}`;
+    const bikeText = `${bike.year || ""} ${bike.make || ""} ${bike.model || ""} ${bike.plate || ""} ${bike.color || ""}`;
+    return `${ownerText} ${bikeText}`.toLowerCase().includes(query);
+  });
+
+  table.innerHTML = `
+    <thead><tr>
+      <th>Owner</th><th>Motorcycle</th><th>Plate</th><th>Color</th><th>Mileage</th><th>Registered</th>
+    </tr></thead>
+    <tbody>${motorcycles.length
+      ? motorcycles.map((bike) => {
+          const owner = DATA.users.find(
+            (user) => user.email?.toLowerCase() === bike.ownerEmail?.toLowerCase(),
+          );
+          const ownerName = owner?.name || bike.ownerName || bike.ownerEmail || "Unknown owner";
+          const model = `${bike.year || ""} ${bike.make || ""} ${bike.model || ""}`.trim();
+          const registered = bike.createdAt
+            ? new Date(bike.createdAt).toLocaleDateString("en-PH")
+            : "—";
+          return `<tr class="registered-motorcycle-row" data-motorcycle-id="${escapeDashboardHtml(bike.id)}" tabindex="0" role="button" aria-label="View details for ${escapeDashboardHtml(model || "Motorcycle")} owned by ${escapeDashboardHtml(ownerName)}" style="cursor:pointer;">
+            <td><div class="person"><div class="avatar">${escapeDashboardHtml(avatarInitials(ownerName))}</div><div><div class="person-name">${escapeDashboardHtml(ownerName)}</div><div class="person-sub">${escapeDashboardHtml(bike.ownerEmail || "")}</div></div></div></td>
+            <td>${escapeDashboardHtml(model || "Motorcycle")}</td>
+            <td>${escapeDashboardHtml(bike.plate || "—")}</td>
+            <td>${escapeDashboardHtml(bike.color || "—")}</td>
+            <td>${Number(bike.mileage || 0).toLocaleString("en-PH")} km</td>
+            <td>${escapeDashboardHtml(registered)}</td>
+          </tr>`;
+        }).join("")
+      : `<tr><td colspan="6" class="subtext" style="padding:26px 22px;">${query ? "No motorcycles match your search." : "No registered motorcycles yet."}</td></tr>`
+    }</tbody>
+  `;
+
+  table.querySelectorAll(".registered-motorcycle-row").forEach((row) => {
+    const openDetails = () => openRegisteredMotorcycleDetails(row.dataset.motorcycleId);
+    row.addEventListener("click", openDetails);
+    row.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      openDetails();
+    });
+  });
+}
+
+function openRegisteredMotorcycleDetails(motorcycleId) {
+  const bike = readStoredArray(MOTORCYCLE_STORAGE_KEY).find(
+    (item) => String(item.id) === String(motorcycleId),
+  );
+  if (!bike) return;
+
+  const owner = DATA.users.find(
+    (user) => user.email?.toLowerCase() === bike.ownerEmail?.toLowerCase(),
+  );
+  const ownerName = owner?.name || bike.ownerName || bike.ownerEmail || "Unknown owner";
+  const model = [bike.year, bike.make, bike.model].filter(Boolean).join(" ") || "Motorcycle";
+  const registered = bike.createdAt
+    ? new Date(bike.createdAt).toLocaleString("en-PH")
+    : "Not available";
+
+  openModal(
+    "Registered Motorcycle Details",
+    `
+      <div class="admin-job-details-grid">
+        <div><span>Owner</span><strong>${escapeDashboardHtml(ownerName)}</strong></div>
+        <div><span>Owner email</span><strong>${escapeDashboardHtml(bike.ownerEmail || "Not available")}</strong></div>
+        <div><span>Motorcycle</span><strong>${escapeDashboardHtml(model)}</strong></div>
+        <div><span>Brand</span><strong>${escapeDashboardHtml(bike.make || "Not provided")}</strong></div>
+        <div><span>Model</span><strong>${escapeDashboardHtml(bike.model || "Not provided")}</strong></div>
+        <div><span>Year</span><strong>${escapeDashboardHtml(bike.year || "Not provided")}</strong></div>
+        <div><span>Plate number</span><strong>${escapeDashboardHtml(bike.plate || "Not provided")}</strong></div>
+        <div><span>Color</span><strong>${escapeDashboardHtml(bike.color || "Not provided")}</strong></div>
+        <div><span>Mileage</span><strong>${Number(bike.mileage || 0).toLocaleString("en-PH")} km</strong></div>
+        <div><span>Registered</span><strong>${escapeDashboardHtml(registered)}</strong></div>
+      </div>
+    `,
+  );
+}
+
+const registerMotorcycleBtn = $("#openRegisterMotorcycleBtn");
+registerMotorcycleBtn?.addEventListener("click", () => {
+  openModal(
+    "Register Motorcycle",
+    `
+      <form id="registerCustomerMotorcycleForm">
+        <div class="field"><label for="registered-bike-owner">Customer Email</label><input id="registered-bike-owner" type="email" list="registered-customer-emails" required><datalist id="registered-customer-emails">${DATA.users.filter((user) => user.role === "Customer").map((user) => `<option value="${escapeDashboardHtml(user.email)}">${escapeDashboardHtml(user.name)}</option>`).join("")}</datalist></div>
+        <div class="field"><label for="registered-bike-make">Make</label><input id="registered-bike-make" required></div>
+        <div class="field"><label for="registered-bike-model">Model</label><input id="registered-bike-model" required></div>
+        <div class="field"><label for="registered-bike-year">Year</label><input id="registered-bike-year" type="number" min="1950" max="${new Date().getFullYear() + 1}" required></div>
+        <div class="field"><label for="registered-bike-color">Color</label><input id="registered-bike-color"></div>
+        <div class="field"><label for="registered-bike-plate">Plate Number</label><input id="registered-bike-plate" required></div>
+        <div class="field"><label for="registered-bike-mileage">Mileage (km)</label><input id="registered-bike-mileage" type="number" min="0" value="0"></div>
+        <button class="btn-primary" type="submit" style="width:100%;margin-top:6px;">Register Bike</button>
+      </form>
+    `,
+  );
+
+  $("#registerCustomerMotorcycleForm")?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const ownerEmail = $("#registered-bike-owner").value.trim().toLowerCase();
+    const plate = $("#registered-bike-plate").value.trim().toUpperCase();
+    const year = Number($("#registered-bike-year").value);
+    const mileage = Number($("#registered-bike-mileage").value || 0);
+    const motorcycles = readStoredArray(MOTORCYCLE_STORAGE_KEY);
+    const owner = DATA.users.find((user) => user.email?.toLowerCase() === ownerEmail && user.role === "Customer");
+    if (!owner) return window.alert("Choose a registered customer account.");
+    if (year < 1950 || year > new Date().getFullYear() + 1 || mileage < 0) {
+      return window.alert("Enter a valid motorcycle year and non-negative mileage.");
+    }
+    if (motorcycles.some((bike) => bike.ownerEmail?.toLowerCase() === ownerEmail && bike.plate?.toUpperCase() === plate)) {
+      return window.alert("This customer already has a motorcycle with that plate number.");
+    }
+
+    motorcycles.push({
+      id: `B${Date.now()}`,
+      ownerEmail,
+      ownerName: owner?.name || "",
+      make: $("#registered-bike-make").value.trim(),
+      model: $("#registered-bike-model").value.trim(),
+      year,
+      color: $("#registered-bike-color").value.trim(),
+      plate,
+      mileage,
+      createdAt: new Date().toISOString(),
+    });
+    writeStoredArray(MOTORCYCLE_STORAGE_KEY, motorcycles);
+    $("#modalBackdrop")?.classList.remove("open");
+    renderRegisteredMotorcycles();
+  });
+});
+
+$("#registeredMotorcycleSearch")?.addEventListener("input", renderRegisteredMotorcycles);
 
 /* ===================== INVENTORY CRUD (EDIT & DELETE) ===================== */
 function openEditPartModal(sku) {
@@ -3432,8 +3766,10 @@ document.addEventListener("submit", (e) => {
   if (e.target && e.target.id === "editPartForm") {
     e.preventDefault();
     const originalSku = document.getElementById("editPartOriginalSku").value;
+    const existingPart = DATA.inventory.find((item) => item.sku === originalSku);
 
     const updatedPart = {
+      ...(existingPart || {}),
       name: document.getElementById("editPartName").value,
       sku: document.getElementById("editPartSku").value,
       brand: document.getElementById("editPartBrand").value,
@@ -3446,7 +3782,14 @@ document.addEventListener("submit", (e) => {
     const index = DATA.inventory.findIndex((i) => i.sku === originalSku);
     if (index !== -1) {
       DATA.inventory[index] = updatedPart;
-      localStorage.setItem("motofix_parts", JSON.stringify(DATA.inventory));
+      try {
+        DATA.inventory = window.updateInventoryLowStockAlerts(DATA.inventory);
+        localStorage.setItem("motofix_parts", JSON.stringify(DATA.inventory));
+      } catch (error) {
+        console.error("Unable to update inventory part:", error);
+        window.alert(error.message || "Unable to update this part.");
+        return;
+      }
       renderInvFilters();
       renderInventoryTable();
     }
@@ -3481,20 +3824,30 @@ document.addEventListener("submit", (e) => {
 /* ===================== INIT ===================== */
 function init() {
   syncAppointmentsFromStorage();
+  try {
+    const inventoryWithAlerts = window.updateInventoryLowStockAlerts(DATA.inventory);
+    if (JSON.stringify(inventoryWithAlerts) !== JSON.stringify(DATA.inventory)) {
+      localStorage.setItem("motofix_parts", JSON.stringify(inventoryWithAlerts));
+      DATA.inventory = inventoryWithAlerts;
+    }
+  } catch (error) {
+    console.error("Unable to check inventory stock alerts during dashboard startup:", error);
+    window.alert(error.message || "Unable to check low-stock inventory alerts.");
+  }
 
   // Master Admin Sidebar Check
   const userRole = localStorage.getItem("userRole");
-  const sidebarAccountRole = $("#sidebarAccountRole");
-  if (sidebarAccountRole) {
+  const adminFooterRole = $("#adminFooterRole");
+  if (adminFooterRole) {
     const isMasterAdmin = userRole === "master_admin";
     const roleLabel = isMasterAdmin
       ? "General Admin"
       : userRole === "admin"
         ? "Sub-Admin"
         : "Administrator";
-    sidebarAccountRole.textContent = roleLabel;
-    sidebarAccountRole.classList.toggle("footer-role-general", isMasterAdmin);
-    sidebarAccountRole.classList.toggle(
+    adminFooterRole.textContent = roleLabel;
+    adminFooterRole.classList.toggle("footer-role-general", isMasterAdmin);
+    adminFooterRole.classList.toggle(
       "footer-role-subadmin",
       userRole === "admin",
     );
@@ -3509,15 +3862,15 @@ function init() {
   renderBarChart("revenueChart", DATA.revenue);
   renderBarChart("revenueChart2", DATA.revenue);
   renderPieChart("serviceMixPie", "serviceMixLegend", DATA.serviceMix);
+  renderAdminDashboardStats();
+  renderRevenueStatsAndBreakdown();
   renderDashboardAppointments();
 
   renderAppointmentsPage();
 
   renderServiceFilters();
   renderServicesGrid();
-
-  renderCustomizationFilters();
-  renderBikes();
+  renderRegisteredMotorcycles();
 
   renderInvFilters();
   renderInventoryTable();
@@ -3528,11 +3881,18 @@ function init() {
 
   renderUsers();
 
-  renderMasterMechanicsTable();
+  renderMasterEmployees();
   renderAdminNotifications();
 }
 
 document.addEventListener("DOMContentLoaded", init);
+
+window.addEventListener("motofix:inventory-updated", () => {
+  DATA.inventory = readStoredArray("motofix_parts");
+  renderInvFilters();
+  renderInventoryTable();
+  renderAdminNotifications();
+});
 
 window.addEventListener("storage", (event) => {
   if (event.key === "motofix_notifications") renderAdminNotifications();
@@ -3605,6 +3965,31 @@ window.addEventListener("storage", (event) => {
     syncAppointmentsFromStorage();
     renderDashboardAppointments();
     renderAppointmentsPage();
+    renderInvoices();
+    renderJobs();
+    renderBarChart("revenueChart", DATA.revenue);
+    renderBarChart("revenueChart2", DATA.revenue);
+    renderPieChart("serviceMixPie", "serviceMixLegend", DATA.serviceMix);
+    renderAdminDashboardStats();
+    renderRevenueStatsAndBreakdown();
+  }
+  if (["motofix_parts", "motofix_services", "motofix_users", MASTER_EMPLOYEE_STORAGE_KEY].includes(event.key)) {
+    initLocalStorageData();
+    renderServiceFilters();
+    renderServicesGrid();
+    renderInvFilters();
+    renderInventoryTable();
+    renderUsers();
+    renderMasterEmployees();
+    renderRegisteredMotorcycles();
+    renderDashboardAppointments();
+    renderInvoices();
+    renderJobs();
+    renderBarChart("revenueChart", DATA.revenue);
+    renderBarChart("revenueChart2", DATA.revenue);
+    renderPieChart("serviceMixPie", "serviceMixLegend", DATA.serviceMix);
+    renderAdminDashboardStats();
+    renderRevenueStatsAndBreakdown();
   }
 });
 
