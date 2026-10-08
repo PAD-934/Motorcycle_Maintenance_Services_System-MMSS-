@@ -17,6 +17,16 @@ export function initNavigation() {
   function renderCustomerNotifications() {
     const button = document.getElementById("customerBellBtn");
     if (!button) return;
+    if (window.MotoFixNotifications) {
+      window.MotoFixNotifications.init({
+        buttonId: "customerBellBtn",
+        panelId: "customerNotifPanel",
+        role: "customer",
+        email: localStorage.getItem("userEmail") || "",
+        onOpen: () => switchToTransactionsPage(),
+      });
+      return;
+    }
     const email = (localStorage.getItem("userEmail") || "").toLowerCase();
     const notifications = JSON.parse(
       localStorage.getItem("motofix_notifications") || "[]",
@@ -226,10 +236,6 @@ export function initNavigation() {
     if (sidebar) sidebar.classList.remove("closed");
     if (overlay) overlay.classList.add("active");
     if (body) body.classList.remove("sidebar-closed");
-  }
-
-  if (overlay) {
-    overlay.addEventListener("click", closeSidebar);
   }
 
   if (toggleBtn && sidebar) {

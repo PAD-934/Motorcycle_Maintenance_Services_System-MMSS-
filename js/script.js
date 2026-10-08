@@ -27,8 +27,8 @@ const DATA = {
     jobs: { title: "Mechanic Jobs", sub: "Job transaction records" },
     users: { title: "User Management", sub: "Customers, mechanics & admins" },
     "master-mechanics": {
-      title: "Master Control",
-      sub: "Mechanic Account Manager",
+      title: "Employee Manager",
+      sub: "General Admin · Employee accounts",
     },
   },
 
@@ -479,6 +479,44 @@ function initLocalStorageData() {
   } else {
     DATA.services = JSON.parse(localStorage.getItem("motofix_services"));
   }
+
+  const savedAccounts = JSON.parse(
+    localStorage.getItem("motofix_account_directory") || "null",
+  );
+  if (Array.isArray(savedAccounts)) DATA.users = savedAccounts;
+  const registeredUsers = JSON.parse(
+    localStorage.getItem("motofix_users") || "[]",
+  );
+  const disabledEmails = JSON.parse(
+    localStorage.getItem("motofix_disabled_accounts") || "[]",
+  );
+  registeredUsers.forEach((user) => {
+    const email = String(user.email || "")
+      .trim()
+      .toLowerCase();
+    if (
+      email &&
+      !disabledEmails.includes(email) &&
+      !DATA.users.some((account) => account.email.toLowerCase() === email)
+    ) {
+      DATA.users.push({
+        name:
+          user.name ||
+          `${user.first_name || ""} ${user.last_name || ""}`.trim(),
+        role:
+          (user.role || "Customer").toLowerCase() === "master_admin"
+            ? "Master Admin"
+            : (user.role || "Customer").replace(/\b\w/g, (letter) =>
+                letter.toUpperCase(),
+              ),
+        email,
+        phone: user.phone || "",
+        since: user.created_at || new Date().toISOString().slice(0, 10),
+        initials: avatarInitials(user.name || user.first_name || "User"),
+      });
+    }
+  });
+  localStorage.setItem("motofix_account_directory", JSON.stringify(DATA.users));
 }
 initLocalStorageData();
 
@@ -501,8 +539,49 @@ function statusBadge(status) {
     Cancelled: "badge-cancelled",
     Paid: "badge-paid",
     Active: "badge-active",
+    Healthy: "badge-healthy",
+    Warning: "badge-warning",
+    Critical: "badge-critical",
+    "Out of Stock": "badge-out-of-stock",
   };
   return `<span class="badge ${map[status] || ""}">${status.toUpperCase()}</span>`;
+}
+
+function getInventoryStockStatus(stock) {
+  const quantity = Number(stock) || 0;
+  if (quantity === 0) return { label: "Out of Stock", color: "var(--red)" };
+  if (quantity < 10) return { label: "Critical", color: "var(--red)" };
+  if (quantity < 20) return { label: "Warning", color: "var(--amber)" };
+  return { label: "Healthy", color: "var(--green)" };
+}
+
+function renderLowStockAlert() {
+  const card = $("#lowStockCard");
+  const countElement = $("#lowStockCount");
+  const summaryElement = $("#lowStockSummary");
+  if (!card || !countElement || !summaryElement) return;
+
+  const statuses = DATA.inventory.map((part) =>
+    getInventoryStockStatus(part.stock),
+  );
+  const outOfStock = statuses.filter(
+    (status) => status.label === "Out of Stock",
+  ).length;
+  const critical = statuses.filter(
+    (status) => status.label === "Critical",
+  ).length;
+  const warning = statuses.filter(
+    (status) => status.label === "Warning",
+  ).length;
+  const needsAttention = outOfStock + critical + warning;
+
+  countElement.textContent = String(needsAttention);
+  summaryElement.textContent = needsAttention
+    ? `${outOfStock} out of stock · ${critical} critical · ${warning} warning`
+    : "All parts sufficiently stocked";
+
+  card.classList.toggle("has-stock-alert", needsAttention > 0);
+  card.classList.toggle("stock-alert-critical", critical > 0 || outOfStock > 0);
 }
 
 function avatarInitials(name) {
@@ -517,43 +596,323 @@ function avatarInitials(name) {
 function renderAdminNotifications() {
   const button = document.getElementById("adminBellBtn");
   if (!button) return;
+  if (window.MotoFixNotifications) {
+    window.MotoFixNotifications.init({
+      buttonId: "adminBellBtn",
+      panelId: "adminNotifPanel",
+      role: localStorage.getItem("userRole") || "admin",
+      onOpen: (notification) => openAdminNotification(notification.id),
+      onReviewRequests: () => {
+        goToPage("users");
+        const requestPanel = document.getElementById("accountPermissionPanel");
+        requestPanel?.scrollIntoView({ behavior: "smooth", block: "start" });
+        requestPanel?.focus({ preventScroll: true });
+      },
+    });
+    return;
+  }
   const role = localStorage.getItem("userRole") || "admin";
-  const notifications = JSON.parse(
-    localStorage.getItem("motofix_notifications") || "[]",
-  ).filter((notification) => notification.audiences?.includes(role));
+  const reader = localStorage.getItem("userEmail") || role;
+  let allNotifications = [];
+  try {
+    const storedNotifications = JSON.parse(
+      localStorage.getItem("motofix_notifications") || "[]",
+    );
+    if (Array.isArray(storedNotifications))
+      allNotifications = storedNotifications;
+  } catch (error) {
+    console.error("Unable to read notifications from storage.", error);
+  }
+  const notifications = allNotifications.filter((notification) =>
+    notification.audiences?.includes(role),
+  );
   let panel = document.getElementById("adminNotifPanel");
   if (!panel) {
     panel = document.createElement("div");
     panel.id = "adminNotifPanel";
-    panel.style.cssText =
-      "position:fixed;top:64px;right:24px;width:320px;max-height:380px;overflow:auto;background:#131313;border:1px solid #232323;border-radius:12px;box-shadow:0 16px 40px rgba(0,0,0,.45);padding:8px;z-index:100;display:none;";
+    panel.className = "admin-notifications-panel";
+    panel.setAttribute("role", "dialog");
+    panel.setAttribute("aria-label", "Notifications");
+    panel.hidden = true;
     document.body.appendChild(panel);
+
+    panel.addEventListener("click", (event) => {
+      const action = event.target.closest("[data-notification-action]");
+      if (!action) return;
+      event.stopPropagation();
+
+      const actionName = action.dataset.notificationAction;
+      if (actionName === "open-notification") {
+        openAdminNotification(action.dataset.notificationId);
+      } else if (actionName === "close") {
+        panel.hidden = true;
+        button.setAttribute("aria-expanded", "false");
+        button.focus();
+      } else if (actionName === "filter") {
+        panel.dataset.filter = action.dataset.filter;
+        renderAdminNotifications();
+      } else if (actionName === "mark-all-read") {
+        (panel.notificationRecords || []).forEach((notification) => {
+          if (!notification.audiences?.includes(role)) return;
+          notification.readBy = Array.isArray(notification.readBy)
+            ? notification.readBy
+            : [];
+          if (!notification.readBy.includes(reader))
+            notification.readBy.push(reader);
+        });
+        localStorage.setItem(
+          "motofix_notifications",
+          JSON.stringify(panel.notificationRecords || []),
+        );
+        panel.dataset.headerMenu = "";
+        renderAdminNotifications();
+      } else if (actionName === "toggle-header-menu") {
+        panel.dataset.headerMenu =
+          panel.dataset.headerMenu === "open" ? "" : "open";
+        renderAdminNotifications();
+      } else if (actionName === "review-requests") {
+        panel.hidden = true;
+        panel.dataset.headerMenu = "";
+        button.setAttribute("aria-expanded", "false");
+        goToPage("users");
+        const requestPanel = document.getElementById("accountPermissionPanel");
+        requestPanel?.scrollIntoView({ behavior: "smooth", block: "start" });
+        requestPanel?.focus({ preventScroll: true });
+      } else if (actionName === "toggle-menu") {
+        panel.dataset.openMenu =
+          panel.dataset.openMenu === action.dataset.notificationId
+            ? ""
+            : action.dataset.notificationId;
+        renderAdminNotifications();
+      } else if (actionName === "toggle-read") {
+        const notification = (panel.notificationRecords || []).find(
+          (item) => item.id === action.dataset.notificationId,
+        );
+        if (!notification) return;
+        notification.readBy = Array.isArray(notification.readBy)
+          ? notification.readBy
+          : [];
+        if (notification.readBy.includes(reader)) {
+          notification.readBy = notification.readBy.filter(
+            (email) => email !== reader,
+          );
+        } else {
+          notification.readBy.push(reader);
+        }
+        localStorage.setItem(
+          "motofix_notifications",
+          JSON.stringify(panel.notificationRecords || []),
+        );
+        panel.dataset.openMenu = "";
+        renderAdminNotifications();
+      }
+    });
+
+    document.addEventListener("click", (event) => {
+      if (!panel.contains(event.target) && !button.contains(event.target)) {
+        panel.hidden = true;
+        button.setAttribute("aria-expanded", "false");
+      }
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && !panel.hidden) {
+        panel.hidden = true;
+        button.setAttribute("aria-expanded", "false");
+        button.focus();
+      }
+    });
   }
-  panel.innerHTML = `<div style="padding:10px 12px;font-weight:700;border-bottom:1px solid #232323;">Notifications</div>${
-    notifications.length
-      ? notifications
-          .slice(0, 8)
-          .map(
-            (notification) =>
-              `<div style="padding:11px 12px;border-bottom:1px solid #1c1c1c;"><strong style="display:block;font-size:13px;">${notification.title}</strong><span style="display:block;margin-top:3px;color:#9a9a9a;font-size:12px;">${notification.message}</span></div>`,
-          )
-          .join("")
-      : '<div style="padding:14px 12px;color:#9a9a9a;font-size:12px;">No new notifications.</div>'
-  }`;
+  panel.notificationRecords = allNotifications;
+  const isRead = (notification) =>
+    Array.isArray(notification.readBy) && notification.readBy.includes(reader);
+  const unreadCount = notifications.filter(
+    (notification) => !isRead(notification),
+  ).length;
+  const activeFilter = panel.dataset.filter || "all";
+  const visibleNotifications = notifications.filter(
+    (notification) => activeFilter !== "unread" || !isRead(notification),
+  );
+  const pendingAccountRequests =
+    role === "master_admin"
+      ? getAccountRequests().filter((request) => request.status === "Pending")
+          .length
+      : 0;
+  const headerMenuOpen = panel.dataset.headerMenu === "open";
+  const iconForNotification = (notification) => {
+    const content =
+      `${notification.title} ${notification.message}`.toLowerCase();
+    if (content.includes("appointment"))
+      return { symbol: "📅", tone: "appointment" };
+    if (content.includes("account") || content.includes("employee"))
+      return { symbol: "👤", tone: "account" };
+    if (content.includes("part") || content.includes("inventory"))
+      return { symbol: "📦", tone: "inventory" };
+    return { symbol: "🔔", tone: "general" };
+  };
+  const timeAgo = (createdAt) => {
+    const timestamp = new Date(createdAt).getTime();
+    if (!Number.isFinite(timestamp)) return "Recently";
+    const minutes = Math.max(0, Math.floor((Date.now() - timestamp) / 60000));
+    if (minutes < 1) return "Just now";
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    return days < 7 ? `${days}d ago` : new Date(timestamp).toLocaleDateString();
+  };
+
+  panel.innerHTML = `
+    <header class="admin-notifications-header">
+      <div class="admin-notifications-heading">
+        <span class="admin-notifications-bell" aria-hidden="true">🔔</span>
+        <div>
+          <h2>Notifications</h2>
+          <p>Updates for your MotoFix workspace</p>
+        </div>
+      </div>
+      <div class="admin-notifications-tools">
+        <div class="notification-header-menu-wrap">
+          <button type="button" class="notification-icon-action" data-notification-action="toggle-header-menu" aria-label="More notification actions" title="More options" aria-expanded="${headerMenuOpen}">⋯</button>
+          ${
+            headerMenuOpen
+              ? `<div class="notification-header-menu" role="menu">
+            <button type="button" role="menuitem" data-notification-action="mark-all-read" ${unreadCount ? "" : "disabled"}>Mark all as read</button>
+            ${pendingAccountRequests ? `<button type="button" role="menuitem" data-notification-action="review-requests">Review ${pendingAccountRequests} account request${pendingAccountRequests === 1 ? "" : "s"}</button>` : ""}
+          </div>`
+              : ""
+          }
+        </div>
+        <button type="button" class="notification-icon-action" data-notification-action="close" aria-label="Close notifications" title="Close">×</button>
+      </div>
+    </header>
+    <div class="admin-notifications-tabs" role="group" aria-label="Notification filter">
+      <button type="button" aria-pressed="${activeFilter === "all"}" class="${activeFilter === "all" ? "active" : ""}" data-notification-action="filter" data-filter="all">All <span>${notifications.length}</span></button>
+      <button type="button" aria-pressed="${activeFilter === "unread"}" class="${activeFilter === "unread" ? "active" : ""}" data-notification-action="filter" data-filter="unread">Unread <span>${unreadCount}</span></button>
+    </div>
+    <div class="admin-notifications-content">
+      <div class="admin-notifications-section-title">
+        <span>ACTIVITY</span><span class="notification-count">${visibleNotifications.length}</span>
+      </div>
+      ${
+        visibleNotifications.length
+          ? `<div class="admin-notification-list">${visibleNotifications
+              .map((notification) => {
+                const icon = iconForNotification(notification);
+                const read = isRead(notification);
+                const menuOpen = panel.dataset.openMenu === notification.id;
+                return `<article class="admin-notification-item ${read ? "is-read" : "is-unread"}">
+                <button type="button" class="admin-notification-open" data-notification-action="open-notification" data-notification-id="${escapeAccountText(notification.id)}" aria-label="Open ${escapeAccountText(notification.title || "notification")}">
+                  <span class="notification-type-icon ${icon.tone}" aria-hidden="true">${icon.symbol}</span>
+                  <span class="admin-notification-copy">
+                    <span class="admin-notification-title-row"><strong>${escapeAccountText(notification.title || "Notification")}</strong>${read ? "" : '<span class="notification-unread-dot" aria-label="Unread"></span>'}</span>
+                    <span class="admin-notification-message">${escapeAccountText(notification.message || "There is a new update.")}</span>
+                    <time>${escapeAccountText(timeAgo(notification.createdAt))}</time>
+                  </span>
+                </button>
+                <div class="admin-notification-more-wrap">
+                  <button type="button" class="notification-more-button" data-notification-action="toggle-menu" data-notification-id="${escapeAccountText(notification.id)}" aria-label="More options for notification" aria-expanded="${menuOpen}">⋯</button>
+                  ${menuOpen ? `<div class="notification-item-menu"><button type="button" data-notification-action="toggle-read" data-notification-id="${escapeAccountText(notification.id)}">${read ? "Mark as unread" : "Mark as read"}</button></div>` : ""}
+                </div>
+              </article>`;
+              })
+              .join("")}</div>`
+          : `<div class="admin-notifications-empty"><span aria-hidden="true">✓</span><strong>${activeFilter === "unread" ? "You’re all caught up" : "No notifications yet"}</strong><p>${activeFilter === "unread" ? "New unread activity will appear here." : "Important account and appointment updates will appear here."}</p></div>`
+      }
+    </div>`;
+
   const dot = button.querySelector(".dot");
-  if (dot) dot.style.display = notifications.length ? "block" : "none";
+  if (dot) dot.style.display = unreadCount ? "block" : "none";
   button.onclick = (event) => {
     event.stopPropagation();
-    panel.style.display = panel.style.display === "none" ? "block" : "none";
+    panel.hidden = !panel.hidden;
+    button.setAttribute("aria-expanded", String(!panel.hidden));
   };
-  document.addEventListener(
-    "click",
-    (event) => {
-      if (!panel.contains(event.target) && !button.contains(event.target))
-        panel.style.display = "none";
-    },
-    { once: true },
-  );
+  button.setAttribute("aria-haspopup", "dialog");
+  button.setAttribute("aria-expanded", String(!panel.hidden));
+}
+
+function openAdminNotification(notificationId) {
+  let notifications = [];
+  try {
+    const stored = JSON.parse(
+      localStorage.getItem("motofix_notifications") || "[]",
+    );
+    if (Array.isArray(stored)) notifications = stored;
+  } catch (error) {
+    console.error("Unable to open notification target.", error);
+  }
+
+  const notification = notifications.find((item) => item.id === notificationId);
+  if (!notification) return;
+
+  const reader =
+    localStorage.getItem("userEmail") ||
+    localStorage.getItem("userRole") ||
+    "admin";
+  notification.readBy = Array.isArray(notification.readBy)
+    ? notification.readBy
+    : [];
+  if (!notification.readBy.includes(reader)) notification.readBy.push(reader);
+  localStorage.setItem("motofix_notifications", JSON.stringify(notifications));
+
+  const panel = document.getElementById("adminNotifPanel");
+  const button = document.getElementById("adminBellBtn");
+  if (panel) panel.hidden = true;
+  button?.setAttribute("aria-expanded", "false");
+  renderAdminNotifications();
+
+  const content =
+    `${notification.title || ""} ${notification.message || ""}`.toLowerCase();
+  if (content.includes("account change") || notification.requestId) {
+    goToPage("users");
+    renderUsers();
+    const requestPanel = document.getElementById("accountPermissionPanel");
+    requestPanel?.scrollIntoView({ behavior: "smooth", block: "start" });
+    const requestRow = [
+      ...document.querySelectorAll("[data-account-request-row]"),
+    ].find((row) => row.dataset.accountRequestRow === notification.requestId);
+    if (requestRow) {
+      requestRow.classList.add("account-request-highlight");
+      requestRow.scrollIntoView({ behavior: "smooth", block: "center" });
+      requestRow.focus({ preventScroll: true });
+      window.setTimeout(
+        () => requestRow.classList.remove("account-request-highlight"),
+        2600,
+      );
+    }
+    return;
+  }
+
+  if (content.includes("appointment") || content.includes("parts request")) {
+    syncAppointmentsFromStorage();
+    const notificationMessage = (notification.message || "").toLowerCase();
+    const appointment =
+      DATA.appointments.find(
+        (item) => String(item.id) === String(notification.appointmentId),
+      ) ||
+      DATA.appointments.find(
+        (item) =>
+          item.parts?.length &&
+          notification.customerEmail &&
+          item.customerEmail?.toLowerCase() ===
+            notification.customerEmail.toLowerCase(),
+      ) ||
+      DATA.appointments.find(
+        (item) =>
+          notificationMessage.includes(item.customer.toLowerCase()) &&
+          notificationMessage.includes(item.bike.toLowerCase()),
+      );
+    goToPage("appointments");
+    if (appointment) openAppointmentModal(appointment.id);
+    return;
+  }
+
+  if (content.includes("inventory") || content.includes("stock")) {
+    goToPage("inventory");
+    return;
+  }
+
+  goToPage("appointments");
 }
 
 /* ===================== NAVIGATION ===================== */
@@ -569,14 +928,13 @@ function goToPage(page) {
     $("#pageTitle").textContent = meta.title;
     $("#pageSubtitle").textContent = meta.sub;
   }
-  if (window.innerWidth <= 860) $("#sidebar").classList.remove("open");
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 $$(".nav-item").forEach((btn) =>
   btn.addEventListener("click", () => goToPage(btn.dataset.page)),
 );
-$$("[data-page].link-arrow").forEach((a) =>
+$$("[data-page].link-arrow, [data-page].low-stock-card").forEach((a) =>
   a.addEventListener("click", (e) => {
     e.preventDefault();
     goToPage(a.dataset.page);
@@ -588,17 +946,16 @@ const sidebar = $("#sidebar");
 const menuToggle = $("#menuToggle");
 const sidebarBackdrop = $("#sidebarBackdrop");
 
-// Make sidebar closed/collapsed by default on desktop view on initial load
-if (window.innerWidth > 860) {
-  sidebar.classList.add("collapsed");
-}
-
 function updateSidebarState() {
   const isMobile = window.innerWidth <= 860;
   const isOpen = isMobile
     ? sidebar.classList.contains("open")
     : !sidebar.classList.contains("collapsed");
   menuToggle.setAttribute("aria-expanded", String(isOpen));
+  menuToggle.setAttribute(
+    "aria-label",
+    isOpen ? "Close navigation" : "Open navigation",
+  );
 }
 
 function toggleSidebar() {
@@ -629,36 +986,6 @@ if (menuToggle) {
   menuToggle.addEventListener("click", (e) => {
     e.stopPropagation();
     toggleSidebar();
-  });
-}
-
-// Clicking the backdrop closes/collapses the sidebar on any screen size
-if (sidebarBackdrop) {
-  sidebarBackdrop.addEventListener("click", () => {
-    toggleSidebar();
-  });
-}
-
-// Auto-close on mobile / Auto-collapse on desktop when a nav item is clicked
-if (sidebar) {
-  sidebar.addEventListener("click", (e) => {
-    const clickedItem = e.target.closest("a, button"); // Target links or buttons inside sidebar
-
-    if (clickedItem) {
-      const isMobile = window.innerWidth <= 860;
-
-      if (isMobile) {
-        sidebar.classList.remove("open");
-      } else {
-        sidebar.classList.add("collapsed");
-      }
-
-      if (sidebarBackdrop) {
-        sidebarBackdrop.classList.remove("active");
-      }
-
-      updateSidebarState();
-    }
   });
 }
 
@@ -921,6 +1248,7 @@ function syncAppointmentsFromStorage() {
         : [item.services || "Service"],
       date: item.date || "",
       time: item.time || "",
+      customerEmail: item.customerEmail || "",
       mechanic: item.mechanic || null,
       status: item.status || "Pending",
       notes: item.notes || "",
@@ -1061,6 +1389,30 @@ function openAppointmentModal(appId) {
   const app = DATA.appointments.find((a) => a.id === appId);
   if (!app) return;
 
+  const canAssignMechanic =
+    !app.mechanic &&
+    !["Cancelled", "Complete transaction"].includes(app.status);
+  const availableMechanics =
+    canAssignMechanic && app.date && app.time
+      ? getAvailableMechanics(app.date, app.time, app.id).filter(
+          (mechanic) => !mechanic.busy,
+        )
+      : [];
+  const mechanicAssignment = canAssignMechanic
+    ? `
+      <div class="field" style="margin-bottom:16px;">
+        <label for="assignMechanicSelect">Assign an available mechanic</label>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <select id="assignMechanicSelect" ${!app.date || !app.time || !availableMechanics.length ? "disabled" : ""}>
+            <option value="">${!app.date || !app.time ? "Appointment date and time required" : availableMechanics.length ? "Select an available mechanic" : "No mechanics available for this time"}</option>
+            ${availableMechanics.map((mechanic) => `<option value="${mechanic.name}">${mechanic.name}</option>`).join("")}
+          </select>
+          <button type="button" class="btn-primary" onclick="assignAppointmentMechanic('${app.id}')" ${!availableMechanics.length ? "disabled" : ""}>Assign mechanic</button>
+        </div>
+      </div>
+    `
+    : "";
+
   const modalBodyHTML = `
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
             <div class="field" style="margin-bottom:0;"><label style="font-size:11px; color:var(--text-sub, #9ca3af);">Appointment ID</label><div style="font-weight:600;">${app.id}</div></div>
@@ -1079,6 +1431,7 @@ function openAppointmentModal(appId) {
             <div class="field" style="margin-bottom:0; grid-column: span 2;"><label style="font-size:11px; color:var(--text-sub, #9ca3af);">Parts Requested</label><div>${app.parts?.length ? app.parts.map((part) => `${part.name} x${part.quantity}`).join(", ") : "No parts requested."}</div></div>
         </div>
 
+        ${mechanicAssignment}
         <div style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
             <div>
                <div style="font-size: 11px; color: var(--text-sub, #9ca3af); margin-bottom: 4px;">Update Status (Dropdown):</div>
@@ -1123,7 +1476,20 @@ function updateAppointmentStatus(appId, newStatus) {
       id: `N${Date.now()}`,
       title: "Appointment status updated",
       message: `${app.id} is now ${newStatus}.`,
-      audiences: ["customer"],
+      audiences: [
+        "customer",
+        "admin",
+        "master_admin",
+        ...(app.mechanic ? [`mechanic:${app.mechanic}`] : []),
+      ],
+      appointmentId: app.id,
+      customerEmail:
+        app.customerEmail ||
+        DATA.users.find(
+          (user) => user.role === "Customer" && user.name === app.customer,
+        )?.email ||
+        "",
+      mechanicName: app.mechanic || "",
       createdAt: new Date().toISOString(),
       readBy: [],
     });
@@ -1131,6 +1497,7 @@ function updateAppointmentStatus(appId, newStatus) {
       "motofix_notifications",
       JSON.stringify(notifications.slice(0, 100)),
     );
+    window.dispatchEvent(new Event("motofix:notifications-changed"));
 
     if (typeof saveAppData === "function") saveAppData();
 
@@ -1145,6 +1512,68 @@ function updateAppointmentStatus(appId, newStatus) {
       );
     }
   }
+}
+
+function assignAppointmentMechanic(appId) {
+  const app = DATA.appointments.find((appointment) => appointment.id === appId);
+  const select = $("#assignMechanicSelect");
+  const mechanicName = select?.value;
+  if (
+    !app ||
+    app.mechanic ||
+    ["Cancelled", "Complete transaction"].includes(app.status) ||
+    !mechanicName ||
+    !app.date ||
+    !app.time
+  )
+    return;
+
+  const mechanic = getAvailableMechanics(app.date, app.time, app.id).find(
+    (candidate) => candidate.name === mechanicName && !candidate.busy,
+  );
+  if (!mechanic) {
+    showAccountFeedback("That mechanic is no longer available for this time.");
+    openAppointmentModal(appId);
+    return;
+  }
+
+  app.mechanic = mechanic.name;
+  persistAppointments();
+  const notifications = JSON.parse(
+    localStorage.getItem("motofix_notifications") || "[]",
+  );
+  notifications.unshift({
+    id: `N${Date.now()}`,
+    title: "Mechanic assigned",
+    message: `${mechanic.name} was assigned to appointment ${app.id}.`,
+    audiences: [
+      "admin",
+      "master_admin",
+      "customer",
+      `mechanic:${mechanic.name}`,
+    ],
+    appointmentId: app.id,
+    customerEmail:
+      app.customerEmail ||
+      DATA.users.find(
+        (user) => user.role === "Customer" && user.name === app.customer,
+      )?.email ||
+      "",
+    mechanicName: mechanic.name,
+    mechanicEmail:
+      DATA.users.find((user) => user.name === mechanic.name)?.email || "",
+    createdAt: new Date().toISOString(),
+    readBy: [],
+  });
+  localStorage.setItem(
+    "motofix_notifications",
+    JSON.stringify(notifications.slice(0, 100)),
+  );
+  window.dispatchEvent(new Event("motofix:notifications-changed"));
+  renderAppointmentsPage();
+  renderDashboardAppointments();
+  renderJobs();
+  openAppointmentModal(appId);
 }
 
 // Real-World Document & Receipt Generation Function
@@ -1701,6 +2130,7 @@ function renderInvFilters() {
 }
 
 function renderInventoryTable() {
+  renderLowStockAlert();
   const table = $("#invTable");
   if (!table) return;
   const activeFilter = $("#invFilters .pill.active")?.dataset.filter || "All";
@@ -1727,13 +2157,13 @@ function renderInventoryTable() {
         <td>
           <div style="display:flex;align-items:center;gap:10px;">
             <div style="width:70px;height:5px;background:#232323;border-radius:3px;overflow:hidden;">
-              <div style="width:${Math.min(100, (i.stock / i.max) * 100)}%;height:100%;background:var(--green);"></div>
+              <div style="width:${Math.min(100, (i.stock / (i.max || 60)) * 100)}%;height:100%;background:${getInventoryStockStatus(i.stock).color};"></div>
             </div>
             <span>${i.stock}</span>
           </div>
         </td>
         <td style="color:var(--orange);font-weight:700;font-family:var(--font-mono);">${peso(i.price)}</td>
-        <td>${statusBadge("Active")}</td>
+        <td>${statusBadge(getInventoryStockStatus(i.stock).label)}</td>
       </tr>
     `,
         )
@@ -2403,106 +2833,402 @@ $("#jobsAdminFilters")?.addEventListener("click", (event) => {
 });
 
 /* ===================== USER MANAGEMENT PAGE ===================== */
-function renderUsers() {
-  const usersGrid = $("#usersGrid");
-  if (!usersGrid) return;
-  const activeFilter = $("#userFilters .pill.active")?.dataset.filter || "All";
-  const query = ($("#userSearch")?.value || "").toLowerCase();
+const ACCOUNT_REQUESTS_KEY = "motofix_account_requests";
+const ACCOUNT_DIRECTORY_KEY = "motofix_account_directory";
 
-  let list = DATA.users.filter(
-    (u) => activeFilter === "All" || u.role === activeFilter,
+function escapeAccountText(value) {
+  return String(value ?? "").replace(
+    /[&<>"']/g,
+    (character) =>
+      ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;",
+      })[character],
   );
-  if (query) {
-    list = list.filter((u) => (u.name + u.email).toLowerCase().includes(query));
-  }
-
-  usersGrid.innerHTML =
-    list
-      .map(
-        (u) => `
-    <div class="user-card" style="background: #1e1e2d; border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 12px;">
-      <div style="display: flex; align-items: center; gap: 12px;">
-        <div class="avatar" style="width: 40px; height: 40px; font-size: 14px;">${u.initials || avatarInitials(u.name)}</div>
-        <div>
-          <div style="font-weight: 600; font-size: 15px; color: #fff;">${u.name}</div>
-          <div style="font-size: 12px; color: var(--text-sub, #9ca3af);">${u.email}</div>
-        </div>
-      </div>
-      <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 10px;">
-        <span style="background: rgba(255,107,26,0.15); color: var(--orange); padding: 3px 8px; border-radius: 4px; font-weight: 600; font-size: 11px; text-transform: uppercase;">${u.role}</span>
-        <span style="color: var(--text-sub, #9ca3af);">${u.phone || "No phone"}</span>
-      </div>
-    </div>
-  `,
-      )
-      .join("") ||
-    `<p class="subtext" style="padding: 20px;">No users found.</p>`;
 }
 
-$$("#userFilters .pill").forEach((p) =>
-  p.addEventListener("click", () => {
-    $$("#userFilters .pill").forEach((x) => x.classList.remove("active"));
-    p.classList.add("active");
-    renderUsers();
-  }),
-);
+function getAccountRequests() {
+  try {
+    const requests = JSON.parse(
+      localStorage.getItem(ACCOUNT_REQUESTS_KEY) || "[]",
+    );
+    return Array.isArray(requests) ? requests : [];
+  } catch {
+    return [];
+  }
+}
 
-/* ===================== USER MANAGEMENT PAGE ===================== */
+function saveAccountDirectory() {
+  localStorage.setItem(ACCOUNT_DIRECTORY_KEY, JSON.stringify(DATA.users));
+}
+
+function isMasterAdmin() {
+  return localStorage.getItem("userRole") === "master_admin";
+}
+
+function renderAccountRequests() {
+  const panel = $("#accountPermissionPanel");
+  const container = $("#accountPermissionRequests");
+  if (!panel || !container) return;
+
+  panel.hidden = !isMasterAdmin();
+  const shortcut = $("#reviewAccountRequestsBtn");
+  if (shortcut) shortcut.hidden = !isMasterAdmin();
+  if (panel.hidden) return;
+
+  const requests = getAccountRequests();
+  const pending = requests.filter((request) => request.status === "Pending");
+  $("#pendingAccountRequestCount").textContent = `${pending.length} PENDING`;
+  const shortcutCount = $("#accountRequestNavCount");
+  if (shortcutCount) shortcutCount.textContent = String(pending.length);
+  if (shortcut) {
+    shortcut.setAttribute(
+      "aria-label",
+      `Review account requests, ${pending.length} pending`,
+    );
+    shortcut.classList.toggle("has-pending-requests", pending.length > 0);
+  }
+  container.innerHTML = pending.length
+    ? `<div class="table-scroll"><table class="data-table"><thead><tr><th>Request</th><th>Account</th><th>Requested by</th><th>Submitted</th><th>Review</th></tr></thead><tbody>${pending
+        .map((request) => {
+          const changes = request.changes || {};
+          const account =
+            request.operation === "Remove"
+              ? request.accountName || request.accountEmail
+              : `${changes.name || "New account"} · ${changes.role || ""} · ${changes.email || ""}`;
+          return `<tr data-account-request-row="${escapeAccountText(request.id)}" tabindex="-1">
+          <td>${escapeAccountText(request.operation)}</td>
+          <td>${escapeAccountText(account)}</td>
+          <td>${escapeAccountText(request.requestedBy || "Sub-admin")}</td>
+          <td>${escapeAccountText(new Date(request.createdAt).toLocaleString())}</td>
+          <td><div class="account-request-actions"><button class="btn-mini" data-request-action="approve" data-request-id="${escapeAccountText(request.id)}">Approve</button><button class="btn-mini account-request-reject" data-request-action="reject" data-request-id="${escapeAccountText(request.id)}">Reject</button></div></td>
+        </tr>`;
+        })
+        .join("")}</tbody></table></div>`
+    : '<p class="subtext account-requests-empty">No pending account change requests.</p>';
+}
+
 function renderUsers() {
   const usersGrid = $("#usersGrid");
   if (!usersGrid) return;
   const activeFilter = $("#userFilters .pill.active")?.dataset.filter || "All";
+  const canManage =
+    isMasterAdmin() || localStorage.getItem("userRole") === "admin";
+  const addButton = $("#addUserBtn");
+  const permissionNote = $("#accountPermissionNote");
+  if (addButton) addButton.hidden = !canManage;
+  if (permissionNote) permissionNote.hidden = !canManage || isMasterAdmin();
   const list = DATA.users.filter(
-    (u) => activeFilter === "All" || u.role === activeFilter,
+    (user) => activeFilter === "All" || user.role === activeFilter,
   );
 
   usersGrid.innerHTML =
     list
       .map(
-        (u) => `
-    <div class="user-card">
+        (user) => `
+    <article class="user-card">
       <div class="user-head">
         <div class="user-id">
-          <div class="avatar">${u.initials}</div>
-          <div>
-            <div class="user-name">${u.name}</div>
-            <span class="role-badge role-${u.role.toLowerCase()}">${u.role}</span>
-          </div>
+          <div class="avatar">${escapeAccountText(user.initials || avatarInitials(user.name))}</div>
+          <div><div class="user-name">${escapeAccountText(user.name)}</div><span class="role-badge role-${escapeAccountText(user.role.toLowerCase().replace(/\s+/g, "-"))}">${escapeAccountText(user.role)}</span></div>
         </div>
-        <button class="more-btn">⋯</button>
       </div>
-      <div class="user-detail">✉ ${u.email}</div>
-      <div class="user-detail">📞 ${u.phone}</div>
-      <div class="user-detail">🕒 Member since ${u.since}</div>
-    </div>
+      <div class="user-detail">✉ ${escapeAccountText(user.email)}</div>
+      <div class="user-detail">📞 ${escapeAccountText(user.phone || "No phone")}</div>
+      <div class="user-detail">🕒 Member since ${escapeAccountText(user.since || "Not available")}</div>
+      ${canManage ? `<div class="account-card-actions"><button type="button" class="btn-mini" data-account-action="edit" data-account-email="${escapeAccountText(user.email)}">Edit</button><button type="button" class="btn-mini account-request-reject" data-account-action="remove" data-account-email="${escapeAccountText(user.email)}">Remove</button></div>` : ""}
+    </article>
   `,
       )
-      .join("") || `<p class="subtext">No users in this category.</p>`;
+      .join("") || '<p class="subtext">No users in this category.</p>';
+
+  renderAccountRequests();
 }
 
-$$("#userFilters .pill").forEach((p) =>
-  p.addEventListener("click", () => {
-    $$("#userFilters .pill").forEach((x) => x.classList.remove("active"));
-    p.classList.add("active");
+function openAccountEditor(accountEmail = "") {
+  const account = DATA.users.find((user) => user.email === accountEmail);
+  const isEdit = Boolean(account);
+  const fields = `
+    <form id="accountEditForm" class="account-edit-form">
+      <div class="field"><label for="accountName">Full name</label><input id="accountName" name="name" value="${escapeAccountText(account?.name || "")}" autocomplete="name" required></div>
+      <div class="field"><label for="accountRole">Role</label><select id="accountRole" name="role"><option ${account?.role === "Admin" ? "selected" : ""}>Admin</option><option ${account?.role === "Mechanic" ? "selected" : ""}>Mechanic</option><option ${account?.role === "Customer" ? "selected" : ""}>Customer</option></select></div>
+      <div class="field"><label for="accountEmail">Email address</label><input id="accountEmail" name="email" type="email" value="${escapeAccountText(account?.email || "")}" autocomplete="email" required></div>
+      <div class="field"><label for="accountPhone">Phone</label><input id="accountPhone" name="phone" type="tel" value="${escapeAccountText(account?.phone || "")}" autocomplete="tel"></div>
+      <div class="field"><label for="accountPassword">${isEdit ? "New password (optional)" : "Temporary password"}</label><input id="accountPassword" name="password" type="password" minlength="6" ${isEdit ? "" : "required"} autocomplete="new-password"></div>
+      <p class="account-form-error" id="accountFormError" role="alert"></p>
+      <button class="btn-primary" type="submit">${isEdit ? "Submit account changes" : "Create account"}</button>
+    </form>`;
+
+  openModal(isEdit ? "Edit user account" : "Add user account", fields);
+  $("#accountEditForm").addEventListener("submit", (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    if (!form.reportValidity()) return;
+
+    const changes = Object.fromEntries(new FormData(form));
+    changes.email = changes.email.trim().toLowerCase();
+    changes.name = changes.name.trim();
+    changes.phone = changes.phone.trim();
+    const emailConflict = DATA.users.some(
+      (user) =>
+        user.email.toLowerCase() === changes.email &&
+        user.email !== account?.email,
+    );
+    const pendingConflict = getAccountRequests().some(
+      (request) =>
+        request.status === "Pending" &&
+        ((request.operation === "Add" &&
+          request.changes?.email?.toLowerCase() === changes.email) ||
+          (account && request.accountEmail === account.email)),
+    );
+    if (emailConflict || pendingConflict) {
+      $("#accountFormError").textContent =
+        "An account or pending request already uses this email.";
+      return;
+    }
+
+    const request = {
+      id: `AR-${Date.now()}`,
+      operation: isEdit ? "Edit" : "Add",
+      accountEmail: account?.email || null,
+      accountName: account?.name || null,
+      changes,
+      requestedBy:
+        localStorage.getItem("userFullName") ||
+        localStorage.getItem("userEmail") ||
+        "Administrator",
+      requestedByRole: localStorage.getItem("userRole") || "admin",
+      createdAt: new Date().toISOString(),
+      status: "Pending",
+    };
+    submitAccountChangeRequest(request);
+  });
+}
+
+function submitAccountChangeRequest(request) {
+  if (!isMasterAdmin() && localStorage.getItem("userRole") !== "admin") return;
+  if (isMasterAdmin()) {
+    applyAccountChangeRequest(request);
+    $("#modalBackdrop").classList.remove("open");
     renderUsers();
-  }),
-);
+    showAccountFeedback(
+      request.operation === "Add" ? "Account created." : "Account updated.",
+    );
+    return;
+  }
+
+  const requests = getAccountRequests();
+  requests.unshift(request);
+  localStorage.setItem(ACCOUNT_REQUESTS_KEY, JSON.stringify(requests));
+  const notifications = JSON.parse(
+    localStorage.getItem("motofix_notifications") || "[]",
+  );
+  notifications.unshift({
+    id: `N-${request.id}`,
+    title: "Account change approval requested",
+    message: `${request.requestedBy} requested to ${request.operation.toLowerCase()} an account.`,
+    requestId: request.id,
+    audiences: ["master_admin"],
+    createdAt: request.createdAt,
+    readBy: [],
+  });
+  localStorage.setItem(
+    "motofix_notifications",
+    JSON.stringify(notifications.slice(0, 100)),
+  );
+  window.dispatchEvent(new Event("motofix:notifications-changed"));
+  $("#modalBackdrop").classList.remove("open");
+  renderUsers();
+  showAccountFeedback("Request sent to Master Admin for approval.");
+}
+
+function applyAccountChangeRequest(request) {
+  const authUsers = JSON.parse(localStorage.getItem("motofix_users") || "[]");
+  const disabledEmails = JSON.parse(
+    localStorage.getItem("motofix_disabled_accounts") || "[]",
+  );
+
+  if (request.operation === "Remove") {
+    DATA.users = DATA.users.filter(
+      (user) => user.email !== request.accountEmail,
+    );
+    localStorage.setItem(
+      "motofix_disabled_accounts",
+      JSON.stringify([
+        ...new Set([...disabledEmails, request.accountEmail.toLowerCase()]),
+      ]),
+    );
+    localStorage.setItem(
+      "motofix_users",
+      JSON.stringify(
+        authUsers.filter(
+          (user) =>
+            user.email.toLowerCase() !== request.accountEmail.toLowerCase(),
+        ),
+      ),
+    );
+  } else {
+    const changes = request.changes;
+    const existing = DATA.users.find(
+      (user) => user.email === request.accountEmail,
+    );
+    const account = {
+      ...(existing || {}),
+      id: existing?.id || `U-${Date.now()}`,
+      name: changes.name,
+      role: changes.role,
+      email: changes.email,
+      phone: changes.phone,
+      since: existing?.since || new Date().toISOString().slice(0, 10),
+      initials: avatarInitials(changes.name),
+    };
+
+    if (existing) {
+      DATA.users = DATA.users.map((user) =>
+        user.email === request.accountEmail ? account : user,
+      );
+    } else {
+      DATA.users.push(account);
+    }
+    const previousEmail = request.accountEmail?.toLowerCase();
+    const nextDisabledEmails = disabledEmails.filter(
+      (email) => email !== changes.email,
+    );
+    if (previousEmail && previousEmail !== changes.email)
+      nextDisabledEmails.push(previousEmail);
+    localStorage.setItem(
+      "motofix_disabled_accounts",
+      JSON.stringify([...new Set(nextDisabledEmails)]),
+    );
+    const authUserIndex = authUsers.findIndex(
+      (user) =>
+        user.email.toLowerCase() === request.accountEmail?.toLowerCase() ||
+        user.email.toLowerCase() === changes.email,
+    );
+    if (authUserIndex >= 0) {
+      authUsers[authUserIndex] = {
+        ...authUsers[authUserIndex],
+        name: changes.name,
+        email: changes.email,
+        phone: changes.phone,
+        role: changes.role.toLowerCase(),
+        ...(changes.password ? { password: changes.password } : {}),
+      };
+    } else if (changes.password) {
+      authUsers.push({
+        id: account.id,
+        name: changes.name,
+        email: changes.email,
+        phone: changes.phone,
+        password: changes.password,
+        role: changes.role.toLowerCase(),
+      });
+    }
+    localStorage.setItem("motofix_users", JSON.stringify(authUsers));
+  }
+
+  saveAccountDirectory();
+}
+
+function showAccountFeedback(message) {
+  const feedback = document.createElement("div");
+  feedback.className = "account-feedback";
+  feedback.setAttribute("role", "status");
+  feedback.textContent = message;
+  document.body.appendChild(feedback);
+  window.setTimeout(() => feedback.remove(), 3600);
+}
+
+function reviewAccountRequest(requestId, decision) {
+  if (!isMasterAdmin()) return;
+  const requests = getAccountRequests();
+  const request = requests.find(
+    (item) => item.id === requestId && item.status === "Pending",
+  );
+  if (!request) return;
+
+  if (decision === "approve") applyAccountChangeRequest(request);
+  if (request.changes?.password) delete request.changes.password;
+  request.status = decision === "approve" ? "Approved" : "Rejected";
+  request.reviewedAt = new Date().toISOString();
+  request.reviewedBy = localStorage.getItem("userEmail") || "Master Admin";
+  localStorage.setItem(ACCOUNT_REQUESTS_KEY, JSON.stringify(requests));
+  renderUsers();
+  showAccountFeedback(`Account request ${request.status.toLowerCase()}.`);
+}
+
+$("#userFilters")?.addEventListener("click", (event) => {
+  const pill = event.target.closest(".pill");
+  if (!pill) return;
+  $$("#userFilters .pill").forEach((item) => item.classList.remove("active"));
+  pill.classList.add("active");
+  renderUsers();
+});
+
+$("#usersGrid")?.addEventListener("click", (event) => {
+  if (!isMasterAdmin() && localStorage.getItem("userRole") !== "admin") return;
+  const actionButton = event.target.closest("[data-account-action]");
+  if (!actionButton) return;
+  const account = DATA.users.find(
+    (user) => user.email === actionButton.dataset.accountEmail,
+  );
+  if (!account) return;
+
+  if (actionButton.dataset.accountAction === "edit") {
+    openAccountEditor(account.email);
+    return;
+  }
+
+  const request = {
+    id: `AR-${Date.now()}`,
+    operation: "Remove",
+    accountEmail: account.email,
+    accountName: account.name,
+    requestedBy:
+      localStorage.getItem("userFullName") ||
+      localStorage.getItem("userEmail") ||
+      "Administrator",
+    requestedByRole: localStorage.getItem("userRole") || "admin",
+    createdAt: new Date().toISOString(),
+    status: "Pending",
+  };
+  if (isMasterAdmin()) {
+    if (
+      !window.confirm(
+        `Remove ${account.name}'s account? This will block future sign-ins.`,
+      )
+    )
+      return;
+    applyAccountChangeRequest(request);
+    renderUsers();
+    showAccountFeedback("Account removed.");
+  } else {
+    submitAccountChangeRequest(request);
+  }
+});
+
+$("#accountPermissionRequests")?.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-request-action]");
+  if (button)
+    reviewAccountRequest(
+      button.dataset.requestId,
+      button.dataset.requestAction,
+    );
+});
+
+$("#reviewAccountRequestsBtn")?.addEventListener("click", () => {
+  const panel = $("#accountPermissionPanel");
+  if (!panel || panel.hidden) return;
+  panel.scrollIntoView({ behavior: "smooth", block: "start" });
+  panel.focus({ preventScroll: true });
+});
 
 const addUserBtnEl = $("#addUserBtn");
-if (addUserBtnEl) {
-  addUserBtnEl.addEventListener("click", () =>
-    openModal(
-      "Add User",
-      `
-    <div class="field"><label>Full Name</label><input placeholder="e.g. Pedro Cruz"></div>
-    <div class="field"><label>Role</label><select><option>Admin</option><option>Mechanic</option><option>Customer</option></select></div>
-    <div class="field"><label>Email</label><input placeholder="name@motofix.com"></div>
-    <div class="field"><label>Phone</label><input placeholder="+63 912 000 0000"></div>
-    <button class="btn-primary" style="width:100%;margin-top:6px;">Add User</button>
-  `,
-    ),
-  );
-}
+if (addUserBtnEl)
+  addUserBtnEl.addEventListener("click", () => openAccountEditor());
 
 /* ===================== MASTER EMPLOYEE MANAGER (INLINE) ===================== */
 function renderMasterMechanicsTable() {
@@ -2758,6 +3484,21 @@ function init() {
 
   // Master Admin Sidebar Check
   const userRole = localStorage.getItem("userRole");
+  const sidebarAccountRole = $("#sidebarAccountRole");
+  if (sidebarAccountRole) {
+    const isMasterAdmin = userRole === "master_admin";
+    const roleLabel = isMasterAdmin
+      ? "General Admin"
+      : userRole === "admin"
+        ? "Sub-Admin"
+        : "Administrator";
+    sidebarAccountRole.textContent = roleLabel;
+    sidebarAccountRole.classList.toggle("footer-role-general", isMasterAdmin);
+    sidebarAccountRole.classList.toggle(
+      "footer-role-subadmin",
+      userRole === "admin",
+    );
+  }
   if (userRole === "master_admin") {
     const masterNavItem = document.getElementById("masterPortalNavItem");
     const masterLabel = document.getElementById("masterAdminLabel");
@@ -2795,6 +3536,71 @@ document.addEventListener("DOMContentLoaded", init);
 
 window.addEventListener("storage", (event) => {
   if (event.key === "motofix_notifications") renderAdminNotifications();
+  if (event.key === ACCOUNT_REQUESTS_KEY) renderUsers();
+  if (event.key === ACCOUNT_DIRECTORY_KEY) {
+    try {
+      const storedAccounts = JSON.parse(event.newValue || "[]");
+      if (Array.isArray(storedAccounts)) {
+        DATA.users = storedAccounts;
+        renderUsers();
+      }
+    } catch (error) {
+      console.error("Unable to refresh accounts from storage.", error);
+    }
+  }
+  if (event.key === "motofix_users") {
+    try {
+      const registeredUsers = JSON.parse(event.newValue || "[]");
+      const disabledEmails = JSON.parse(
+        localStorage.getItem("motofix_disabled_accounts") || "[]",
+      );
+      if (Array.isArray(registeredUsers)) {
+        registeredUsers.forEach((user) => {
+          const email = String(user.email || "")
+            .trim()
+            .toLowerCase();
+          if (
+            !email ||
+            disabledEmails.includes(email) ||
+            DATA.users.some((account) => account.email.toLowerCase() === email)
+          )
+            return;
+          const name =
+            user.name ||
+            `${user.first_name || ""} ${user.last_name || ""}`.trim() ||
+            "New user";
+          DATA.users.push({
+            name,
+            role: (user.role || "Customer").replace(/\b\w/g, (letter) =>
+              letter.toUpperCase(),
+            ),
+            email,
+            phone: user.phone || "",
+            since: user.created_at || new Date().toISOString().slice(0, 10),
+            initials: avatarInitials(name),
+          });
+        });
+        saveAccountDirectory();
+      }
+      renderUsers();
+    } catch (error) {
+      console.error(
+        "Unable to refresh registered accounts from storage.",
+        error,
+      );
+    }
+  }
+  if (event.key === "motofix_parts") {
+    try {
+      const storedParts = JSON.parse(event.newValue || "[]");
+      if (Array.isArray(storedParts)) {
+        DATA.inventory = storedParts;
+        renderInventoryTable();
+      }
+    } catch (error) {
+      console.error("Unable to refresh inventory from storage.", error);
+    }
+  }
   if (event.key === APPOINTMENT_STORAGE_KEY) {
     syncAppointmentsFromStorage();
     renderDashboardAppointments();

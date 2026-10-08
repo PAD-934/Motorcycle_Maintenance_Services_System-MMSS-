@@ -169,6 +169,10 @@
       title: "Appointment status updated",
       message: `${appointment.id} is now ${appointment.status}.`,
       audiences: ["customer", "admin", "master_admin"],
+      appointmentId: appointment.id,
+      customerEmail: (appointment.customerEmail || "").toLowerCase(),
+      mechanicName: CURRENT_USER.name,
+      mechanicEmail: CURRENT_USER.email,
       createdAt: new Date().toISOString(),
       readBy: [],
     });
@@ -176,9 +180,31 @@
       "motofix_notifications",
       JSON.stringify(notifications.slice(0, 100)),
     );
+    window.dispatchEvent(new Event("motofix:notifications-changed"));
   }
 
   function renderMechanicNotifications() {
+    if (window.MotoFixNotifications) {
+      window.MotoFixNotifications.init({
+        buttonId: "bellBtn",
+        panelId: "notifPanel",
+        role: "mechanic",
+        email: CURRENT_USER.email,
+        name: CURRENT_USER.name,
+        onOpen: (notification) => {
+          syncJobsFromSharedAppointments();
+          const appointmentId = String(notification.appointmentId || "");
+          const job = jobs.find(
+            (item) =>
+              String(item.apptRef || item.id) === appointmentId ||
+              String(item.id) === appointmentId,
+          );
+          if (job) openJobDetails(job);
+          else renderJobs();
+        },
+      });
+      return;
+    }
     const panel = document.getElementById("notifPanel");
     const dot = document.getElementById("bellDot");
     if (!panel) return;
@@ -748,7 +774,8 @@
     e.stopPropagation();
     userDropdown.classList.toggle("show");
     userTrigger.classList.toggle("open");
-    document.getElementById("notifPanel").classList.remove("show");
+    const notificationPanel = document.getElementById("notifPanel");
+    if (notificationPanel) notificationPanel.hidden = true;
   });
   document.getElementById("signOutBtn").addEventListener("click", () => {
     userDropdown.classList.remove("show");
@@ -760,22 +787,15 @@
   });
 
   /* ---------------- Notifications ---------------- */
-  const bellBtn = document.getElementById("bellBtn");
-  const notifPanel = document.getElementById("notifPanel");
-  const bellDot = document.getElementById("bellDot");
   renderMechanicNotifications();
-  bellBtn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    notifPanel.classList.toggle("show");
+  document.getElementById("bellBtn").addEventListener("click", () => {
     userDropdown.classList.remove("show");
     userTrigger.classList.remove("open");
-    bellDot.style.display = "none";
   });
 
   document.addEventListener("click", () => {
     userDropdown.classList.remove("show");
     userTrigger.classList.remove("open");
-    notifPanel.classList.remove("show");
   });
 
   /* ---------------- Appointments filters ---------------- */

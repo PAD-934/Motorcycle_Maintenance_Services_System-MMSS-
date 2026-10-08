@@ -14,6 +14,7 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="css/style.css" />
+    <link rel="stylesheet" href="css/notifications.css" />
   </head>
   <body>
     <div class="app">
@@ -93,7 +94,7 @@
             id="masterAdminLabel"
             style="display: none; margin-top: 12px"
           >
-            Master Control
+            General Admin
           </div>
           <button
             id="masterPortalNavItem"
@@ -114,7 +115,12 @@
           <div class="avatar avatar-lg">CR</div>
           <div>
             <div class="footer-name">Carlos Reyes</div>
-            <div class="footer-role">Administrator</div>
+            <div
+              class="footer-role footer-role-subadmin"
+              id="sidebarAccountRole"
+            >
+              Sub-Admin
+            </div>
           </div>
         </div>
       </aside>
@@ -128,7 +134,8 @@
               class="icon-btn"
               id="menuToggle"
               type="button"
-              aria-label="Toggle sidebar"
+              aria-label="Open navigation"
+              aria-controls="sidebar"
               aria-expanded="true"
             >
               ☰
@@ -143,8 +150,18 @@
               class="icon-btn bell"
               id="adminBellBtn"
               aria-label="Notifications"
+              aria-controls="adminNotifPanel"
+              aria-expanded="false"
             >
-              🔔<span class="dot"></span>
+              <svg viewBox="0 0 24 24" aria-hidden="true" fill="none">
+                <path
+                  d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
             </button>
             <div class="user-menu" id="userMenu">
               <button
@@ -198,14 +215,25 @@
                 <div class="stat-desc">Pending + in progress</div>
               </div>
 
-              <div class="stat-card">
+              <a
+                class="stat-card low-stock-card"
+                id="lowStockCard"
+                href="#page-inventory"
+                data-page="inventory"
+                aria-live="polite"
+              >
                 <div class="stat-top">
                   <span class="stat-title">Low Stock Alerts</span>
                   <span class="stat-icon icon-amber">📦</span>
                 </div>
-                <div class="stat-value">0</div>
-                <div class="stat-desc">Parts to reorder</div>
-              </div>
+                <div class="stat-value" id="lowStockCount">0</div>
+                <div class="stat-desc" id="lowStockSummary">
+                  Loading inventory status...
+                </div>
+                <span class="stat-link-hint"
+                  >View inventory <span aria-hidden="true">→</span></span
+                >
+              </a>
 
               <div class="stat-card">
                 <div class="stat-top">
@@ -511,18 +539,61 @@
                 <button class="pill" data-filter="Mechanic">Mechanic</button>
                 <button class="pill" data-filter="Customer">Customer</button>
               </div>
+              <button
+                class="btn-view account-request-shortcut"
+                id="reviewAccountRequestsBtn"
+                type="button"
+                hidden
+              >
+                Review requests <span id="accountRequestNavCount">0</span>
+              </button>
               <button class="btn-primary" id="addUserBtn">+ Add User</button>
             </div>
+            <p
+              class="account-permission-note"
+              id="accountPermissionNote"
+              role="note"
+              hidden
+            >
+              Account changes are sent to the Master Admin for approval before
+              they take effect.
+            </p>
+            <section
+              class="panel account-request-panel"
+              id="accountPermissionPanel"
+              hidden
+              tabindex="-1"
+              aria-labelledby="accountRequestTitle"
+            >
+              <div class="panel-head">
+                <div>
+                  <h3 id="accountRequestTitle">Account Change Requests</h3>
+                  <p class="muted">
+                    Review sub-admin requests before changes take effect.
+                  </p>
+                </div>
+                <span
+                  class="badge badge-pending"
+                  id="pendingAccountRequestCount"
+                  >0 PENDING</span
+                >
+              </div>
+              <div id="accountPermissionRequests"></div>
+            </section>
             <div class="card-grid users-grid" id="usersGrid"></div>
           </section>
 
           <div class="master_mechanic_admin_parent">
             <!-- ================= MASTER MECHANIC ACCOUNT MANAGER ================= -->
             <section class="page" id="page-master-mechanics">
+              <div class="role-context role-context-general">
+                <span class="role-context-badge">GENERAL ADMIN</span>
+                <span>Employee Manager</span>
+              </div>
               <div class="toolbar toolbar-simple">
                 <div>
                   <h3 class="section-heading" style="margin-bottom: 2px">
-                    Master Employee Management
+                    Employee Manager
                   </h3>
                   <p class="muted">
                     Add, view, and manage authorized shop mechanics and admins
@@ -558,6 +629,7 @@
       </div>
     </div>
 
+    <script src="js/notifications.js"></script>
     <script src="js/script.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   </body>

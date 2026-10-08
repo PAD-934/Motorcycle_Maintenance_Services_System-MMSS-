@@ -189,16 +189,22 @@ const PARTS_REQUEST_KEY = "motofix_pending_parts";
 const NOTIFICATION_STORE_KEY = "motofix_notifications";
 
 function savePartsRequest(parts) {
+  const partsRequestId = `PR-${Date.now()}`;
+  const customerEmail = (localStorage.getItem("userEmail") || "customer")
+    .trim()
+    .toLowerCase();
   localStorage.setItem(PARTS_REQUEST_KEY, JSON.stringify(parts));
+  localStorage.setItem("motofix_pending_parts_request_id", partsRequestId);
   const current = JSON.parse(
     localStorage.getItem(NOTIFICATION_STORE_KEY) || "[]",
   );
-  const email = localStorage.getItem("userEmail") || "customer";
   current.unshift({
     id: `N${Date.now()}`,
     title: "New parts request",
-    message: `${email} added ${parts.length} part${parts.length === 1 ? "" : "s"} to an appointment.`,
-    audiences: ["admin", "master_admin", "mechanic"],
+    message: `${customerEmail} added ${parts.length} part${parts.length === 1 ? "" : "s"} to an appointment.`,
+    customerEmail,
+    partsRequestId,
+    audiences: ["admin", "master_admin", "customer"],
     createdAt: new Date().toISOString(),
     readBy: [],
   });
@@ -206,6 +212,7 @@ function savePartsRequest(parts) {
     NOTIFICATION_STORE_KEY,
     JSON.stringify(current.slice(0, 100)),
   );
+  window.dispatchEvent(new Event("motofix:notifications-changed"));
 }
 
 export function initPartsShop() {

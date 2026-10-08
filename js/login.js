@@ -92,22 +92,38 @@ function validate() {
 function authenticate(email, password) {
   return new Promise((resolve) => {
     setTimeout(() => {
-      const normalizedEmail = String(email || "").trim().toLowerCase();
+      const normalizedEmail = String(email || "")
+        .trim()
+        .toLowerCase();
       let role = null;
 
+      const disabledEmails = JSON.parse(
+        localStorage.getItem("motofix_disabled_accounts") || "[]",
+      );
+      if (disabledEmails.includes(normalizedEmail)) {
+        resolve({ ok: false, role: null });
+        return;
+      }
+
       // 1. CHECK LOCALSTORAGE DATABASE MOCK FIRST (Catches new signups!)
-      const registeredUsers = JSON.parse(localStorage.getItem("motofix_users")) || [];
-      const foundUser = registeredUsers.find(u => u.email.toLowerCase() === normalizedEmail);
+      const registeredUsers =
+        JSON.parse(localStorage.getItem("motofix_users")) || [];
+      const foundUser = registeredUsers.find(
+        (u) => u.email.toLowerCase() === normalizedEmail,
+      );
 
       if (foundUser) {
         // If found in localStorage, verify password matches what they signed up with
         if (foundUser.password === password) {
           // Map database role string to system roles safely
           role = foundUser.role ? foundUser.role.toLowerCase() : "customer";
-          
+
           // Save extra user profile info to session storage for the UI to use
-          localStorage.setItem("userFullName", foundUser.name || `${foundUser.first_name} ${foundUser.last_name}`);
-          
+          localStorage.setItem(
+            "userFullName",
+            foundUser.name || `${foundUser.first_name} ${foundUser.last_name}`,
+          );
+
           resolve({ ok: true, role });
           return;
         } else {
@@ -120,16 +136,32 @@ function authenticate(email, password) {
       // 2. FALLBACK TO HARDCODED ACCOUNTS (If not found in localStorage)
       const knownUsers = {
         "master@motofix.com": "master_admin", // Master Admin role
-        "admin@motofix.com": "admin",         // Regular Store Admin
-        "mechanic1@motofix.com": "mechanic",    // Mechanic Ramon Santos
-        "mechanic2@motofix.com": "mechanic",    // Mechanic Jake Reyes
-        "jose@email.com": "customer",          // Customer Jose Bautista
-        "ana@email.com": "customer",            // Customer Ana Flores
-        "miguel@email.com": "customer"          // Customer Miguel Torres
+        "admin@motofix.com": "admin", // Regular Store Admin
+        "mechanic1@motofix.com": "mechanic", // Mechanic Ramon Santos
+        "mechanic2@motofix.com": "mechanic", // Mechanic Jake Reyes
+        "jose@email.com": "customer", // Customer Jose Bautista
+        "ana@email.com": "customer", // Customer Ana Flores
+        "miguel@email.com": "customer", // Customer Miguel Torres
       };
 
-      role = knownUsers[normalizedEmail] || null;
-      const passwordValid = typeof password === "string" && password.length >= 6;
+      const accountDirectory = JSON.parse(
+        localStorage.getItem("motofix_account_directory") || "[]",
+      );
+      const directoryAccount = accountDirectory.find(
+        (account) => account.email.toLowerCase() === normalizedEmail,
+      );
+      const directoryRole = directoryAccount?.role
+        ?.toLowerCase()
+        .replace(/\s+/g, "_");
+      role =
+        directoryRole === "master_admin"
+          ? "master_admin"
+          : directoryRole || knownUsers[normalizedEmail] || null;
+      if (directoryAccount?.name) {
+        localStorage.setItem("userFullName", directoryAccount.name);
+      }
+      const passwordValid =
+        typeof password === "string" && password.length >= 6;
 
       /* 
         PHPMyAdmin Migration Note for Defense:
@@ -173,7 +205,10 @@ async function handleLogin() {
     localStorage.setItem("userEmail", email);
     localStorage.setItem("userRole", result.role);
 
-    showToast(`Welcome back! Redirecting to ${capitalize(result.role)} dashboard…`, "success");
+    showToast(
+      `Welcome back! Redirecting to ${capitalize(result.role)} dashboard…`,
+      "success",
+    );
 
     // Dynamic routing based on database/verified role
     setTimeout(() => {
@@ -188,7 +223,6 @@ async function handleLogin() {
         window.location.href = "CUSTOMER UI/HTML/mechanic.html";
       }
     }, 800);
-
   } else {
     showToast("Invalid email or password.", "error");
     passwordInput.classList.add("invalid");
@@ -207,7 +241,10 @@ $("#forgotLink").addEventListener("click", (e) => {
   if (email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     showToast(`Password reset link sent to ${email}`, "success");
   } else {
-    showToast("Enter your email above first, then click Forgot Password.", "error");
+    showToast(
+      "Enter your email above first, then click Forgot Password.",
+      "error",
+    );
     emailInput.focus();
   }
 });

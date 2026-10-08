@@ -2,7 +2,7 @@
 const APPOINTMENT_STORE_KEY = "motofix_appointments";
 const NOTIFICATION_STORE_KEY = "motofix_notifications";
 
-function addSharedNotification(title, message, audiences) {
+function addSharedNotification(title, message, audiences, details = {}) {
   const current = JSON.parse(
     localStorage.getItem(NOTIFICATION_STORE_KEY) || "[]",
   );
@@ -11,6 +11,7 @@ function addSharedNotification(title, message, audiences) {
     title,
     message,
     audiences,
+    ...details,
     createdAt: new Date().toISOString(),
     readBy: [],
   });
@@ -18,6 +19,7 @@ function addSharedNotification(title, message, audiences) {
     NOTIFICATION_STORE_KEY,
     JSON.stringify(current.slice(0, 100)),
   );
+  window.dispatchEvent(new Event("motofix:notifications-changed"));
 }
 
 function readStoredAppointments() {
@@ -331,6 +333,35 @@ export function initAppointments() {
         createdAt: new Date().toISOString(),
       };
 
+      const partsRequestId = localStorage.getItem(
+        "motofix_pending_parts_request_id",
+      );
+      if (partsRequestId) {
+        const notifications = JSON.parse(
+          localStorage.getItem(NOTIFICATION_STORE_KEY) || "[]",
+        );
+        const partsNotification = notifications.find(
+          (notification) => notification.partsRequestId === partsRequestId,
+        );
+        if (partsNotification) {
+          partsNotification.appointmentId = newAppointment.id;
+          if (newAppointment.mechanic) {
+            partsNotification.audiences = [
+              ...new Set([
+                ...(partsNotification.audiences || []),
+                `mechanic:${newAppointment.mechanic}`,
+              ]),
+            ];
+          }
+          localStorage.setItem(
+            NOTIFICATION_STORE_KEY,
+            JSON.stringify(notifications),
+          );
+          window.dispatchEvent(new Event("motofix:notifications-changed"));
+        }
+        localStorage.removeItem("motofix_pending_parts_request_id");
+      }
+
       const updatedAppointments = [newAppointment, ...storedAppointments];
       writeStoredAppointments(updatedAppointments);
       localStorage.removeItem("motofix_pending_parts");
@@ -340,10 +371,16 @@ export function initAppointments() {
         [
           "admin",
           "master_admin",
+          "customer",
           ...(newAppointment.mechanic
             ? [`mechanic:${newAppointment.mechanic}`]
             : []),
         ],
+        {
+          appointmentId: newAppointment.id,
+          customerEmail: newAppointment.customerEmail,
+          mechanicName: newAppointment.mechanic,
+        },
       );
       renderStoredAppointments();
 

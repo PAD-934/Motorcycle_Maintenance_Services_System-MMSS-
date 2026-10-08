@@ -23,7 +23,7 @@ body {
   gap: 16px;
   position: sticky;
   top: 0px;
-  z-index: 30;
+  z-index: 60;
 }
 
 /* Header and main frame will stick to sidebar */
@@ -70,17 +70,6 @@ body {
   cursor: pointer;
   color: #a1a1aa;
   padding: 4px;
-}
-
-.orange_circle {
-  position: absolute;
-  top: 2px;
-  right: 2px;
-  width: 5px;
-  height: 5px;
-  border-radius: 4px;
-  background: rgb(249, 115, 22);
-  border: 1px solid #111113;
 }
 
 /* Header User Options */
@@ -206,7 +195,7 @@ body.sidebar-closed .CM {
   width: 100%;
 }
 
-/* Dimmed Screen When The Sidebar Is Open */
+/* Transparent interaction layer while the sidebar is open */
 
 .overlay {
   position: fixed;
@@ -214,13 +203,14 @@ body.sidebar-closed .CM {
   left: 0;
   width: 100vw;
   height: 100vh;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: transparent;
   opacity: 0;
   visibility: hidden;
   transition:
     opacity 0.25s ease,
     visibility 0.25s ease;
   z-index: 40; /* Just below the sidebar (z-index: 50) */
+  pointer-events: none;
 }
 
 .overlay.active {
