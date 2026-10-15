@@ -1,6 +1,13 @@
 // JAVASCRIPTS/parts.js
 // Cart-to-appointment parts and inventory relationship: ../../BACKEND_DATA_CONTRACT.md
 
+import {
+  readBookingDraft,
+  readPendingParts,
+  writeBookingDraft,
+  writePendingParts,
+} from "./customer-api.js";
+
 const INVENTORY_KEY = "motofix_parts";
 localStorage.removeItem("motofix_inventory");
 
@@ -15,22 +22,33 @@ function loadInventory() {
 let partsData = loadInventory();
 // Track selected states for items: { [id]: { source: 'buy' | 'bring', qty: number } }
 let selectedCart = {};
-const PARTS_REQUEST_KEY = "motofix_pending_parts";
 const NOTIFICATION_STORE_KEY = "motofix_notifications";
 
-// Customer cart parts are staged under motofix_pending_parts, then copied onto
-// the appointment at booking; inventory deduction reads that appointment snapshot.
+// Customer cart parts are staged on that customer's booking draft, then copied
+// onto the appointment at booking; inventory deduction reads that snapshot.
 function savePartsRequest(parts) {
-  localStorage.setItem(PARTS_REQUEST_KEY, JSON.stringify(parts));
+  const previousParts = readPendingParts();
+  const hasChanged = JSON.stringify(previousParts) !== JSON.stringify(parts);
+  writePendingParts(parts);
+  const draft = readBookingDraft();
+  if (draft) {
+    writeBookingDraft({ ...draft, parts, updatedAt: new Date().toISOString() });
+  }
+  if (!hasChanged) {
+    window.dispatchEvent(new Event("motofix:booking-parts-updated"));
+    return;
+  }
   const current = JSON.parse(
     localStorage.getItem(NOTIFICATION_STORE_KEY) || "[]",
   );
   const email = localStorage.getItem("userEmail") || "customer";
+  const draftId = draft?.id || null;
   current.unshift({
     id: `N${Date.now()}`,
     title: "New parts request",
-    message: `${email} added ${parts.length} part${parts.length === 1 ? "" : "s"} to an appointment.`,
+    message: `${email} added ${parts.length} part${parts.length === 1 ? "" : "s"} to appointment draft ${draftId || "for their next booking"}.`,
     audiences: ["admin", "master_admin", "mechanic"],
+    ...(draftId ? { appointmentDraftId: draftId } : {}),
     // This request is reviewed with the resulting appointment, so use its route.
     destination: "appointments",
     createdAt: new Date().toISOString(),
@@ -40,6 +58,8 @@ function savePartsRequest(parts) {
     NOTIFICATION_STORE_KEY,
     JSON.stringify(current.slice(0, 100)),
   );
+  window.dispatchEvent(new Event("motofix:notifications-updated"));
+  window.dispatchEvent(new Event("motofix:booking-parts-updated"));
 }
 
 export function initPartsShop() {
@@ -53,6 +73,16 @@ export function initPartsShop() {
 
   let currentCategory = "All";
   let searchQuery = "";
+
+  readPendingParts().forEach((part) => {
+    const sku = String(part.sku || part.id || "");
+    const inventoryPart = partsData.find((item) => String(item.sku) === sku);
+    if (!inventoryPart || Number(inventoryPart.stock) <= 0) return;
+    selectedCart[sku] = {
+      source: part.source === "bring" ? "bring" : "buy",
+      qty: Math.max(1, Math.min(Number(part.quantity) || 1, Number(inventoryPart.stock))),
+    };
+  });
 
   function renderTable() {
     partsData = loadInventory();
@@ -334,10 +364,12 @@ if (isAdded) {
       }
 
       savePartsRequest(request);
-      selectedCart = {};
-      renderTable();
-      renderCartPanel();
-      alert("Parts added to your next appointment request.");
+      const status = document.getElementById("parts-add-status");
+      if (status) {
+        status.textContent = readBookingDraft()
+          ? "Parts saved to your appointment draft. Keep shopping or return when ready."
+          : "Parts saved for your next appointment.";
+      }
     });
   }
 

@@ -8,6 +8,7 @@ import { initNavigation } from "./navigation.js";
 import { initPartsShop } from "./parts.js";
 import { initTransactions } from "./transaction.js";
 import { initProfile } from "./profile.js";
+import { initServiceCatalog } from "./service-catalog.js";
 
 const APPOINTMENT_STORE_KEY = "motofix_appointments";
 
@@ -58,6 +59,8 @@ function canonicalStatus(value) {
     "complete transaction": "Completed",
     completed: "Completed",
     "work finished (unpaid)": "Unpaid",
+    cancelled: "Canceled",
+    canceled: "Canceled",
   };
   return aliases[status.toLowerCase()] || status;
 }
@@ -85,7 +88,7 @@ function updateDashboardWidgets() {
   set(
     "pending-jobs-count",
     appointments.filter((appointment) =>
-      !["completed", "cancelled", "work finished", "unpaid"].includes(status(appointment)),
+      !["completed", "canceled", "cancelled", "work finished", "unpaid"].includes(status(appointment)),
     ).length
   );
 
@@ -168,6 +171,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initNavigation();
   initModals();
   initAppointments();
+  initServiceCatalog();
   initMotorcycles();
   initPartsShop();
   initTransactions();

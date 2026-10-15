@@ -221,7 +221,7 @@
                 <div class="stat-desc" id="totalRevenueDesc">Completed appointments</div>
               </div>
 
-              <div class="stat-card">
+              <div class="stat-card" id="activeJobsStatCard">
                 <div class="stat-top">
                   <span class="stat-title">Active Jobs</span>
                   <span class="stat-icon icon-blue">🔧</span>
@@ -230,7 +230,7 @@
                 <div class="stat-desc">Pending + in progress</div>
               </div>
 
-              <div class="stat-card">
+              <div class="stat-card" id="lowStockStatCard">
                 <div class="stat-top">
                   <span class="stat-title">Low Stock Alerts</span>
                   <span class="stat-icon icon-amber">📦</span>
@@ -275,9 +275,12 @@
               </div>
             </div>
 
-            <div class="panel table-panel">
+            <div class="panel table-panel dashboard-recent-appointments">
               <div class="panel-head">
-                <h3>Recent Appointments</h3>
+                <div>
+                  <h3>Recent Appointments</h3>
+                  <p class="muted">Latest bookings across all statuses</p>
+                </div>
                 <a href="#" class="link-arrow" data-page="appointments"
                   >View All →</a
                 >
@@ -302,6 +305,7 @@
               <div class="filter-pills" id="apptFilters">
                 <button class="pill active" data-filter="All">All</button>
                 <button class="pill" data-filter="Pending">Pending</button>
+                <button class="pill" data-filter="Confirmed">Confirmed</button>
                 <button class="pill" data-filter="In Progress">
                   In Progress
                 </button>
@@ -335,6 +339,7 @@
                   placeholder="Search services..."
                 />
               </div>
+              <div class="filter-pills" id="svcStatusFilters" aria-label="Filter services by availability"></div>
               <div class="filter-pills" id="svcFilters"></div>
 
               <!-- add new service button -->
@@ -401,9 +406,66 @@
               <button class="tab" data-tab="revenue">Revenue Report</button>
             </div>
 
+            <div
+              class="billing-date-filter-popover"
+              id="billing-date-filter-popover"
+              role="dialog"
+              aria-label="Filter reports by date"
+              hidden
+            >
+              <div class="billing-date-filter-heading">
+                <strong>Choose report dates</strong>
+                <button type="button" id="billing-date-filter-close" aria-label="Close date filter">×</button>
+              </div>
+              <label class="billing-date-range-field" for="billing-date-range-preset">
+                Date range
+                <select id="billing-date-range-preset">
+                  <option value="custom">Custom</option>
+                  <option value="last7">Last 7 days</option>
+                  <option value="last30">Last 30 days</option>
+                  <option value="last60">Last 60 days</option>
+                </select>
+              </label>
+              <div class="billing-custom-date-range" id="billing-custom-date-range">
+                <label class="billing-date-range-field" for="billing-custom-start-date">
+                  From
+                  <input type="date" id="billing-custom-start-date" aria-label="Start date">
+                </label>
+                <label class="billing-date-range-field" for="billing-custom-end-date">
+                  To
+                  <input type="date" id="billing-custom-end-date" aria-label="End date">
+                </label>
+              </div>
+              <div class="billing-calendar">
+                <div class="billing-calendar-nav">
+                  <button type="button" id="billing-calendar-prev" aria-label="Previous month">‹</button>
+                  <input type="month" id="billing-calendar-month-input" aria-label="Select report month">
+                  <button type="button" id="billing-calendar-next" aria-label="Next month">›</button>
+                </div>
+                <div class="billing-calendar-grid billing-calendar-weekdays" aria-hidden="true">
+                  <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
+                </div>
+                <div class="billing-calendar-grid" id="billing-calendar-days" role="group" aria-label="Select one or more dates"></div>
+                <div class="billing-calendar-selection" id="billing-calendar-selection-summary" aria-live="polite">
+                  <strong>No dates selected</strong>
+                  <span>Select a month for the full monthly report, or choose dates to filter specific days.</span>
+                </div>
+              </div>
+              <div class="billing-date-filter-actions">
+                <button type="button" class="btn-secondary" id="billing-date-filter-cancel">Cancel</button>
+                <button type="button" class="btn-secondary" id="billing-date-filter-clear">Clear</button>
+                <button type="button" class="btn-primary" id="billing-date-filter-apply">Apply</button>
+              </div>
+            </div>
+
             <div class="tab-panel active" id="tab-invoices">
               <div class="toolbar toolbar-simple">
                 <span class="muted" id="invoiceCount">1 invoice total</span>
+                <div class="billing-filter-controls">
+                  <span class="muted billing-filter-summary" id="billing-filter-summary">All dates</span>
+                  <button type="button" class="btn-secondary" id="billing-date-filter-open" aria-haspopup="dialog" aria-expanded="false">Filter dates</button>
+                  <button type="button" class="btn-secondary" id="billing-show-all">Show All</button>
+                </div>
               </div>
               <div class="panel table-panel">
                 <div class="table-scroll">
@@ -418,6 +480,14 @@
                   >Download Complete Revenue Analytics & Tax Records</span
                 >
                 <div style="display: flex; gap: 8px">
+                  <button
+                    class="btn-secondary"
+                    type="button"
+                    onclick="printRevenueReport()"
+                    style="font-size: 13px; padding: 6px 14px;"
+                  >
+                    🖨️ Print Report
+                  </button>
                   <button
                     class="btn-primary"
                     onclick="downloadRevenueReport('pdf')"
@@ -445,15 +515,15 @@
 
               <!-- Stat Cards with added IDs for JavaScript binding -->
               <div class="stat-grid">
-                <div class="stat-card">
+                <div class="stat-card" id="revTotalStatCard">
                   <div class="stat-top">
                     <span class="stat-title">Total Revenue</span>
                     <span class="stat-icon icon-orange">₱</span>
                   </div>
                   <div class="stat-value" id="rev-total-val">₱0.00</div>
-                  <div class="stat-desc">All time, paid invoices</div>
+                  <div class="stat-desc" id="rev-total-desc">All time, completed invoices</div>
                 </div>
-                <div class="stat-card">
+                <div class="stat-card" id="revVatStatCard">
                   <div class="stat-top">
                     <span class="stat-title">VAT Collected</span>
                     <span class="stat-icon icon-blue">%</span>
@@ -461,7 +531,7 @@
                   <div class="stat-value" id="rev-vat-val">₱0.00</div>
                   <div class="stat-desc">12% VAT on paid invoices</div>
                 </div>
-                <div class="stat-card">
+                <div class="stat-card" id="revAverageStatCard">
                   <div class="stat-top">
                     <span class="stat-title">Avg. Invoice Value</span>
                     <span class="stat-icon icon-green">Σ</span>
@@ -476,7 +546,7 @@
               <!-- Side-by-Side Panels for Chart and Category Breakdown -->
               <div class="revenue-breakdown-grid">
                 <div class="panel">
-                  <div class="panel-head"><h3>Monthly Revenue</h3></div>
+                  <div class="panel-head"><h3 id="revenue-chart-title">Monthly Revenue</h3></div>
                   <div class="bar-chart" id="revenueChart2"></div>
                 </div>
                 <div class="panel">
@@ -488,6 +558,15 @@
                     <span class="muted"
                       >No service breakdown data available.</span
                     >
+                  </div>
+                </div>
+                <div class="panel table-panel revenue-invoices-panel">
+                  <div class="panel-head">
+                    <h3>Invoices &amp; Transactions</h3>
+                    <span class="muted" id="revenueInvoiceCount">0 invoices</span>
+                  </div>
+                  <div class="table-scroll">
+                    <table class="data-table" id="revenueInvoiceTable"></table>
                   </div>
                 </div>
               </div>
@@ -508,6 +587,7 @@
               <div class="filter-pills" id="jobsAdminFilters">
                 <button class="pill active" data-status="All">All</button>
                 <button class="pill" data-status="Pending">Pending</button>
+                <button class="pill" data-status="Confirmed">Confirmed</button>
                 <button class="pill" data-status="In Progress">
                   In Progress
                 </button>

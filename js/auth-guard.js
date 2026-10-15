@@ -16,7 +16,7 @@ export function handleSignOut(btnId = "signOutBtn") {
     signOutBtn.addEventListener("click", (e) => {
       e.preventDefault();
       localStorage.clear();
-      window.location.href = "login.html";
+      window.location.href = "index.html";
     });
   }
 }

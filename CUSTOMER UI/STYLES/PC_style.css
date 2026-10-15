@@ -354,6 +354,14 @@
     overflow-y: auto;
 }
 
+.parts-add-status {
+    min-height: 16px;
+    margin: 0;
+    color: #a1a1aa;
+    font-size: 12px;
+    line-height: 1.35;
+}
+
 /* Cart Item Card inside the parts modal */
 .cart-item-card {
     background-color: #121214;

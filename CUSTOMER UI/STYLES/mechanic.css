@@ -887,6 +887,35 @@ button {
   color: var(--text-dim);
   font-size: 24px;
 }
+.mechanic-profile-close,
+.job-details-close {
+  box-sizing: border-box;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #a1a1aa;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 0.2s, background-color 0.2s;
+}
+.mechanic-profile-close:hover,
+.job-details-close:hover {
+  background-color: #27272a;
+  color: #ffffff;
+}
+.mechanic-profile-close:focus-visible,
+.job-details-close:focus-visible {
+  outline: 2px solid #f97316;
+  outline-offset: 2px;
+}
 .job-details-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;

@@ -27,6 +27,19 @@ their shared source of truth.
 | `motofix_current_user`, `userEmail`, `userRole`, `userFullName`, `isLoggedIn` | Browser login/session state | Server-managed session or signed access token; never trust client values for authorization |
 | `motofix_signup_motorcycle_migrated:<email>` | One-time marker for moving signup bike fields onto the motorcycle registry | One-time data migration flag; not a normal domain table |
 
+### Service catalog availability
+
+- Services are retained when deactivated; Admin changes availability instead
+  of deleting service records. Store an explicit `status` (`Available` or
+  `Disabled`) and keep any legacy `active`/`available` flags consistent.
+- Customer catalog requests use `GET /services?active=true`; the backend must
+  return only services whose status is `Available`. LocalStorage-mode customer
+  booking filters out services marked Disabled/inactive before rendering or
+  submission.
+- Admin service updates should use an authorized status update (for example
+  `PATCH /services/:id` with `{ "status": "Disabled" }`) and return the updated
+  service record so the Admin catalog can refresh without losing its identity.
+
 ## Relationships and current role flows
 
 ### Accounts and profiles
@@ -210,3 +223,52 @@ All IDs and relationships must be validated server-side. Browser events such as
 `motofix:appointments-updated`, `motofix:inventory-updated`, and
 `motofix:notifications-updated` only refresh views in the current browser; they
 are not substitutes for API persistence or real-time server events.
+
+### Customer booking API integration
+
+The Customer dashboard can use the REST API by setting
+`window.MOTOFIX_API_BASE_URL` (for example, `"/api"`) before loading
+`CUSTOMER UI/JAVASCRIPTS/Customer.js`. With this setting present, the customer
+client uses cookie-backed requests with credentials for `GET /services?active=true`,
+`GET /appointments`, `POST /appointments`, and
+`PATCH /appointments/:id`. Service and appointment data are refreshed every
+30 seconds while the dashboard is visible; service changes in the existing
+same-browser Admin demo also propagate through the `motofix_services` storage
+event. If the setting is absent, the app deliberately retains its existing
+shared-LocalStorage demo behavior; that mode does not synchronize separate
+browsers or devices.
+
+The authenticated `GET /appointments` endpoint must return only records visible
+to the signed-in customer and include their `customerEmail` for the customer
+dashboard's client-side projection. On `POST /appointments`, the server must
+derive the customer identity from the authenticated session, assign and return
+the appointment ID, and validate service IDs, prices, availability, and
+appointment ownership rather than trusting browser snapshots.
+
+For an owning customer, `PATCH /appointments/:id` must atomically allow only a
+strictly `Pending` appointment to transition to `Canceled`, update its related
+transaction/invoice projection, and publish an Admin notification/event (for
+example through the existing real-time channel). A customer may request
+cancellation of a `Confirmed` appointment through
+`POST /appointments/:id/cancellation-request`; the server must check ownership
+and status, require and persist the customer's non-empty `reason`, create one
+pending request, and notify Admin without changing the appointment status.
+Admin review must use an authenticated endpoint to approve
+or deny the request. Approval atomically cancels the appointment, records the
+customer as the cancellation initiator and Admin as reviewer, updates the
+transaction/invoice projection, notifies the customer, and publishes a
+Master-Admin notification/event. Denial leaves the appointment unchanged and
+notifies the customer. The server must persist cancellation attribution (for
+direct pending cancellations, for example `canceled_by_user_id` plus a
+role/name snapshot) from the authenticated session, not from client-supplied
+identity fields; return attribution with the updated appointment so Customer
+and Admin details can show who canceled it. Store the confirmed-booking request
+and review decision in an appointment-linked cancellation-request record or
+equivalent durable audit fields.
+The browser's local notification event is used only by the LocalStorage demo and
+is not a substitute for that server-side event.
+
+Parts selected while a booking is still a draft are stored under a
+customer-specific LocalStorage draft and included in the appointment's `parts`
+payload at submit time. The server must validate stock and line items on
+submission; it must not treat the browser draft as an authorized appointment.
