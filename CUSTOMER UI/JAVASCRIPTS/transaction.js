@@ -1,3 +1,10 @@
+import {
+    cancelCustomerAppointment,
+    requestCustomerAppointmentCancellation,
+    sortAppointmentsNewestFirst,
+} from "./customer-api.js";
+import { collectCancellationReason } from "./cancellation-request-dialog.js";
+
 export function initTransactions() {
     // Invoice projection from appointments and ID relationship: ../../BACKEND_DATA_CONTRACT.md
     const transactionsTableBody = document.getElementById("transactions-table-body");
@@ -41,7 +48,8 @@ export function initTransactions() {
             "work finished (unpaid)": "Unpaid",
             "work finished": "Work Finished",
             pending: "Pending",
-            cancelled: "Cancelled",
+            cancelled: "Canceled",
+            canceled: "Canceled",
             confirmed: "Confirmed",
             "in progress": "In Progress",
             unpaid: "Unpaid",
@@ -49,6 +57,35 @@ export function initTransactions() {
         return aliases[status.toLowerCase()] || status;
     };
     const statusClass = (status) => canonicalStatus(status).toLowerCase().replace(/\s+/g, "-");
+    const isCurrentCustomerAppointment = (appointment) =>
+        Boolean(currentEmail) &&
+        String(appointment.customerEmail || "").trim().toLowerCase() === currentEmail;
+
+    async function cancelAppointment(appointmentId) {
+        const appointment = readCustomerAppointments().find(
+            (record) => String(record.id) === String(appointmentId),
+        );
+        const isConfirmed = canonicalStatus(appointment?.status) === "Confirmed";
+        const reason = isConfirmed
+            ? await collectCancellationReason(appointment, escapeHtml)
+            : null;
+        if (isConfirmed && reason === null) return;
+        if (!isConfirmed && !window.confirm("Cancel this pending appointment?")) return;
+        try {
+            if (isConfirmed) {
+                await requestCustomerAppointmentCancellation(appointmentId, reason);
+            } else {
+                await cancelCustomerAppointment(appointmentId);
+            }
+            loadTransactions(document.querySelector(".filter-tab.active")?.dataset.filter || "all");
+            const updated = readCustomerAppointments().find(
+                (appointment) => String(appointment.id) === String(appointmentId),
+            );
+            if (updated) showInvoiceDetails(updated);
+        } catch (error) {
+            window.alert(error.message || "Unable to cancel this appointment.");
+        }
+    }
 
     function readAppointments() {
         try {
@@ -87,6 +124,10 @@ export function initTransactions() {
             : [appointment.services || "Service"];
         const parts = Array.isArray(appointment.parts) ? appointment.parts : [];
         const status = canonicalStatus(appointment.status);
+        const cancellationRequestPending =
+            String(appointment.cancellationRequest?.status || "").toLowerCase() === "pending";
+        const canceledByCustomer =
+            status === "Canceled" && appointment.canceledByRole === "customer";
         const invoiceId = appointment.transaction?.id || `INV-${appointment.id}`;
         const total = appointment.transaction?.total || appointment.total || "₱0.00";
 
@@ -94,7 +135,7 @@ export function initTransactions() {
             <section class="invoice-details-dialog" role="dialog" aria-modal="true" aria-labelledby="invoice-details-title">
                 <header class="invoice-details-header">
                     <div><p>Transaction details</p><h2 id="invoice-details-title">${escapeHtml(invoiceId)}</h2></div>
-                    <button type="button" class="invoice-details-close" data-close-invoice-details aria-label="Close invoice details">×</button>
+                    <button type="button" class="invoice-details-close" data-close-invoice-details aria-label="Close invoice details">✕</button>
                 </header>
                 <dl class="invoice-details-grid">
                     <div><dt>Customer</dt><dd>${escapeHtml(appointment.customer || "Customer")}</dd></div>
@@ -102,26 +143,39 @@ export function initTransactions() {
                     <div><dt>Date and time</dt><dd>${escapeHtml(`${appointment.date || "N/A"} ${appointment.time || ""}`.trim())}</dd></div>
                     <div><dt>Mechanic</dt><dd>${escapeHtml(appointment.mechanic || "Unassigned")}</dd></div>
                     <div><dt>Status</dt><dd><span class="status-badge status-${statusClass(status)}">${escapeHtml(status)}</span></dd></div>
+                    ${canceledByCustomer ? `<div><dt>Cancellation</dt><dd>Canceled by customer${appointment.canceledByEmail ? ` (${escapeHtml(appointment.canceledByEmail)})` : ""}</dd></div>` : ""}
+                    ${cancellationRequestPending ? "<div><dt>Cancellation request</dt><dd>Awaiting Admin review</dd></div>" : ""}
+                    ${cancellationRequestPending && appointment.cancellationRequest?.reason ? `<div><dt>Requested cancellation reason</dt><dd>${escapeHtml(appointment.cancellationRequest.reason)}</dd></div>` : ""}
                     <div><dt>Total</dt><dd class="invoice-details-total">${escapeHtml(total)}</dd></div>
                 </dl>
-                <div class="invoice-details-section"><h3>Services</h3><ul>${services.map((service) => `<li>${escapeHtml(service)}</li>`).join("")}</ul></div>
-                <div class="invoice-details-section"><h3>Parts</h3>${parts.length
+                <div class="invoice-details-section invoice-services-section"><h3>Services</h3><ul>${services.map((service) => `<li>${escapeHtml(service)}</li>`).join("")}</ul></div>
+                <div class="invoice-details-section invoice-parts-section"><h3>Parts</h3>${parts.length
                     ? `<ul>${parts.map((part) => `<li>${escapeHtml(part.name || "Part")} × ${escapeHtml(part.quantity || 1)} <span>${escapeHtml(part.source === "client" ? "Customer supplied" : "Shop part")}</span></li>`).join("")}</ul>`
                     : "<p class=\"invoice-details-empty\">No parts on this invoice.</p>"}</div>
-                ${appointment.notes ? `<div class="invoice-details-section"><h3>Notes</h3><p>${escapeHtml(appointment.notes)}</p></div>` : ""}
+                ${appointment.notes ? `<div class="invoice-details-section invoice-notes-section"><h3>Notes</h3><p>${escapeHtml(appointment.notes)}</p></div>` : ""}
+                ${isCurrentCustomerAppointment(appointment) && !cancellationRequestPending && ["Pending", "Confirmed"].includes(status)
+                    ? `<button type="button" class="sc-submit-btn sc-danger-btn" data-cancel-appointment="${escapeHtml(appointment.id)}">${status === "Confirmed" ? "Request Cancellation" : "Cancel Appointment"}</button>`
+                    : ""}
             </section>
         `;
         overlay.classList.add("is-open");
         overlay.querySelector("[data-close-invoice-details]")?.focus();
+        overlay.querySelector("[data-cancel-appointment]")?.addEventListener("click", (event) => {
+            const button = event.currentTarget;
+            button.disabled = true;
+            cancelAppointment(button.dataset.cancelAppointment).finally(() => {
+                if (button.isConnected) button.disabled = false;
+            });
+        });
     }
 
     function loadTransactions(filter = "all") {
         if (!transactionsTableBody) return;
 
         const appointments = readCustomerAppointments();
-        const filtered = appointments.filter((appointment) =>
+        const filtered = sortAppointmentsNewestFirst(appointments.filter((appointment) =>
             filter === "all" || canonicalStatus(appointment.status).toLowerCase() === filter.toLowerCase(),
-        );
+        ));
 
         if (invoiceCountLabel) {
             invoiceCountLabel.textContent = `${filtered.length} invoice${filtered.length === 1 ? "" : "s"} total`;
@@ -142,6 +196,8 @@ export function initTransactions() {
                 ? appointment.parts.map((part) => `${part.name || "Part"} (x${part.quantity || 1})`).join(", ")
                 : "None";
             const status = canonicalStatus(appointment.status);
+            const cancellationRequestPending =
+                String(appointment.cancellationRequest?.status || "").toLowerCase() === "pending";
             const invoiceId = appointment.transaction?.id || `INV-${appointment.id}`;
             const total = appointment.transaction?.total || appointment.total || "₱0.00";
             return `
@@ -151,7 +207,11 @@ export function initTransactions() {
                     <td>${escapeHtml(appointment.mechanic || "Unassigned")}</td>
                     <td><div>${escapeHtml(parts)}</div><small style="color:#94a3b8">Brought own: ${appointment.parts?.some((part) => part.source === "client") ? "Yes" : "No"}</small></td>
                     <td><strong>${escapeHtml(total)}</strong></td>
-                    <td><span class="status-badge status-${statusClass(status)}">${escapeHtml(status)}</span></td>
+                    <td><span class="status-badge status-${statusClass(status)}">${escapeHtml(status)}</span>
+                        ${isCurrentCustomerAppointment(appointment) && !cancellationRequestPending && ["Pending", "Confirmed"].includes(status)
+                            ? `<button type="button" class="sc-secondary-btn sc-danger-btn" data-cancel-appointment="${escapeHtml(appointment.id)}">${status === "Confirmed" ? "Request Cancellation" : "Cancel"}</button>`
+                            : cancellationRequestPending ? '<small>Cancellation request pending</small>' : ""}
+                    </td>
                     <td>${escapeHtml(appointment.date || "N/A")}</td>
                 </tr>
             `;
@@ -167,6 +227,15 @@ export function initTransactions() {
     });
 
     transactionsTableBody?.addEventListener("click", (event) => {
+        const cancelButton = event.target.closest("[data-cancel-appointment]");
+        if (cancelButton) {
+            event.stopPropagation();
+            cancelButton.disabled = true;
+            cancelAppointment(cancelButton.dataset.cancelAppointment).finally(() => {
+                if (cancelButton.isConnected) cancelButton.disabled = false;
+            });
+            return;
+        }
         const row = event.target.closest("tr[data-appointment-id]");
         if (!row) return;
         const appointment = readCustomerAppointments().find(

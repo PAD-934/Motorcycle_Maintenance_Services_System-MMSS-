@@ -74,6 +74,8 @@
       Completed: "completed",
       Cancelled: "cancelled",
       cancelled: "cancelled",
+      Canceled: "cancelled",
+      canceled: "cancelled",
     };
     return map[value] || value.toLowerCase().replace(/\s+/g, "_");
   }
@@ -244,6 +246,12 @@
       inventoryDeducted = inventoryUpdate.deducted;
     }
     appointment.status = labels[status] || status;
+    appointment.updatedAt = new Date().toISOString();
+    if (appointment.status === "Completed") {
+      appointment.completedAt = appointment.completedAt || appointment.updatedAt;
+    } else if (status !== "completed") {
+      appointment.completedAt = null;
+    }
     localStorage.setItem("motofix_appointments", JSON.stringify(appointments));
     if (inventoryDeducted) {
       parts = readInventory();
@@ -860,7 +868,7 @@
     localStorage.removeItem("isLoggedIn");
     localStorage.removeItem("userEmail");
     localStorage.removeItem("userRole");
-    window.location.href = "../../login.html";
+    window.location.href = "../../index.html";
   });
 
   /* ---------------- Notifications ---------------- */

@@ -67,6 +67,64 @@ const DATA = {
   users: [],
   masterEmployees: [],
 };
+const BILLING_INVOICE_BY_ID = new Map();
+const BILLING_JOB_BY_ID = new Map();
+const BILLING_USER_BY_NAME = new Map();
+let billingInvoicesRendered = false;
+
+const BILLING_DATE_FILTER_STORAGE_KEY = "motofix_billing_date_filter";
+let billingDateFilter = (() => {
+  try {
+    const stored = JSON.parse(localStorage.getItem(BILLING_DATE_FILTER_STORAGE_KEY) || "{}");
+    const today = new Date();
+    const currentMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
+    const validDate = (value) => typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value);
+    const dates = Array.isArray(stored.dates)
+      ? stored.dates.filter(validDate).sort()
+      : validDate(stored.day)
+        ? [stored.day]
+        : [];
+    const validRange = validDate(stored.startDate) &&
+      validDate(stored.endDate) &&
+      stored.startDate <= stored.endDate;
+    if (!dates.length && validDate(stored.startDate) && stored.mode !== "range") {
+      const start = new Date(`${stored.startDate}T00:00:00`);
+      const end = new Date(`${validDate(stored.endDate) ? stored.endDate : stored.startDate}T00:00:00`);
+      for (const date = new Date(start); date <= end; date.setDate(date.getDate() + 1)) {
+        dates.push(`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`);
+      }
+    }
+    return {
+      mode: stored.mode === "range" && validRange
+        ? "range"
+        : stored.mode === "month" && /^\d{4}-\d{2}$/.test(stored.month || "")
+          ? "month"
+          : dates.length
+            ? "dates"
+            : "all",
+      dates: [...new Set(stored.mode === "month" ? [] : dates)].sort(),
+      month: /^\d{4}-\d{2}$/.test(stored.month || "") ? stored.month : currentMonth,
+      startDate: validRange ? stored.startDate : "",
+      endDate: validRange ? stored.endDate : "",
+      preset: ["last7", "last30", "last60"].includes(stored.preset) ? stored.preset : "custom",
+    };
+  } catch {
+    const today = new Date();
+    return {
+      mode: "all",
+      dates: [],
+      month: `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`,
+      startDate: "",
+      endDate: "",
+      preset: "custom",
+    };
+  }
+})();
+let billingCalendarViewMonth = billingDateFilter.month;
+let billingCalendarDraft = {
+  ...billingDateFilter,
+  dates: [...billingDateFilter.dates],
+};
 
 function readStoredArray(key) {
   try {
@@ -99,7 +157,7 @@ function normalizeAccountRole(role) {
 }
 
 function storedAmount(value) {
-  const amount = Number.parseFloat(String(value ?? "").replace(/[^0-9.-]/g, ""));
+  const amount = Number.parseFloat(String(value ?? "").replace(/,/g, "").replace(/[^0-9.-]/g, ""));
   return Number.isFinite(amount) ? amount : 0;
 }
 
@@ -109,6 +167,8 @@ function canonicalAppointmentStatus(value) {
     "complete transaction": "Completed",
     completed: "Completed",
     "work finished (unpaid)": "Unpaid",
+    canceled: "Cancelled",
+    cancelled: "Cancelled",
   };
   return aliases[status.toLowerCase()] || status;
 }
@@ -125,7 +185,12 @@ function rebuildDerivedDashboardData() {
     const total = isCancelled
       ? 0
       : storedAmount(transaction.total ?? appointment.total);
-    const vat = isCancelled ? 0 : storedAmount(transaction.vat);
+    const recordedVat = storedAmount(transaction.vat);
+    const vat = isCancelled
+      ? 0
+      : recordedVat || (status === "Completed"
+        ? Math.round(total * 0.12 * 100) / 100
+        : 0);
 
     return {
       id: transaction.id || `INV-${appointment.id}`,
@@ -137,6 +202,11 @@ function rebuildDerivedDashboardData() {
       total,
       status,
       date: appointment.date || "",
+      completedAt:
+        status === "Completed"
+          ? appointment.completedAt || transaction.completedAt || appointment.updatedAt || appointment.date || ""
+          : "",
+      updatedAt: appointment.updatedAt || "",
       appointmentId: appointment.id,
     };
   });
@@ -144,6 +214,9 @@ function rebuildDerivedDashboardData() {
   DATA.jobs = DATA.appointments.map((appointment) => ({
     id: `J-${appointment.id}`,
     apptRef: appointment.id,
+    createdAt: appointment.createdAt || appointment.created_at || appointment.bookingCreatedAt || "",
+    date: appointment.date || "",
+    time: appointment.time || "",
     customer: appointment.customer || "Customer",
     bike: appointment.bike || appointment.motorcycle || "Unknown Motorcycle",
     mechanic: appointment.mechanic || "",
@@ -154,6 +227,24 @@ function rebuildDerivedDashboardData() {
     note: appointment.notes || `Service requested: ${(Array.isArray(appointment.services) ? appointment.services : [appointment.services || "Service"]).join(", ")}`,
     status: canonicalAppointmentStatus(appointment.status),
   }));
+  BILLING_INVOICE_BY_ID.clear();
+  DATA.invoices.forEach((invoice) => {
+    if (!BILLING_INVOICE_BY_ID.has(String(invoice.id))) {
+      BILLING_INVOICE_BY_ID.set(String(invoice.id), invoice);
+    }
+  });
+  BILLING_JOB_BY_ID.clear();
+  DATA.jobs.forEach((job) => {
+    if (!BILLING_JOB_BY_ID.has(String(job.id))) {
+      BILLING_JOB_BY_ID.set(String(job.id), job);
+    }
+  });
+  BILLING_USER_BY_NAME.clear();
+  DATA.users.forEach((user) => {
+    if (!BILLING_USER_BY_NAME.has(String(user.name))) {
+      BILLING_USER_BY_NAME.set(String(user.name), user);
+    }
+  });
 
   const monthlyRevenue = new Map();
   DATA.invoices.forEach((invoice) => {
@@ -1425,6 +1516,76 @@ function goToPage(page) {
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
+function openLowStockPartsModal() {
+  const lowStockParts = DATA.inventory
+    .filter((part) => Number(part.stock) <= Number(part.reorderLevel ?? 10))
+    .sort((left, right) => Number(left.stock) - Number(right.stock));
+
+  const content = lowStockParts.length
+    ? `<div class="low-stock-parts-list">${lowStockParts.map((part) => `
+        <button type="button" class="low-stock-part-link" data-inventory-sku="${escapeDashboardHtml(part.sku)}">
+          <span class="low-stock-part-info">
+            <strong>${escapeDashboardHtml(part.name || "Unnamed part")}</strong>
+            <small>SKU ${escapeDashboardHtml(part.sku || "N/A")} · ${escapeDashboardHtml(part.category || "Uncategorized")}</small>
+          </span>
+          <span class="low-stock-part-count ${Number(part.stock) <= 0 ? "is-out" : ""}">
+            ${Number(part.stock) <= 0 ? "Out of stock" : `${Number(part.stock)} left`}
+          </span>
+        </button>`).join("")}</div>`
+    : '<p class="low-stock-empty">No parts are currently at or below their reorder level.</p>';
+
+  openModal("Low Stock Parts", content);
+  $("#modalBackdrop .modal")?.classList.add("low-stock-parts-modal");
+  $$(".low-stock-part-link", $("#modalBody")).forEach((button) => {
+    button.addEventListener("click", () => {
+      const sku = button.dataset.inventorySku;
+      $("#modalBackdrop").classList.remove("open");
+      goToPage("inventory");
+      openPartDetailsModal(sku);
+    });
+  });
+}
+
+function makeDashboardStatInteractive(element, label, activate) {
+  if (!element) return;
+  element.classList.add("stat-card-interactive");
+  element.setAttribute("role", "button");
+  element.setAttribute("tabindex", "0");
+  element.setAttribute("aria-label", label);
+  element.addEventListener("click", activate);
+  element.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    activate();
+  });
+}
+
+makeDashboardStatInteractive(
+  $("#activeJobsStatCard"),
+  "View mechanic jobs",
+  () => goToPage("jobs"),
+);
+makeDashboardStatInteractive(
+  $("#lowStockStatCard"),
+  "View low-stock parts",
+  openLowStockPartsModal,
+);
+makeDashboardStatInteractive(
+  $("#revTotalStatCard"),
+  "View total revenue details",
+  () => openRevenueMetricDetails("revenue"),
+);
+makeDashboardStatInteractive(
+  $("#revVatStatCard"),
+  "View VAT collected details",
+  () => openRevenueMetricDetails("vat"),
+);
+makeDashboardStatInteractive(
+  $("#revAverageStatCard"),
+  "View average invoice value details",
+  () => openRevenueMetricDetails("average"),
+);
+
 $$(".nav-item").forEach((btn) =>
   btn.addEventListener("click", () => goToPage(btn.dataset.page)),
 );
@@ -1542,12 +1703,21 @@ document.addEventListener("keydown", (e) => {
   }
 });
 $("#signOutBtn").addEventListener("click", () => {
-  window.location.href = "login.html";
+  localStorage.removeItem("isLoggedIn");
+  localStorage.removeItem("userEmail");
+  localStorage.removeItem("userRole");
+  window.location.href = "index.html";
 });
 
 /* ===================== MODAL ===================== */
 function openModal(title, bodyHTML) {
   $("#modalBackdrop .modal")?.classList.remove("profile-editor-modal");
+  $("#modalBackdrop .modal")?.classList.remove(
+    "registered-motorcycle-details-modal",
+    "inventory-part-details-modal",
+    "low-stock-parts-modal",
+    "revenue-metric-details-modal",
+  );
   $("#modalTitle").textContent = title;
   $("#modalBody").innerHTML = bodyHTML;
   $("#modalBackdrop").classList.add("open");
@@ -1679,38 +1849,6 @@ document.getElementById("openAddPartBtn")?.addEventListener("click", () => {
   );
 });
 
-// 2. Hooks up the "Add New Service" button to your existing modal
-document.getElementById("openAddServiceBtn")?.addEventListener("click", () => {
-  openModal(
-    "Add New Service",
-    `
-        <form id="addServiceForm">
-            <div style="margin-bottom: 12px;">
-                <label style="display:block; margin-bottom:4px; font-weight:500;">Service Name</label>
-                <input type="text" id="newServiceName" required style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;">
-            </div>
-            <div style="margin-bottom: 12px;">
-                <label style="display:block; margin-bottom:4px; font-weight:500;">Category</label>
-                <input type="text" id="newServiceCategory" required style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;">
-            </div>
-            <div style="margin-bottom: 12px;">
-                <label style="display:block; margin-bottom:4px; font-weight:500;">Description</label>
-                <textarea id="newServiceDesc" rows="3" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;"></textarea>
-            </div>
-            <div style="margin-bottom: 12px;">
-                <label style="display:block; margin-bottom:4px; font-weight:500;">Price (₱)</label>
-                <input type="number" id="newServicePrice" step="0.01" min="0" required style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;">
-            </div>
-            <div style="margin-bottom: 12px;">
-                <label style="display:block; margin-bottom:4px; font-weight:500;">Duration Label (e.g. 1.0 hrs)</label>
-                <input type="text" id="newServiceHours" required style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;" value="1.0 hrs">
-            </div>
-            <button type="submit" class="btn-primary" style="width:100%; margin-top:10px;">Save Service</button>
-        </form>
-    `,
-  );
-});
-
 /* =========================================================
    UPDATE BLOCK 2: LOCAL STORAGE FORM SUBMISSION HANDLERS
    Captures form inputs, stores items into localStorage,
@@ -1756,22 +1894,39 @@ document.addEventListener("submit", (e) => {
   if (e.target && e.target.id === "addServiceForm") {
     e.preventDefault();
 
-    const newServiceCode = "S" + (DATA.services.length + 1);
+    const categorySelect = document.getElementById("newServiceCategorySelect");
+    const newServiceCategory = categorySelect.value === "OTHER"
+      ? document.getElementById("newServiceCategoryCustom").value.trim()
+      : categorySelect.value.trim();
+    const servicesList = readStoredArray("motofix_services");
+    const nextServiceNumber = servicesList.reduce((maximum, service) => {
+      const number = Number(String(service.code || "").match(/^S(\d+)$/i)?.[1] || 0);
+      return Math.max(maximum, number);
+    }, 0) + 1;
     const newService = {
-      code: newServiceCode,
-      name: document.getElementById("newServiceName").value,
-      category: document.getElementById("newServiceCategory").value,
+      code: `S${nextServiceNumber}`,
+      name: document.getElementById("newServiceName").value.trim(),
+      category: newServiceCategory,
       price: parseFloat(document.getElementById("newServicePrice").value),
       hours: 1,
-      hoursLabel: document.getElementById("newServiceHours").value,
-      desc: document.getElementById("newServiceDesc").value,
+      hoursLabel: document.getElementById("newServiceHours").value.trim(),
+      desc: document.getElementById("newServiceDesc").value.trim(),
+      status: "Available",
+      active: true,
+      available: true,
+      isActive: true,
+      isAvailable: true,
     };
 
-    // Update local storage array
-    let servicesList =
-      JSON.parse(localStorage.getItem("motofix_services")) || [];
     servicesList.push(newService);
-    localStorage.setItem("motofix_services", JSON.stringify(servicesList));
+    try {
+      localStorage.setItem("motofix_services", JSON.stringify(servicesList));
+    } catch (error) {
+      console.error("Unable to save new service:", error);
+      window.alert(error.message || "Unable to save the new service.");
+      return;
+    }
+    window.dispatchEvent(new Event("motofix:services-updated"));
 
     // Sync main DATA object and re-render services view
     DATA.services = servicesList;
@@ -1874,10 +2029,9 @@ function persistAppointments() {
   renderInvoices();
   renderJobs();
   renderBarChart("revenueChart", DATA.revenue);
-  renderBarChart("revenueChart2", DATA.revenue);
   renderPieChart("serviceMixPie", "serviceMixLegend", DATA.serviceMix);
   renderAdminDashboardStats();
-  renderRevenueStatsAndBreakdown();
+  renderBillingReports();
 }
 
 /* ===================== APPOINTMENTS TABLE & NATIVE MODAL ===================== */
@@ -1893,6 +2047,7 @@ const STATUS_FLOW = [
 
 const MECHANIC_JOB_STATUS_FLOW = [
   { value: "Pending", label: "Pending" },
+  { value: "Confirmed", label: "Confirmed" },
   { value: "In Progress", label: "In Progress" },
   { value: "Unpaid", label: "Work Finished (unpaid)" },
   { value: "Complete transaction", label: "Complete" },
@@ -1966,14 +2121,28 @@ function apptRowHTML(a) {
   `;
 }
 
+function appointmentBookingTimestamp(appointment) {
+  const createdAt =
+    appointment.createdAt || appointment.created_at || appointment.bookingCreatedAt;
+  const value = createdAt || [appointment.date, appointment.time].filter(Boolean).join(" ");
+  const parsed = Date.parse(value || "");
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function sortAppointmentsNewestFirst(appointments) {
+  return [...appointments].sort(
+    (left, right) => appointmentBookingTimestamp(right) - appointmentBookingTimestamp(left),
+  );
+}
+
 function renderDashboardAppointments() {
   const t = $("#dashAppointmentsTable");
   if (!t) return;
   t.innerHTML = `
     <thead><tr>
-      <th>Customer</th><th>Motorcycle</th><th>Services</th><th>Date &amp; Time</th><th>Mechanic</th><th>Status</th>
+      <th>Appointment #</th><th>Customer</th><th>Motorcycle</th><th>Services</th><th>Date &amp; Time</th><th>Mechanic</th><th>Status</th>
     </tr></thead>
-    <tbody>${DATA.appointments.map((a) => apptRowHTML(a)).join("")}</tbody>
+    <tbody>${sortAppointmentsNewestFirst(DATA.appointments).map((a) => apptRowHTML(a)).join("")}</tbody>
   `;
 }
 
@@ -1993,6 +2162,7 @@ function renderAppointmentsPage() {
     rows = rows.filter((a) =>
       (a.customer + a.bike).toLowerCase().includes(query),
     );
+  rows = sortAppointmentsNewestFirst(rows);
 
   const t = $("#apptTable");
   if (!t) return;
@@ -2024,11 +2194,19 @@ function openAppointmentModal(appId) {
   currentSelectedAppointmentId = appId;
   const app = DATA.appointments.find((a) => a.id === appId);
   if (!app) return;
+  const customerCancellationRequest = app.cancellationRequest || {};
+  const hasPendingCustomerCancellation =
+    String(customerCancellationRequest.status || "").toLowerCase() === "pending";
+  const canReviewCustomerCancellation =
+    String(localStorage.getItem("userRole") || "").toLowerCase() === "admin" &&
+    hasPendingCustomerCancellation;
 
   const modalBodyHTML = `
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
             <div class="field" style="margin-bottom:0;"><label style="font-size:11px; color:var(--text-sub, #9ca3af);">Appointment ID</label><div style="font-weight:600;">${app.id}</div></div>
             <div class="field" style="margin-bottom:0;"><label style="font-size:11px; color:var(--text-sub, #9ca3af);">Status</label><div>${getCustomStatusBadge(app.status)}</div></div>
+            ${canonicalAppointmentStatus(app.status) === "Cancelled" && app.canceledByRole === "customer" ? `<div class="field" style="margin-bottom:0; grid-column:span 2;"><label style="font-size:11px; color:var(--text-sub, #9ca3af);">Cancellation</label><div>Cancelled by customer${app.canceledByEmail ? ` (${escapeDashboardHtml(app.canceledByEmail)})` : ""}</div></div>` : ""}
+            ${customerCancellationRequest.status ? `<div class="field" style="margin-bottom:0; grid-column:span 2;"><label style="font-size:11px; color:var(--text-sub, #9ca3af);">Customer cancellation request</label><div>${escapeDashboardHtml(customerCancellationRequest.status)}${customerCancellationRequest.requestedAt ? ` · ${escapeDashboardHtml(new Date(customerCancellationRequest.requestedAt).toLocaleString("en-PH"))}` : ""}${customerCancellationRequest.reviewedBy ? ` · reviewed by ${escapeDashboardHtml(customerCancellationRequest.reviewedBy)}` : ""}</div></div>` : ""}
             
             <div class="field" style="margin-bottom:0;"><label style="font-size:11px; color:var(--text-sub, #9ca3af);">Customer Name</label><div style="font-weight:600;">${app.customer}</div></div>
             <div class="field" style="margin-bottom:0;"><label style="font-size:11px; color:var(--text-sub, #9ca3af);">Contact Number</label><div>${app.phone || "N/A"}</div></div>
@@ -2043,6 +2221,7 @@ function openAppointmentModal(appId) {
             <div class="field" style="margin-bottom:0; grid-column: span 2;"><label style="font-size:11px; color:var(--text-sub, #9ca3af);">Parts Requested</label><div>${app.parts?.length ? app.parts.map((part) => `${part.name} x${part.quantity}`).join(", ") : "No parts requested."}</div></div>
         </div>
 
+        ${canReviewCustomerCancellation ? `<section class="permission-request-section cancellation-reason-section"><h4>Customer cancellation request</h4><p>${escapeDashboardHtml(app.customer || "Customer")} requested to cancel this confirmed appointment.</p><p class="cancellation-request-reason">${escapeDashboardHtml(customerCancellationRequest.reason || "No reason provided")}</p><div class="permission-request-actions permission-review-actions"><button type="button" class="btn-view" id="denyCustomerCancellationRequest">Deny Request</button><button type="button" class="btn-primary" id="approveCustomerCancellationRequest">Approve Cancellation</button></div></section>` : ""}
         <div class="appointment-modal-footer">
             <div class="appointment-modal-actions">
                 ${isLockedCompletedAppointment(app) ? `<button type="button" class="btn-secondary appointment-request-edit" id="requestCompletedJobEditFromAppointment">Request Edit</button>` : ""}
@@ -2057,6 +2236,12 @@ function openAppointmentModal(appId) {
   openModal(`Appointment Details: #${app.id}`, modalBodyHTML);
   $("#requestCompletedJobEditFromAppointment")?.addEventListener("click", () =>
     openCompletedJobEditRequestModal(app),
+  );
+  $("#approveCustomerCancellationRequest")?.addEventListener("click", () =>
+    resolveCustomerCancellationRequest(app.id, "Approved"),
+  );
+  $("#denyCustomerCancellationRequest")?.addEventListener("click", () =>
+    resolveCustomerCancellationRequest(app.id, "Denied"),
   );
   $("#cancelAppointmentFromDetails")?.addEventListener("click", () => {
     if (canonicalAppointmentStatus(app.status) === "Cancelled") return;
@@ -2073,6 +2258,73 @@ function openAppointmentModal(appId) {
     }
     window.alert("Only an admin or the Master Admin can cancel this appointment.");
   });
+}
+
+function resolveCustomerCancellationRequest(appId, decision) {
+  if (String(localStorage.getItem("userRole") || "").toLowerCase() !== "admin") {
+    window.alert("Only an Admin can review customer cancellation requests.");
+    return;
+  }
+  const appointment = DATA.appointments.find((item) => String(item.id) === String(appId));
+  const cancellationRequest = appointment?.cancellationRequest;
+  if (!appointment || String(cancellationRequest?.status || "").toLowerCase() !== "pending") {
+    window.alert("This customer cancellation request is no longer pending.");
+    return;
+  }
+  if (decision === "Approved" && canonicalAppointmentStatus(appointment.status) !== "Confirmed") {
+    window.alert("Only confirmed appointments can be canceled through this request.");
+    return;
+  }
+
+  const reviewedAt = new Date().toISOString();
+  const reviewerEmail = (localStorage.getItem("userEmail") || "").trim().toLowerCase();
+  cancellationRequest.status = decision;
+  cancellationRequest.reviewedAt = reviewedAt;
+  cancellationRequest.reviewedBy = reviewerEmail || "Admin";
+  if (decision === "Approved") {
+    appointment.status = "Cancelled";
+    appointment.canceledByRole = "customer";
+    appointment.canceledByEmail = cancellationRequest.requestedByEmail || appointment.customerEmail || "";
+    appointment.canceledAt = reviewedAt;
+    appointment.total = "₱0.00";
+    appointment.transaction = {
+      ...(appointment.transaction && typeof appointment.transaction === "object" ? appointment.transaction : {}),
+      status: "Cancelled",
+      total: "₱0.00",
+    };
+  }
+  persistAppointments();
+
+  const notifications = readStoredArray("motofix_notifications");
+  const customerEmail = String(
+    cancellationRequest.requestedByEmail || appointment.customerEmail || "",
+  ).trim().toLowerCase();
+  notifications.unshift({
+    id: `N${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    title: `Appointment cancellation request ${decision.toLowerCase()}`,
+    message: `Your request to cancel appointment ${appointment.id} was ${decision.toLowerCase()} by the Admin.`,
+    audiences: customerEmail ? [`customer:${customerEmail}`] : ["customer"],
+    appointmentId: appointment.id,
+    destination: "appointments",
+    createdAt: reviewedAt,
+    readBy: [],
+  });
+  if (decision === "Approved") {
+    notifications.unshift({
+      id: `N${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      title: "Customer appointment cancellation approved",
+      message: `Admin approved the customer's cancellation request for appointment ${appointment.id}.`,
+      audiences: ["master_admin"],
+      appointmentId: appointment.id,
+      destination: "appointments",
+      createdAt: reviewedAt,
+      readBy: [],
+    });
+  }
+  writeStoredArray("motofix_notifications", notifications.slice(0, 100));
+  renderAdminNotifications();
+  window.dispatchEvent(new Event("motofix:notifications-updated"));
+  refreshAppointmentStatusViews(appointment.id);
 }
 
 function refreshAppointmentStatusViews(appId) {
@@ -2142,6 +2394,12 @@ function updateAppointmentStatus(appId, newStatus) {
     }
 
     app.status = newStatus;
+    app.updatedAt = new Date().toISOString();
+    if (requestedStatus === "Completed") {
+      app.completedAt = app.completedAt || app.updatedAt;
+    } else if (currentStatus === "Completed") {
+      app.completedAt = null;
+    }
     app.completedJobEditAuthorizedBy = "";
     persistAppointments();
     if (inventoryUpdate.deducted) {
@@ -2403,14 +2661,25 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 /* ===================== SERVICES PAGE ===================== */
+function isServiceAvailable(service) {
+  const unavailableValues = ["false", "0", "inactive", "unavailable", "disabled", "archived"];
+  return !unavailableValues.includes(String(service.status || "").trim().toLowerCase()) &&
+    !unavailableValues.includes(String(service.active ?? "").trim().toLowerCase()) &&
+    !unavailableValues.includes(String(service.available ?? "").trim().toLowerCase()) &&
+    !unavailableValues.includes(String(service.isActive ?? "").trim().toLowerCase()) &&
+    !unavailableValues.includes(String(service.isAvailable ?? "").trim().toLowerCase());
+}
+
 function renderServiceFilters() {
   const container = $("#svcFilters");
   if (!container) return;
+  renderServiceStatusFilters();
+  const activeCategory = container.querySelector(".pill.active")?.dataset.filter || "All";
   const cats = ["All", ...new Set(DATA.services.map((s) => s.category))];
   container.innerHTML = cats
     .map(
       (c, i) =>
-        `<button class="pill ${i === 0 ? "active" : ""}" data-filter="${c}">${c}</button>`,
+        `<button class="pill ${c === activeCategory || (i === 0 && !cats.includes(activeCategory)) ? "active" : ""}" data-filter="${escapeDashboardHtml(c)}">${escapeDashboardHtml(c)}</button>`,
     )
     .join("");
   $$("#svcFilters .pill").forEach((p) =>
@@ -2422,13 +2691,36 @@ function renderServiceFilters() {
   );
 }
 
+function renderServiceStatusFilters() {
+  const container = $("#svcStatusFilters");
+  if (!container) return;
+  const activeStatus = container.querySelector(".pill.active")?.dataset.serviceStatus || "Available";
+  container.innerHTML = ["Available", "Disabled"]
+    .map((status) => `
+      <button type="button" class="pill ${status === activeStatus ? "active" : ""}" data-service-status="${status}">
+        ${status}
+      </button>
+    `)
+    .join("");
+  container.querySelectorAll(".pill").forEach((button) => {
+    button.addEventListener("click", () => {
+      container.querySelectorAll(".pill").forEach((pill) => pill.classList.remove("active"));
+      button.classList.add("active");
+      renderServicesGrid();
+    });
+  });
+}
+
 function renderServicesGrid() {
   const grid = $("#servicesGrid");
   if (!grid) return;
   const activeFilter = $("#svcFilters .pill.active")?.dataset.filter || "All";
+  const activeStatus = $("#svcStatusFilters .pill.active")?.dataset.serviceStatus || "Available";
   const query = ($("#svcSearch").value || "").toLowerCase();
   let list = DATA.services.filter(
-    (s) => activeFilter === "All" || s.category === activeFilter,
+    (service) =>
+      isServiceAvailable(service) === (activeStatus === "Available") &&
+      (activeFilter === "All" || service.category === activeFilter),
   );
   if (query) list = list.filter((s) => s.name.toLowerCase().includes(query));
 
@@ -2440,7 +2732,7 @@ function renderServicesGrid() {
       <div class="svc-top">
         <div>
           <div class="svc-name">${s.name}</div>
-          <div class="svc-tag" style="margin-top:8px;">${s.category}</div>
+          <div class="svc-tag" style="margin-top:8px;">${s.category} · ${isServiceAvailable(s) ? "Available" : "Disabled"}</div>
         </div>
         <div style="text-align:right;">
           <div class="svc-price">${peso(s.price)}</div>
@@ -2484,7 +2776,7 @@ function openServiceDetailsModal(code) {
     </div>
     <div style="display: flex; gap: 10px; margin-top: 20px;">
       <button type="button" class="btn-primary" id="modalEditSvcBtn" data-code="${service.code}" style="flex:1;">Edit Service</button>
-      <button type="button" class="btn-view" id="modalDeleteSvcBtn" data-code="${service.code}" style="flex:1; color:var(--red); border-color:rgba(239,68,68,0.3);">Delete Service</button>
+      <button type="button" class="btn-view" id="modalToggleSvcAvailabilityBtn" data-code="${escapeDashboardHtml(service.code)}" style="flex:1;">${isServiceAvailable(service) ? "Disable Service" : "Enable Service"}</button>
     </div>
   `,
   );
@@ -2493,77 +2785,83 @@ function openServiceDetailsModal(code) {
     openEditServiceModal(code);
   });
 
-  // === Add Service Modal with Dynamic Category Dropdown ===
-  document
-    .getElementById("openAddServiceBtn")
-    ?.addEventListener("click", () => {
-      const serviceCategories = [
-        ...new Set(DATA.services.map((s) => s.category)),
-      ];
-
-      openModal(
-        "Add New Service",
-        `
-          <form id="addServiceForm">
-              <div style="margin-bottom: 12px;">
-                  <label style="display:block; margin-bottom:4px; font-weight:500;">Service Name</label>
-                  <input type="text" id="newServiceName" required style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;">
-              </div>
-              <div style="margin-bottom: 12px;">
-                  <label style="display:block; margin-bottom:4px; font-weight:500;">Service Code</label>
-                  <input type="text" id="newServiceCode" required style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;">
-              </div>
-              <div style="margin-bottom: 12px;">
-                  <label style="display:block; margin-bottom:4px; font-weight:500;">Category</label>
-                  <select id="newServiceCategorySelect" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; margin-bottom: 6px;">
-                      ${serviceCategories.map((c) => `<option value="${c}">${c}</option>`).join("")}
-                      <option value="OTHER">+ Add New Category...</option>
-                  </select>
-                  <input type="text" id="newServiceCategoryCustom" placeholder="Type new category name..." style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; display:none;">
-              </div>
-              <div style="margin-bottom: 12px;">
-                  <label style="display:block; margin-bottom:4px; font-weight:500;">Description</label>
-                  <textarea id="newServiceDesc" rows="3" required style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; resize:vertical;"></textarea>
-              </div>
-              <div style="display: flex; gap: 10px; margin-bottom: 12px;">
-                  <div style="flex: 1;">
-                      <label style="display:block; margin-bottom:4px; font-weight:500;">Duration Label (e.g., 1-2 hrs)</label>
-                      <input type="text" id="newServiceHours" value="1 hr" required style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;">
-                  </div>
-                  <div style="flex: 1;">
-                      <label style="display:block; margin-bottom:4px; font-weight:500;">Base Price (₱)</label>
-                      <input type="number" id="newServicePrice" step="0.01" min="0" required style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;">
-                  </div>
-              </div>
-              <button type="submit" class="btn-primary" style="width:100%; margin-top:10px;">Save Service</button>
-          </form>
-      `,
-      );
-
-      const selectEl = document.getElementById("newServiceCategorySelect");
-      const customInputEl = document.getElementById("newServiceCategoryCustom");
-
-      selectEl.addEventListener("change", (e) => {
-        if (e.target.value === "OTHER") {
-          customInputEl.style.display = "block";
-          customInputEl.required = true;
-          customInputEl.focus();
-        } else {
-          customInputEl.style.display = "none";
-          customInputEl.required = false;
-        }
-      });
-    });
-
-  document.getElementById("modalDeleteSvcBtn").addEventListener("click", () => {
-    if (confirm(`Are you sure you want to delete service code: ${code}?`)) {
-      DATA.services = DATA.services.filter((s) => s.code !== code);
-      localStorage.setItem("motofix_services", JSON.stringify(DATA.services));
-      document.getElementById("modalBackdrop").classList.remove("open");
-      renderServiceFilters();
-      renderServicesGrid();
-    }
+  document.getElementById("modalToggleSvcAvailabilityBtn").addEventListener("click", () => {
+    const target = DATA.services.find((item) => item.code === code);
+    if (!target) return;
+    setServiceAvailability(code, !isServiceAvailable(target));
+    document.getElementById("modalBackdrop").classList.remove("open");
   });
+}
+
+function openAddServiceModal() {
+  const serviceCategories = [...new Set(
+    DATA.services
+      .map((service) => String(service.category || "").trim())
+      .filter(Boolean),
+  )];
+
+  openModal(
+    "Add New Service",
+    `
+      <form id="addServiceForm">
+        <div style="margin-bottom: 12px;">
+          <label style="display:block; margin-bottom:4px; font-weight:500;">Service Name</label>
+          <input type="text" id="newServiceName" required style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;">
+        </div>
+        <div style="margin-bottom: 12px;">
+          <label style="display:block; margin-bottom:4px; font-weight:500;">Category</label>
+          <select id="newServiceCategorySelect" required style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; margin-bottom: 6px;">
+            <option value="" selected disabled>Select a category</option>
+            ${serviceCategories.map((category) => `<option value="${escapeDashboardHtml(category)}">${escapeDashboardHtml(category)}</option>`).join("")}
+            <option value="OTHER">+ Add New Category...</option>
+          </select>
+          <input type="text" id="newServiceCategoryCustom" placeholder="Type new category name..." style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; display:none;">
+        </div>
+        <div style="margin-bottom: 12px;">
+          <label style="display:block; margin-bottom:4px; font-weight:500;">Description</label>
+          <textarea id="newServiceDesc" rows="3" required style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; resize:vertical;"></textarea>
+        </div>
+        <div style="display:flex; gap:10px; margin-bottom:12px;">
+          <div style="flex:1;">
+            <label style="display:block; margin-bottom:4px; font-weight:500;">Duration Label (e.g., 1-2 hrs)</label>
+            <input type="text" id="newServiceHours" value="1 hr" required style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;">
+          </div>
+          <div style="flex:1;">
+            <label style="display:block; margin-bottom:4px; font-weight:500;">Base Price (₱)</label>
+            <input type="number" id="newServicePrice" step="0.01" min="0" required style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;">
+          </div>
+        </div>
+        <button type="submit" class="btn-primary" style="width:100%; margin-top:10px;">Save Service</button>
+      </form>
+    `,
+  );
+
+  const categorySelect = document.getElementById("newServiceCategorySelect");
+  const customCategory = document.getElementById("newServiceCategoryCustom");
+  categorySelect.addEventListener("change", () => {
+    const isCustom = categorySelect.value === "OTHER";
+    customCategory.style.display = isCustom ? "block" : "none";
+    customCategory.required = isCustom;
+    if (isCustom) customCategory.focus();
+  });
+}
+
+document.getElementById("openAddServiceBtn")?.addEventListener("click", openAddServiceModal);
+
+function setServiceAvailability(code, available) {
+  const service = DATA.services.find((item) => item.code === code);
+  if (!service) return;
+  Object.assign(service, {
+    status: available ? "Available" : "Disabled",
+    active: available,
+    available,
+    isActive: available,
+    isAvailable: available,
+  });
+  localStorage.setItem("motofix_services", JSON.stringify(DATA.services));
+  window.dispatchEvent(new Event("motofix:services-updated"));
+  renderServiceFilters();
+  renderServicesGrid();
 }
 
 /* =========================================================
@@ -2678,20 +2976,23 @@ function openPartDetailsModal(sku) {
   openModal(
     `Part Details: ${part.name}`,
     `
-    <div style="margin-bottom: 16px; line-height: 1.6;">
-      <p><strong>SKU:</strong> <span style="font-family:var(--font-mono);">${part.sku}</span></p>
-      <p><strong>Brand:</strong> ${part.brand}</p>
-      <p><strong>Category:</strong> ${part.category}</p>
-      <p><strong>Stock Level:</strong> ${part.stock} / ${part.max || 60}</p>
-      <p><strong>Status:</strong> ${statusBadge(getInventoryStockStatus(part))}</p>
-      <p><strong>Unit Price:</strong> <span style="color:var(--orange); font-weight:700;">${peso(part.price)}</span></p>
-    </div>
-    <div style="display: flex; gap: 10px; margin-top: 20px;">
-      <button type="button" class="btn-primary" id="modalEditPartBtn" data-sku="${part.sku}" style="flex:1;">Edit Part</button>
-      <button type="button" class="btn-view" id="modalDeletePartBtn" data-sku="${part.sku}" style="flex:1; color:var(--red); border-color:rgba(239,68,68,0.3);">Delete Part</button>
+    <div class="inventory-part-details">
+      <div class="inventory-part-details-grid">
+        <div><span>SKU</span><strong class="inventory-part-sku">${escapeDashboardHtml(part.sku)}</strong></div>
+        <div><span>Brand</span><strong>${escapeDashboardHtml(part.brand || "Not provided")}</strong></div>
+        <div><span>Category</span><strong>${escapeDashboardHtml(part.category || "Not provided")}</strong></div>
+        <div><span>Stock Level</span><strong>${Number(part.stock || 0).toLocaleString("en-PH")} <small>/ ${Number(part.max || 60).toLocaleString("en-PH")}</small></strong></div>
+        <div><span>Status</span><strong>${statusBadge(getInventoryStockStatus(part))}</strong></div>
+        <div><span>Unit Price</span><strong class="inventory-part-price">${peso(part.price)}</strong></div>
+      </div>
+      <div class="inventory-part-actions">
+        <button type="button" class="btn-primary" id="modalEditPartBtn" data-sku="${escapeDashboardHtml(part.sku)}">Edit Part</button>
+        <button type="button" class="btn-view" id="modalDeletePartBtn" data-sku="${escapeDashboardHtml(part.sku)}">Delete Part</button>
+      </div>
     </div>
   `,
   );
+  $("#modalBackdrop .modal")?.classList.add("inventory-part-details-modal");
 
   document.getElementById("modalEditPartBtn").addEventListener("click", () => {
     openEditPartModal(sku);
@@ -2813,19 +3114,535 @@ if (partsSearchEl) {
 }
 
 /* ===================== BILLING PAGE ===================== */
+function billingInvoiceDate(invoice) {
+  const bookingDate = String(invoice.date || "").trim();
+  if (/^\d{4}-\d{2}-\d{2}(?:$|[T ])/.test(bookingDate)) return bookingDate.slice(0, 10);
+  const parsedDate = new Date(bookingDate);
+  if (Number.isNaN(parsedDate.getTime())) return "";
+  return [
+    parsedDate.getFullYear(),
+    String(parsedDate.getMonth() + 1).padStart(2, "0"),
+    String(parsedDate.getDate()).padStart(2, "0"),
+  ].join("-");
+}
+
+function billingInvoiceTimestamp(invoice) {
+  const bookingDate = String(invoice.date || "").trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(bookingDate)) {
+    return Date.parse(`${bookingDate}T00:00:00.000Z`);
+  }
+  const parsedDate = Date.parse(bookingDate);
+  return Number.isFinite(parsedDate) ? parsedDate : Number.NaN;
+}
+
+function billingMonthBounds(monthValue) {
+  if (!/^\d{4}-\d{2}$/.test(monthValue || "")) return null;
+  const [year, month] = monthValue.split("-").map(Number);
+  if (month < 1 || month > 12) return null;
+  return {
+    startDate: new Date(Date.UTC(year, month - 1, 1, 0, 0, 0, 0)).toISOString(),
+    endDate: new Date(Date.UTC(year, month, 0, 23, 59, 59, 999)).toISOString(),
+  };
+}
+
+function getFilteredBillingInvoices() {
+  return DATA.invoices
+    .filter((invoice) => {
+      const date = billingInvoiceDate(invoice);
+      if (billingDateFilter.mode === "month") {
+        const bounds = billingMonthBounds(billingDateFilter.month);
+        const bookingTimestamp = billingInvoiceTimestamp(invoice);
+        if (!bounds || !Number.isFinite(bookingTimestamp)) return false;
+        return bookingTimestamp >= Date.parse(bounds.startDate) &&
+          bookingTimestamp <= Date.parse(bounds.endDate);
+      }
+      if (billingDateFilter.mode === "range") {
+        return date >= billingDateFilter.startDate && date <= billingDateFilter.endDate;
+      }
+      if (billingDateFilter.mode === "dates") return billingDateFilter.dates.includes(date);
+      return true;
+    })
+    .sort((left, right) => {
+      const leftCompleted = left.status === "Completed";
+      const rightCompleted = right.status === "Completed";
+      if (leftCompleted !== rightCompleted) return leftCompleted ? -1 : 1;
+      const leftDate = Date.parse(left.completedAt || left.updatedAt || left.createdAt || left.date || "");
+      const rightDate = Date.parse(right.completedAt || right.updatedAt || right.createdAt || right.date || "");
+      if (Number.isFinite(leftDate) && Number.isFinite(rightDate)) return rightDate - leftDate;
+      const leftDateText = String(left.completedAt || left.updatedAt || left.createdAt || left.date || "");
+      const rightDateText = String(right.completedAt || right.updatedAt || right.createdAt || right.date || "");
+      return rightDateText.localeCompare(leftDateText);
+    });
+}
+
+function getFilteredCompletedBillingInvoices() {
+  return getFilteredBillingInvoices().filter(
+    (invoice) => invoice.status === "Completed" && invoice.status !== "Cancelled",
+  ).sort((left, right) => {
+    const leftTimestamp = Date.parse(left.completedAt || left.date || "");
+    const rightTimestamp = Date.parse(right.completedAt || right.date || "");
+    if (Number.isFinite(leftTimestamp) && Number.isFinite(rightTimestamp) &&
+        leftTimestamp !== rightTimestamp) {
+      return rightTimestamp - leftTimestamp;
+    }
+    return String(right.id).localeCompare(String(left.id), undefined, {
+      numeric: true,
+      sensitivity: "base",
+    });
+  });
+}
+
+function getBillingRevenueSeries(invoices = getFilteredCompletedBillingInvoices()) {
+  const groups = new Map();
+  invoices.forEach((invoice) => {
+    const date = billingInvoiceDate(invoice);
+    if (!date) return;
+    const group = billingDateFilter.mode === "all" ? date.slice(0, 7) : date;
+    groups.set(group, (groups.get(group) || 0) + invoice.total);
+  });
+  return [...groups]
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([key, value]) => {
+      const date = new Date(`${key}${key.length === 7 ? "-01" : ""}T00:00:00`);
+      const label = billingDateFilter.mode === "all"
+        ? date.toLocaleDateString("en", { month: "short", year: "numeric" })
+        : date.toLocaleDateString("en", { month: "short", day: "numeric" });
+      return { month: label, value };
+    });
+}
+
+function billingDateFilterLabel() {
+  if (billingDateFilter.mode === "range" && billingDateFilter.startDate && billingDateFilter.endDate) {
+    const start = new Date(`${billingDateFilter.startDate}T00:00:00`).toLocaleDateString();
+    const end = new Date(`${billingDateFilter.endDate}T00:00:00`).toLocaleDateString();
+    const presetLabels = {
+      last7: "Last 7 days",
+      last30: "Last 30 days",
+      last60: "Last 60 days",
+    };
+    const prefix = presetLabels[billingDateFilter.preset];
+    return `${prefix ? `${prefix}: ` : ""}${start} – ${end}`;
+  }
+  if (billingDateFilter.mode === "month" && billingDateFilter.month) {
+    return new Date(`${billingDateFilter.month}-01T00:00:00`).toLocaleDateString("en", {
+      month: "long",
+      year: "numeric",
+    });
+  }
+  if (billingDateFilter.mode === "dates" && billingDateFilter.dates.length) {
+    if (billingDateFilter.dates.length === 1) {
+      return new Date(`${billingDateFilter.dates[0]}T00:00:00`).toLocaleDateString();
+    }
+    return `${billingDateFilter.dates.length} dates selected`;
+  }
+  return "All dates";
+}
+
+function updateBillingFilterSummary() {
+  const summary = $("#billing-filter-summary");
+  if (summary) summary.textContent = billingDateFilterLabel();
+}
+
+function positionBillingDateFilter() {
+  const popover = $("#billing-date-filter-popover");
+  const trigger = $("#billing-date-filter-open");
+  if (!popover || !trigger) return;
+  const rect = trigger.getBoundingClientRect();
+  const width = Math.min(340, window.innerWidth - 24);
+  popover.style.left = `${Math.max(12, Math.min(rect.right - width, window.innerWidth - width - 12))}px`;
+  const topBelow = rect.bottom + 8;
+  const topAbove = rect.top - popover.offsetHeight - 8;
+  popover.style.top = `${topBelow + popover.offsetHeight <= window.innerHeight - 12
+    ? topBelow
+    : Math.max(12, topAbove)}px`;
+}
+
+function wireBillingDateFilter() {
+  const table = $("#invoiceTable");
+  const popover = $("#billing-date-filter-popover");
+  const daysContainer = $("#billing-calendar-days");
+  if (!table || !popover || !daysContainer) return;
+  const showAllButton = $("#billing-show-all");
+  const presetSelect = $("#billing-date-range-preset");
+  const customDateRange = $("#billing-custom-date-range");
+  const startDateInput = $("#billing-custom-start-date");
+  const endDateInput = $("#billing-custom-end-date");
+  const applyButton = $("#billing-date-filter-apply");
+
+  const dateKey = (date) => [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, "0"),
+    String(date.getDate()).padStart(2, "0"),
+  ].join("-");
+  const presetRange = (preset) => {
+    const days = { last7: 7, last30: 30, last60: 60 }[preset];
+    if (!days) return null;
+    const end = new Date();
+    const start = new Date(end);
+    start.setDate(start.getDate() - days + 1);
+    return { startDate: dateKey(start), endDate: dateKey(end) };
+  };
+  const rangeFromDraft = () => {
+    if (billingCalendarDraft.mode === "range") {
+      return { startDate: billingCalendarDraft.startDate, endDate: billingCalendarDraft.endDate };
+    }
+    if (billingCalendarDraft.mode === "month") {
+      const [year, month] = billingCalendarDraft.month.split("-").map(Number);
+      return {
+        startDate: dateKey(new Date(year, month - 1, 1)),
+        endDate: dateKey(new Date(year, month, 0)),
+      };
+    }
+    if (billingCalendarDraft.mode === "dates" && billingCalendarDraft.dates.length) {
+      const dates = [...billingCalendarDraft.dates].sort();
+      return { startDate: dates[0], endDate: dates[dates.length - 1] };
+    }
+    return { startDate: "", endDate: "" };
+  };
+  const syncCustomDateInputs = () => {
+    if (!startDateInput || !endDateInput) return;
+    const range = rangeFromDraft();
+    startDateInput.value = range.startDate;
+    endDateInput.value = range.endDate;
+  };
+  const updateRangeControls = () => {
+    if (customDateRange) customDateRange.hidden = presetSelect?.value !== "custom";
+    const validRange = Boolean(
+      startDateInput?.value &&
+      endDateInput?.value &&
+      startDateInput.value <= endDateInput.value,
+    );
+    if (applyButton) applyButton.disabled = presetSelect?.value === "custom" &&
+      billingCalendarDraft.mode === "range" && !validRange;
+    const selectionSummary = $("#billing-calendar-selection-summary");
+    if (selectionSummary && billingCalendarDraft.mode === "range" && validRange) {
+      const start = new Date(`${startDateInput.value}T00:00:00`).toLocaleDateString();
+      const end = new Date(`${endDateInput.value}T00:00:00`).toLocaleDateString();
+      selectionSummary.innerHTML = `<strong>${start} – ${end}</strong><span>Invoices within this date range will be shown.</span>`;
+    } else if (selectionSummary && billingCalendarDraft.mode === "range") {
+      selectionSummary.innerHTML = "<strong>No dates selected</strong><span>Choose both a start and end date to apply a custom range.</span>";
+    }
+  };
+
+  const resetDraft = () => {
+    billingCalendarDraft = { ...billingDateFilter, dates: [...billingDateFilter.dates] };
+    if (presetSelect) {
+      presetSelect.value = billingDateFilter.mode === "range"
+        ? billingDateFilter.preset || "custom"
+        : "custom";
+    }
+    syncCustomDateInputs();
+    updateRangeControls();
+  };
+  const closePopover = (discardDraft = true) => {
+    if (discardDraft) resetDraft();
+    popover.hidden = true;
+    $("#billing-date-filter-open")?.setAttribute("aria-expanded", "false");
+  };
+  const renderCalendar = () => {
+    const [year, month] = billingCalendarViewMonth.split("-").map(Number);
+    if (!year || !month) return;
+    const monthDate = new Date(year, month - 1, 1);
+    $("#billing-calendar-month-input").value = billingCalendarViewMonth;
+    const firstWeekday = monthDate.getDay();
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const selectedDates = new Set(billingCalendarDraft.dates);
+    const isMonthSelected = billingCalendarDraft.mode === "month" &&
+      billingCalendarDraft.month === billingCalendarViewMonth;
+    const isRangeSelected = billingCalendarDraft.mode === "range" &&
+      Boolean(billingCalendarDraft.startDate && billingCalendarDraft.endDate) &&
+      billingCalendarDraft.startDate <= billingCalendarDraft.endDate;
+    daysContainer.innerHTML = [
+      ...Array(firstWeekday).fill('<span class="billing-calendar-empty" aria-hidden="true"></span>'),
+      ...Array.from({ length: daysInMonth }, (_, index) => {
+        const dayNumber = index + 1;
+        const date = `${billingCalendarViewMonth}-${String(dayNumber).padStart(2, "0")}`;
+        const selected = selectedDates.has(date) || isMonthSelected ||
+          (isRangeSelected && date >= billingCalendarDraft.startDate && date <= billingCalendarDraft.endDate);
+        const classes = [
+          "billing-calendar-day",
+          selected ? "is-selected" : "",
+        ].filter(Boolean).join(" ");
+        const selectedLabel = isMonthSelected ? "Included in selected month" : selected ? "Deselect" : "Select";
+        return `<button type="button" class="${classes}" data-calendar-date="${date}" aria-label="${selectedLabel} ${date}" aria-pressed="${selected}">${dayNumber}</button>`;
+      }),
+    ].join("");
+    const selectionSummary = $("#billing-calendar-selection-summary");
+    if (isRangeSelected) {
+      const start = new Date(`${billingCalendarDraft.startDate}T00:00:00`).toLocaleDateString();
+      const end = new Date(`${billingCalendarDraft.endDate}T00:00:00`).toLocaleDateString();
+      selectionSummary.innerHTML = `<strong>${start} – ${end}</strong><span>Invoices within this date range will be shown.</span>`;
+    } else if (isMonthSelected) {
+      selectionSummary.innerHTML = `<strong>${monthDate.toLocaleDateString("en", {
+        month: "long",
+        year: "numeric",
+      })}</strong><span>All bookings in this month will be shown. If there are none, the report will be empty.</span>`;
+    } else if (selectedDates.size) {
+      selectionSummary.innerHTML = `<strong>${selectedDates.size} date${selectedDates.size === 1 ? "" : "s"} selected</strong><span>${[...selectedDates]
+        .sort()
+        .map((date) => new Date(`${date}T00:00:00`).toLocaleDateString())
+        .join(", ")}</span><span>Click selected days to remove them. Apply to update reports.</span>`;
+    } else {
+      selectionSummary.innerHTML = "<strong>No dates selected</strong><span>Select a month for the full monthly report, or choose dates to filter specific days.</span>";
+    }
+  };
+
+  if (!table.dataset.billingFilterHandler) {
+    table.dataset.billingFilterHandler = "true";
+    showAllButton?.addEventListener("click", () => {
+      const today = new Date();
+      const month = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
+      billingDateFilter = { mode: "all", dates: [], month, startDate: "", endDate: "", preset: "custom" };
+      billingCalendarViewMonth = month;
+      billingCalendarDraft = { ...billingDateFilter, dates: [] };
+      if (presetSelect) presetSelect.value = "custom";
+      localStorage.removeItem(BILLING_DATE_FILTER_STORAGE_KEY);
+      popover.hidden = true;
+      $("#billing-date-filter-open")?.setAttribute("aria-expanded", "false");
+      renderBillingReports();
+    });
+    $("#billing-date-filter-open")?.addEventListener("click", (event) => {
+      const today = new Date();
+      billingCalendarViewMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
+      billingCalendarDraft = {
+        mode: "all",
+        dates: [],
+        month: billingCalendarViewMonth,
+        startDate: "",
+        endDate: "",
+        preset: "custom",
+      };
+      if (presetSelect) presetSelect.value = "custom";
+      syncCustomDateInputs();
+      updateRangeControls();
+      renderCalendar();
+      popover.hidden = false;
+      event.currentTarget.setAttribute("aria-expanded", "true");
+      positionBillingDateFilter();
+    });
+    const changeCalendarMonth = (delta) => {
+      const [year, month] = billingCalendarViewMonth.split("-").map(Number);
+      const nextMonth = new Date(year, month - 1 + delta, 1);
+      billingCalendarViewMonth = `${nextMonth.getFullYear()}-${String(nextMonth.getMonth() + 1).padStart(2, "0")}`;
+      if (billingCalendarDraft.mode !== "dates" || !billingCalendarDraft.dates.length) {
+        billingCalendarDraft = {
+          mode: "month",
+          dates: [],
+          month: billingCalendarViewMonth,
+        };
+      }
+      if (presetSelect) presetSelect.value = "custom";
+      syncCustomDateInputs();
+      renderCalendar();
+      updateRangeControls();
+    };
+    $("#billing-calendar-prev")?.addEventListener("click", () => changeCalendarMonth(-1));
+    $("#billing-calendar-next")?.addEventListener("click", () => changeCalendarMonth(1));
+    $("#billing-calendar-month-input")?.addEventListener("change", (event) => {
+      const month = event.target.value;
+      if (!/^\d{4}-\d{2}$/.test(month)) return;
+      billingCalendarViewMonth = month;
+      billingCalendarDraft = {
+        mode: "month",
+        dates: [],
+        month,
+      };
+      if (presetSelect) presetSelect.value = "custom";
+      syncCustomDateInputs();
+      renderCalendar();
+      updateRangeControls();
+    });
+    daysContainer.addEventListener("click", (event) => {
+      const dayButton = event.target.closest("[data-calendar-date]");
+      if (!dayButton) return;
+      event.stopPropagation();
+      const date = dayButton.dataset.calendarDate;
+      if (billingCalendarDraft.mode === "month") {
+        billingCalendarDraft = {
+          mode: "dates",
+          dates: [],
+          month: billingCalendarViewMonth,
+        };
+      }
+      const dates = new Set(billingCalendarDraft.dates);
+      if (dates.has(date)) dates.delete(date);
+      else dates.add(date);
+      billingCalendarDraft = {
+        ...billingCalendarDraft,
+        mode: dates.size ? "dates" : "all",
+        dates: [...dates].sort(),
+        month: billingCalendarViewMonth,
+        startDate: "",
+        endDate: "",
+        preset: "custom",
+      };
+      if (presetSelect) presetSelect.value = "custom";
+      syncCustomDateInputs();
+      renderCalendar();
+      updateRangeControls();
+    });
+    presetSelect?.addEventListener("change", () => {
+      const preset = presetSelect.value;
+      const range = presetRange(preset);
+      if (range) {
+        billingCalendarDraft = {
+          mode: "range",
+          dates: [],
+          month: range.startDate.slice(0, 7),
+          preset,
+          ...range,
+        };
+        billingCalendarViewMonth = range.startDate.slice(0, 7);
+        syncCustomDateInputs();
+        renderCalendar();
+        updateRangeControls();
+        return;
+      }
+      billingCalendarDraft = {
+        ...billingCalendarDraft,
+        mode: "range",
+        dates: [],
+        preset: "custom",
+        ...rangeFromDraft(),
+      };
+      syncCustomDateInputs();
+      renderCalendar();
+      updateRangeControls();
+    });
+    const updateCustomDateRange = () => {
+      billingCalendarDraft = {
+        mode: "range",
+        dates: [],
+        month: (startDateInput?.value || billingCalendarViewMonth).slice(0, 7),
+        preset: "custom",
+        startDate: startDateInput?.value || "",
+        endDate: endDateInput?.value || "",
+      };
+      if (!startDateInput?.value || !endDateInput?.value ||
+          startDateInput.value > endDateInput.value) {
+        if (startDateInput?.value) billingCalendarViewMonth = startDateInput.value.slice(0, 7);
+        renderCalendar();
+        updateRangeControls();
+        return;
+      }
+      billingCalendarViewMonth = startDateInput.value.slice(0, 7);
+      renderCalendar();
+      updateRangeControls();
+    };
+    startDateInput?.addEventListener("change", updateCustomDateRange);
+    endDateInput?.addEventListener("change", updateCustomDateRange);
+    $("#billing-date-filter-close")?.addEventListener("click", closePopover);
+    $("#billing-date-filter-cancel")?.addEventListener("click", closePopover);
+    $("#billing-date-filter-apply")?.addEventListener("click", () => {
+      if (billingCalendarDraft.mode === "range" &&
+          (!billingCalendarDraft.startDate ||
+           !billingCalendarDraft.endDate ||
+           billingCalendarDraft.startDate > billingCalendarDraft.endDate)) return;
+      billingDateFilter = {
+        ...billingCalendarDraft,
+        dates: [...billingCalendarDraft.dates],
+      };
+      localStorage.setItem(BILLING_DATE_FILTER_STORAGE_KEY, JSON.stringify(billingDateFilter));
+      table.querySelector("tbody")?.replaceChildren();
+      closePopover(false);
+      renderBillingReports();
+    });
+    $("#billing-date-filter-clear")?.addEventListener("click", () => {
+      const today = new Date();
+      billingCalendarViewMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
+      billingCalendarDraft = {
+        mode: "all",
+        dates: [],
+        month: billingCalendarViewMonth,
+        startDate: "",
+        endDate: "",
+        preset: "custom",
+      };
+      if (presetSelect) presetSelect.value = "custom";
+      syncCustomDateInputs();
+      renderCalendar();
+      updateRangeControls();
+      positionBillingDateFilter();
+    });
+    document.addEventListener("click", (event) => {
+      if (!popover.hidden &&
+          !popover.contains(event.target) &&
+          !event.target.closest("#billing-date-filter-open")) closePopover();
+    });
+    window.addEventListener("resize", () => {
+      if (!popover.hidden) positionBillingDateFilter();
+    });
+  }
+}
+
+function renderBillingReports() {
+  updateBillingFilterSummary();
+  const showAllButton = $("#billing-show-all");
+  if (showAllButton) {
+    showAllButton.disabled = billingDateFilter.mode === "all";
+    showAllButton.setAttribute("aria-pressed", String(billingDateFilter.mode === "all"));
+  }
+  renderInvoices();
+  renderRevenueStatsAndBreakdown();
+  renderRevenueInvoiceList();
+  renderBarChart("revenueChart2", getBillingRevenueSeries());
+  const chartTitle = $("#revenue-chart-title");
+  if (chartTitle) {
+    chartTitle.textContent = billingDateFilter.mode === "month"
+      ? `Daily Revenue — ${billingDateFilterLabel()}`
+    : billingDateFilter.mode === "dates" || billingDateFilter.mode === "range"
+        ? "Revenue by Selected Date"
+        : "Monthly Revenue";
+  }
+}
+
+function renderRevenueInvoiceList() {
+  const table = $("#revenueInvoiceTable");
+  if (!table) return;
+  const invoices = getFilteredCompletedBillingInvoices();
+  const count = $("#revenueInvoiceCount");
+  if (count) count.textContent = `${invoices.length} completed invoice${invoices.length === 1 ? "" : "s"}`;
+  table.innerHTML = `
+    <thead><tr>
+      <th>Invoice #</th><th>Customer</th><th>Date</th><th>Amount</th><th>Service Details</th><th>Status</th>
+    </tr></thead>
+    <tbody>${invoices.length
+      ? invoices.map((invoice) => {
+        const appointment = DATA.appointments.find(
+          (item) => String(item.id) === String(invoice.appointmentId),
+        );
+        const services = Array.isArray(appointment?.services)
+          ? appointment.services.join(", ")
+          : appointment?.services || "Service details unavailable";
+        return `<tr data-view-invoice="${escapeDashboardHtml(invoice.id)}" style="cursor:pointer;">
+          <td>${escapeDashboardHtml(invoice.id)}</td>
+          <td>${escapeDashboardHtml(invoice.customer)}</td>
+          <td>${escapeDashboardHtml(invoice.date || "N/A")}</td>
+          <td>${peso(invoice.total)}</td>
+          <td>${escapeDashboardHtml(services)}</td>
+          <td>${statusBadge(invoice.status)}</td>
+        </tr>`;
+      }).join("")
+      : '<tr><td colspan="6" class="subtext revenue-invoice-empty">No completed invoices found for this period.</td></tr>'}</tbody>
+  `;
+}
+
 function renderInvoices() {
   const countEl = $("#invoiceCount");
   const tableEl = $("#invoiceTable");
   if (!countEl || !tableEl) return;
 
-  countEl.textContent = `${DATA.invoices.length} invoice${DATA.invoices.length === 1 ? "" : "s"} total`;
+  const invoices = getFilteredBillingInvoices();
+  billingInvoicesRendered = true;
+  countEl.textContent = `${invoices.length} invoice${invoices.length === 1 ? "" : "s"}`;
 
   tableEl.innerHTML = `
     <thead><tr>
-      <th>Invoice #</th><th>Customer</th><th>Job Ref</th><th>Items</th><th>Subtotal</th><th>VAT</th><th>Total</th><th>Status</th><th>Date</th>
+      <th>Invoice #</th><th>Customer</th><th>Job Ref</th><th>Items</th><th>Subtotal</th><th>VAT</th><th>Total</th><th>Status</th>
+      <th>Date</th>
     </tr></thead>
-    <tbody>${DATA.invoices
-      .map(
+    <tbody>${invoices.length
+      ? invoices.map(
         (inv) => `
       <tr data-view-invoice="${inv.id}" style="cursor: pointer; transition: background 0.15s ease;">
         <td style="color:var(--orange);font-weight:700;font-family:var(--font-mono);">${inv.id}</td>
@@ -2839,35 +3656,25 @@ function renderInvoices() {
         <td class="subtext">${inv.date}</td>
       </tr>
     `,
-      )
-      .join("")}</tbody>
+      ).join("")
+      : '<tr><td colspan="9" class="subtext" style="text-align:center;padding:24px;">No bookings found for this period.</td></tr>'}</tbody>
   `;
 
-  // Make the entire row clickable and add hover styling dynamically
-  $$("#invoiceTable tbody tr").forEach((row) => {
-    row.addEventListener("mouseenter", () => {
-      row.style.background = "rgba(255, 255, 255, 0.04)";
-    });
-    row.addEventListener("mouseleave", () => {
-      row.style.background = "transparent";
-    });
-    row.addEventListener("click", () => {
-      openInvoiceModal(row.dataset.viewInvoice);
-    });
-  });
+  wireBillingDateFilter();
+  updateBillingFilterSummary();
 }
 
 // Comprehensive Invoice Receipt Modal with Print Document Capability
 function openInvoiceModal(invId) {
-  const inv = DATA.invoices.find((i) => i.id === invId);
+  const inv = BILLING_INVOICE_BY_ID.get(String(invId));
   if (!inv) return;
 
   // Find linked job or customer details for completeness
-  const linkedJob = DATA.jobs.find((j) => j.id === inv.jobRef);
+  const linkedJob = BILLING_JOB_BY_ID.get(String(inv.jobRef));
   const linkedBike = linkedJob
     ? linkedJob.bike
     : "Registered Motorcycle Profile";
-  const customerObj = DATA.users.find((u) => u.name === inv.customer);
+  const customerObj = BILLING_USER_BY_NAME.get(String(inv.customer));
   const customerPhone = customerObj ? customerObj.phone : "+63 912 000 0000";
 
   const modalBodyHTML = `
@@ -2899,6 +3706,43 @@ function openInvoiceModal(invId) {
   `;
 
   openModal(`Customer Receipt & Invoice: ${inv.id}`, modalBodyHTML);
+}
+
+document.addEventListener("click", (event) => {
+  const revenueInvoiceLink = event.target.closest(
+    ".revenue-metric-invoice[data-view-invoice]",
+  );
+  if (revenueInvoiceLink) {
+    event.preventDefault();
+    navigateToBillingInvoice(revenueInvoiceLink.dataset.viewInvoice);
+    return;
+  }
+
+  const invoiceRow = event.target.closest(
+    "#invoiceTable tbody tr[data-view-invoice], #revenueInvoiceTable tbody tr[data-view-invoice]",
+  );
+  if (!invoiceRow) return;
+  openInvoiceModal(invoiceRow.dataset.viewInvoice);
+});
+
+function navigateToBillingInvoice(invoiceId) {
+  $("#modalBackdrop")?.classList.remove("open");
+  goToPage("billing");
+  $("#page-billing .tab[data-tab='invoices']")?.click();
+
+  const invoiceRow = [...$$("#invoiceTable tbody tr[data-view-invoice]")]
+    .find((row) => row.dataset.viewInvoice === String(invoiceId));
+  if (!invoiceRow) {
+    openInvoiceModal(invoiceId);
+    return;
+  }
+
+  invoiceRow.classList.remove("invoice-row-highlight");
+  invoiceRow.setAttribute("tabindex", "-1");
+  invoiceRow.scrollIntoView({ behavior: "smooth", block: "center" });
+  invoiceRow.focus({ preventScroll: true });
+  requestAnimationFrame(() => invoiceRow.classList.add("invoice-row-highlight"));
+  window.setTimeout(() => invoiceRow.classList.remove("invoice-row-highlight"), 2400);
 }
 
 function printCustomerReceipt(invId) {
@@ -2986,13 +3830,98 @@ function printCustomerReceipt(invId) {
   printWindow.document.close();
 }
 
+function revenueInvoiceDetails(invoice) {
+  const appointment = DATA.appointments.find(
+    (item) => String(item.id) === String(invoice.appointmentId),
+  );
+  const services = Array.isArray(appointment?.services)
+    ? appointment.services.join(", ")
+    : appointment?.services || "Service details unavailable";
+  return { appointment, services };
+}
+
+function printRevenueReport() {
+  const completedInvoices = getFilteredCompletedBillingInvoices();
+  const revenueSeries = getBillingRevenueSeries(completedInvoices);
+  const totalRevenue = completedInvoices.reduce((sum, invoice) => sum + invoice.total, 0);
+  const totalVat = completedInvoices.reduce((sum, invoice) => sum + invoice.vat, 0);
+  const printWindow = window.open("", "_blank");
+  if (!printWindow) {
+    window.alert("Allow pop-ups to print the revenue report.");
+    return;
+  }
+  const breakdownRows = revenueSeries.map((item) =>
+    `<tr><td>${escapeDashboardHtml(item.month)}</td><td>${peso(item.value)}</td></tr>`,
+  ).join("");
+  const invoiceRows = completedInvoices.map((invoice) => {
+    const { services } = revenueInvoiceDetails(invoice);
+    return `<tr>
+      <td>${escapeDashboardHtml(invoice.id)}</td>
+      <td>${escapeDashboardHtml(invoice.customer)}</td>
+      <td>${escapeDashboardHtml(invoice.date || "N/A")}</td>
+      <td>${peso(invoice.total)}</td>
+      <td>${escapeDashboardHtml(services)}</td>
+      <td>${escapeDashboardHtml(invoice.status)}</td>
+    </tr>`;
+  }).join("");
+
+  printWindow.document.write(`<!doctype html>
+    <html><head><meta charset="utf-8"><title>MotoFix Revenue Report</title>
+    <style>
+      body{font:14px Arial,sans-serif;color:#222;margin:28px}
+      h1{margin-bottom:4px}h2{margin-top:28px}
+      .meta{color:#555;margin:4px 0}
+      .summary{display:flex;gap:28px;margin:20px 0}
+      .summary div{border:1px solid #bbb;padding:12px;min-width:160px}
+      .summary strong{display:block;margin-bottom:5px}
+      table{width:100%;border-collapse:collapse;margin-top:10px}
+      th,td{border:1px solid #aaa;padding:7px;text-align:left;vertical-align:top}
+      th{background:#eee}
+      @media print{body{margin:12mm}.no-print{display:none}tr{break-inside:avoid}}
+    </style></head><body>
+    <h1>MotoFix Revenue &amp; Transactions Report</h1>
+    <p class="meta">Generated: ${escapeDashboardHtml(new Date().toLocaleDateString("en-PH"))}</p>
+    <p class="meta">Date filter: ${escapeDashboardHtml(billingDateFilterLabel())}</p>
+    <div class="summary">
+      <div><strong>Total Revenue</strong>${peso(totalRevenue)}<br><small>Completed invoices only</small></div>
+      <div><strong>VAT Collected</strong>${peso(totalVat)}</div>
+      <div><strong>Completed Invoices</strong>${completedInvoices.length} in selected period</div>
+    </div>
+    <h2>Revenue Breakdown</h2>
+    <table><thead><tr><th>Period</th><th>Revenue</th></tr></thead><tbody>
+      ${breakdownRows || '<tr><td colspan="2">No completed revenue for this period.</td></tr>'}
+    </tbody></table>
+    <h2>Completed Invoices &amp; Transactions</h2>
+    <table><thead><tr><th>Invoice #</th><th>Customer</th><th>Date</th><th>Amount</th><th>Service Details</th><th>Status</th></tr></thead><tbody>
+      ${invoiceRows || '<tr><td colspan="6">No completed invoices found for this period.</td></tr>'}
+    </tbody></table>
+    <button class="no-print" onclick="window.print()">Print</button>
+    </body></html>`);
+  printWindow.document.close();
+  printWindow.focus();
+  printWindow.onload = () => printWindow.print();
+}
+
 // Download Revenue Report Function (Direct PDF download via jsPDF & Word .doc export)
 function downloadRevenueReport(fileType) {
-  const totalRev = DATA.revenue.reduce((acc, r) => acc + r.value, 0);
-  const totalVAT = DATA.invoices
-    .filter((invoice) => invoice.status === "Completed")
+  const completedInvoices = getFilteredCompletedBillingInvoices();
+  const revenueSeries = getBillingRevenueSeries(completedInvoices);
+  const totalRev = completedInvoices.reduce((sum, invoice) => sum + invoice.total, 0);
+  const totalVAT = completedInvoices
     .reduce((sum, invoice) => sum + invoice.vat, 0);
   const currentDate = new Date().toISOString().split("T")[0];
+  const filterLabel = billingDateFilterLabel();
+  const invoiceRows = completedInvoices.map((invoice) => {
+    const { services } = revenueInvoiceDetails(invoice);
+    return `<tr>
+      <td>${escapeDashboardHtml(invoice.id)}</td>
+      <td>${escapeDashboardHtml(invoice.customer)}</td>
+      <td>${escapeDashboardHtml(invoice.date || "N/A")}</td>
+      <td>${peso(invoice.total)}</td>
+      <td>${escapeDashboardHtml(services)}</td>
+      <td>${escapeDashboardHtml(invoice.status)}</td>
+    </tr>`;
+  }).join("");
 
   if (fileType === "docx") {
     // Styled HTML Word document (.doc) export
@@ -3015,22 +3944,28 @@ function downloadRevenueReport(fileType) {
       <body>
           <h1>MOTOFIX REVENUE & FINANCIAL REPORT</h1>
           <p><strong>Generated on:</strong> ${currentDate}</p>
+          <p><strong>Date filter:</strong> ${filterLabel}</p>
           
           <h2>Summary Statistics</h2>
           <ul>
-              <li><strong>Total Revenue (All Time):</strong> ₱${totalRev.toLocaleString("en-PH", { minimumFractionDigits: 2 })}</li>
+              <li><strong>Total Revenue:</strong> ₱${totalRev.toLocaleString("en-PH", { minimumFractionDigits: 2 })}</li>
               <li><strong>Total VAT Collected (12%):</strong> ₱${totalVAT.toLocaleString("en-PH", { minimumFractionDigits: 2 })}</li>
-              <li><strong>Total Invoices Processed:</strong> ${DATA.invoices.length}</li>
+              <li><strong>Completed Invoices:</strong> ${completedInvoices.length}</li>
           </ul>
 
-          <h2>Monthly Breakdown</h2>
+          <h2>Revenue Breakdown</h2>
           <table>
               <thead>
-                  <tr><th>Month</th><th>Revenue</th></tr>
+                  <tr><th>Period</th><th>Revenue</th></tr>
               </thead>
               <tbody>
-                  ${DATA.revenue.map((r) => `<tr><td>${r.month}</td><td>₱${r.value.toLocaleString("en-PH", { minimumFractionDigits: 2 })}</td></tr>`).join("")}
+                  ${revenueSeries.map((r) => `<tr><td>${r.month}</td><td>₱${r.value.toLocaleString("en-PH", { minimumFractionDigits: 2 })}</td></tr>`).join("")}
               </tbody>
+          </table>
+          <h2>Completed Invoices &amp; Transactions</h2>
+          <table>
+              <thead><tr><th>Invoice #</th><th>Customer</th><th>Date</th><th>Amount</th><th>Service Details</th><th>Status</th></tr></thead>
+              <tbody>${invoiceRows || '<tr><td colspan="6">No completed invoices found for this period.</td></tr>'}</tbody>
           </table>
       </body>
       </html>
@@ -3061,37 +3996,42 @@ function downloadRevenueReport(fileType) {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(11);
     doc.text(`Generated on: ${currentDate}`, 14, 28);
+    doc.text(`Date filter: ${filterLabel}`, 14, 34);
 
     // Summary Section
     doc.setFont("helvetica", "bold");
-    doc.text("Summary Statistics", 14, 38);
+    doc.text("Summary Statistics", 14, 44);
     doc.setFont("helvetica", "normal");
     doc.text(
       `- Total Revenue: P${totalRev.toLocaleString("en-PH", { minimumFractionDigits: 2 })}`,
       14,
-      46,
+      52,
     );
     doc.text(
       `- Total VAT (12%): P${totalVAT.toLocaleString("en-PH", { minimumFractionDigits: 2 })}`,
       14,
-      54,
+      60,
     );
-    doc.text(`- Invoices Processed: ${DATA.invoices.length}`, 14, 62);
+    doc.text(`- Completed Invoices: ${completedInvoices.length}`, 14, 68);
 
-    // Monthly Breakdown Table Header
+    // Revenue breakdown table header
     doc.setFont("helvetica", "bold");
-    doc.text("Monthly Breakdown", 14, 74);
+    doc.text("Revenue Breakdown", 14, 80);
 
-    let yPos = 82;
+    let yPos = 88;
     doc.setFillColor(240, 240, 240);
     doc.rect(14, yPos - 6, 180, 8, "F");
-    doc.text("Month", 18, yPos);
+    doc.text("Period", 18, yPos);
     doc.text("Revenue", 120, yPos);
 
     // Table Rows
     doc.setFont("helvetica", "normal");
     yPos += 8;
-    DATA.revenue.forEach((r) => {
+    revenueSeries.forEach((r) => {
+      if (yPos > doc.internal.pageSize.getHeight() - 18) {
+        doc.addPage();
+        yPos = 20;
+      }
       doc.text(r.month, 18, yPos);
       doc.text(
         `P${r.value.toLocaleString("en-PH", { minimumFractionDigits: 2 })}`,
@@ -3100,6 +4040,33 @@ function downloadRevenueReport(fileType) {
       );
       yPos += 8;
     });
+
+    yPos += 10;
+    if (yPos > doc.internal.pageSize.getHeight() - 24) {
+      doc.addPage();
+      yPos = 20;
+    }
+    doc.setFont("helvetica", "bold");
+    doc.text("Completed Invoices & Transactions", 14, yPos);
+    yPos += 8;
+    doc.setFont("helvetica", "normal");
+    const pageHeight = doc.internal.pageSize.getHeight();
+    completedInvoices.forEach((invoice) => {
+      const { services } = revenueInvoiceDetails(invoice);
+      const invoiceLines = doc.splitTextToSize(
+        `${invoice.id} | ${invoice.customer} | ${invoice.date || "N/A"} | P${invoice.total.toFixed(2)} | ${services} | ${invoice.status}`,
+        180,
+      );
+      if (yPos + invoiceLines.length * 6 > pageHeight - 14) {
+        doc.addPage();
+        yPos = 20;
+      }
+      doc.text(invoiceLines, 14, yPos);
+      yPos += invoiceLines.length * 6 + 3;
+    });
+    if (!completedInvoices.length) {
+      doc.text("No completed invoices found for this period.", 14, yPos);
+    }
 
     // Save the PDF file directly
     doc.save(`MotoFix_Revenue_Report_${currentDate}.pdf`);
@@ -3127,9 +4094,8 @@ $$(".tab-row .tab").forEach((tabBtn) => {
 
     // If Revenue tab is opened, render the chart, stats, and category breakdown
     if (targetTab === "revenue") {
-      renderBarChart("revenueChart2", DATA.revenue);
-      renderRevenueStatsAndBreakdown(); // <-- ADD THIS LINE
-    } else if (targetTab === "invoices") {
+      renderBillingReports();
+    } else if (targetTab === "invoices" && !billingInvoicesRendered) {
       renderInvoices();
     }
   });
@@ -3137,8 +4103,8 @@ $$(".tab-row .tab").forEach((tabBtn) => {
 
 // <-- ADD THIS HELPER FUNCTION BELOW YOUR EVENT LISTENER -->
 function renderRevenueStatsAndBreakdown() {
-  const totalRev = DATA.revenue.reduce((acc, r) => acc + r.value, 0);
-  const completedInvoices = DATA.invoices.filter((invoice) => invoice.status === "Completed");
+  const completedInvoices = getFilteredCompletedBillingInvoices();
+  const totalRev = completedInvoices.reduce((sum, invoice) => sum + invoice.total, 0);
   const totalVAT = completedInvoices.reduce((sum, invoice) => sum + invoice.vat, 0);
   const avgVal = completedInvoices.length > 0 ? totalRev / completedInvoices.length : 0;
 
@@ -3150,6 +4116,8 @@ function renderRevenueStatsAndBreakdown() {
 
   if (totalEl)
     totalEl.textContent = `₱${totalRev.toLocaleString("en-PH", { minimumFractionDigits: 2 })}`;
+  const totalDescEl = $("#rev-total-desc");
+  if (totalDescEl) totalDescEl.textContent = `${billingDateFilterLabel()} · completed invoices only`;
   if (vatEl)
     vatEl.textContent = `₱${totalVAT.toLocaleString("en-PH", { minimumFractionDigits: 2 })}`;
   if (aovEl)
@@ -3160,8 +4128,25 @@ function renderRevenueStatsAndBreakdown() {
   // Populate Service Category Breakdown Panel
   const breakdownContainer = $("#category-breakdown-container");
   if (breakdownContainer) {
-    breakdownContainer.innerHTML = DATA.serviceMix.length
-      ? DATA.serviceMix.map((category) => `
+    const categoryCounts = new Map();
+    completedInvoices.forEach((invoice) => {
+      const appointment = DATA.appointments.find((item) => item.id === invoice.appointmentId);
+      const services = Array.isArray(appointment?.services)
+        ? appointment.services
+        : [appointment?.services || "Service"];
+      services.forEach((serviceName) => {
+        const category = getServiceCategory(serviceName);
+        categoryCounts.set(category, (categoryCounts.get(category) || 0) + 1);
+      });
+    });
+    const totalServices = [...categoryCounts.values()].reduce((sum, count) => sum + count, 0);
+    const filteredServiceMix = [...categoryCounts].map(([label, count]) => ({
+      label,
+      count,
+      pct: totalServices ? (count / totalServices) * 100 : 0,
+    }));
+    breakdownContainer.innerHTML = filteredServiceMix.length
+      ? filteredServiceMix.map((category) => `
           <button type="button" class="revenue-category-row" data-service-category="${escapeDashboardHtml(category.label)}" aria-label="View completed jobs in ${escapeDashboardHtml(category.label)}">
             <span>${escapeDashboardHtml(category.label)}</span>
             <strong>${category.count} service${category.count === 1 ? "" : "s"} · ${category.pct.toFixed(1)}%</strong>
@@ -3180,12 +4165,81 @@ function renderRevenueStatsAndBreakdown() {
   }
 }
 
+function openRevenueMetricDetails(metric) {
+  const invoices = getFilteredCompletedBillingInvoices();
+  const totalRevenue = invoices.reduce((sum, invoice) => sum + invoice.total, 0);
+  const totalVat = invoices.reduce((sum, invoice) => sum + invoice.vat, 0);
+  const averageValue = invoices.length ? totalRevenue / invoices.length : 0;
+  const details = {
+    revenue: {
+      title: "Total Revenue Details",
+      summary: `Completed invoice revenue for ${billingDateFilterLabel()}.`,
+      total: totalRevenue,
+      totalLabel: "Total revenue",
+      column: "Revenue",
+      value: (invoice) => invoice.total,
+    },
+    vat: {
+      title: "VAT Collected Details",
+      summary: `VAT from completed invoices for ${billingDateFilterLabel()}.`,
+      total: totalVat,
+      totalLabel: "Total VAT collected",
+      column: "VAT",
+      value: (invoice) => invoice.vat,
+    },
+    average: {
+      title: "Average Invoice Value Details",
+      summary: `Average completed invoice value for ${billingDateFilterLabel()}.`,
+      total: averageValue,
+      totalLabel: "Average invoice value",
+      column: "Invoice total",
+      value: (invoice) => invoice.total,
+    },
+  }[metric];
+  if (!details) return;
+
+  const invoiceRows = invoices.length
+    ? invoices.map((invoice) => `
+        <button type="button" class="revenue-metric-invoice" data-view-invoice="${escapeDashboardHtml(invoice.id)}">
+          <span class="revenue-metric-invoice-main">
+            <strong>${escapeDashboardHtml(invoice.id)}</strong>
+            <span>${escapeDashboardHtml(invoice.customer || "Customer")} · ${escapeDashboardHtml(invoice.date || "Date not recorded")}</span>
+          </span>
+          <span class="revenue-metric-invoice-value">
+            <span>${escapeDashboardHtml(details.column)}</span>
+            <strong>${peso(details.value(invoice))}</strong>
+          </span>
+        </button>
+      `).join("")
+    : '<p class="muted">No completed invoices are included in this date range.</p>';
+
+  openModal(details.title, `
+    <div class="revenue-metric-details">
+      <p class="revenue-metric-summary">${escapeDashboardHtml(details.summary)}</p>
+      <div class="revenue-metric-total">
+        <span>${escapeDashboardHtml(details.totalLabel)}</span>
+        <strong>${peso(details.total)}</strong>
+      </div>
+      <p class="revenue-metric-count">${invoices.length} completed invoice${invoices.length === 1 ? "" : "s"} included</p>
+      <div class="revenue-metric-invoices" aria-label="Completed invoices">
+        ${invoiceRows}
+      </div>
+      <p class="revenue-metric-hint">Select an invoice to view its full details.</p>
+    </div>
+  `);
+  $("#modalBackdrop .modal")?.classList.add("revenue-metric-details-modal");
+}
+
 function openCompletedJobsForServiceCategory(category) {
+  const visibleAppointmentIds = new Set(
+    getFilteredCompletedBillingInvoices().map((invoice) => invoice.appointmentId),
+  );
   const serviceNames = new Set(DATA.services
     .filter((service) => getServiceCategory(service.name) === category)
     .map((service) => service.name));
   const appointments = DATA.appointments.filter((appointment) => {
     if (canonicalAppointmentStatus(appointment.status) !== "Completed") return false;
+    if (!visibleAppointmentIds.has(appointment.id)) return false;
     const services = Array.isArray(appointment.services)
       ? appointment.services
       : [appointment.services || "Service"];
@@ -3390,6 +4444,9 @@ function renderJobs() {
         : jobStatus === canonicalAppointmentStatus(activeStatus));
     return matchesStatus && (!searchTerm || searchable.includes(searchTerm));
   });
+  filteredJobs.sort(
+    (left, right) => appointmentBookingTimestamp(right) - appointmentBookingTimestamp(left),
+  );
 
   const summary = $("#jobsAdminSummary");
   if (summary)
@@ -4044,7 +5101,7 @@ function openRegisteredMotorcycleDetails(motorcycleId) {
   openModal(
     "Registered Motorcycle Details",
     `
-      <div class="admin-job-details-grid">
+      <div class="admin-job-details-grid registered-motorcycle-details-grid">
         <div><span>Owner</span><strong>${escapeDashboardHtml(ownerName)}</strong></div>
         <div><span>Owner email</span><strong>${escapeDashboardHtml(bike.ownerEmail || "Not available")}</strong></div>
         <div><span>Motorcycle</span><strong>${escapeDashboardHtml(model)}</strong></div>
@@ -4058,6 +5115,7 @@ function openRegisteredMotorcycleDetails(motorcycleId) {
       </div>
     `,
   );
+  $("#modalBackdrop .modal")?.classList.add("registered-motorcycle-details-modal");
 }
 
 const registerMotorcycleBtn = $("#openRegisterMotorcycleBtn");
@@ -4199,15 +5257,6 @@ function openEditServiceModal(code) {
   );
 }
 
-function deleteService(code) {
-  if (confirm(`Are you sure you want to delete service code: ${code}?`)) {
-    DATA.services = DATA.services.filter((s) => s.code !== code);
-    localStorage.setItem("motofix_services", JSON.stringify(DATA.services));
-    renderServiceFilters();
-    renderServicesGrid();
-  }
-}
-
 // Global listener handling edit form submissions
 document.addEventListener("submit", (e) => {
   if (e.target && e.target.id === "editPartForm") {
@@ -4246,8 +5295,10 @@ document.addEventListener("submit", (e) => {
   if (e.target && e.target.id === "editServiceForm") {
     e.preventDefault();
     const code = document.getElementById("editServiceCode").value;
+    const existingService = DATA.services.find((service) => service.code === code);
 
     const updatedService = {
+      ...(existingService || {}),
       code: code,
       name: document.getElementById("editServiceName").value,
       category: document.getElementById("editServiceCategory").value,
@@ -4261,6 +5312,7 @@ document.addEventListener("submit", (e) => {
     if (index !== -1) {
       DATA.services[index] = updatedService;
       localStorage.setItem("motofix_services", JSON.stringify(DATA.services));
+      window.dispatchEvent(new Event("motofix:services-updated"));
       renderServiceFilters();
       renderServicesGrid();
     }
@@ -4308,14 +5360,17 @@ function init() {
   renderInvFilters();
   renderInventoryTable();
 
-  renderInvoices();
-
   renderJobs();
 
   renderUsers();
 
   renderMasterEmployees();
   renderAdminNotifications();
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      if (!billingInvoicesRendered) renderInvoices();
+    });
+  });
 }
 
 document.addEventListener("DOMContentLoaded", init);
@@ -4334,13 +5389,11 @@ window.addEventListener("storage", (event) => {
     syncAppointmentsFromStorage();
     renderDashboardAppointments();
     renderAppointmentsPage();
-    renderInvoices();
+    renderBillingReports();
     renderJobs();
     renderBarChart("revenueChart", DATA.revenue);
-    renderBarChart("revenueChart2", DATA.revenue);
     renderPieChart("serviceMixPie", "serviceMixLegend", DATA.serviceMix);
     renderAdminDashboardStats();
-    renderRevenueStatsAndBreakdown();
   }
   if (["motofix_parts", "motofix_services", "motofix_users", MASTER_EMPLOYEE_STORAGE_KEY].includes(event.key)) {
     initLocalStorageData();
@@ -4352,13 +5405,11 @@ window.addEventListener("storage", (event) => {
     renderMasterEmployees();
     renderRegisteredMotorcycles();
     renderDashboardAppointments();
-    renderInvoices();
+    renderBillingReports();
     renderJobs();
     renderBarChart("revenueChart", DATA.revenue);
-    renderBarChart("revenueChart2", DATA.revenue);
     renderPieChart("serviceMixPie", "serviceMixLegend", DATA.serviceMix);
     renderAdminDashboardStats();
-    renderRevenueStatsAndBreakdown();
   }
 });
 
@@ -4383,6 +5434,7 @@ document.addEventListener("submit", (e) => {
 
       // Save updated services list to localStorage
       localStorage.setItem("motofix_services", JSON.stringify(DATA.services));
+      window.dispatchEvent(new Event("motofix:services-updated"));
 
       // Close modal and refresh UI views
       document.getElementById("modalBackdrop").classList.remove("open");

@@ -362,7 +362,7 @@ export function initMotorcycles() {
     const mileage = Number(val("bike-mileage")) || 0;
 
     if (!make || !model || !plate) {
-      return showError("Please enter the make, model, and plate number.");
+      return showError("Please enter the brand, model, and plate number.");
     }
     if (!year || year < 1950 || year > new Date().getFullYear() + 1) {
       return showError("Please enter a valid year.");

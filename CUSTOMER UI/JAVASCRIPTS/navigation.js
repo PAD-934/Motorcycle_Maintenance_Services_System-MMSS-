@@ -46,6 +46,7 @@ export function initNavigation() {
       dot.textContent = unreadNotifications.length > 9 ? "9+" : String(unreadNotifications.length);
       dot.setAttribute("aria-label", `${unreadNotifications.length} unread notifications`);
     }
+
     let panel = document.getElementById("customerNotifPanel");
     if (!panel) {
       panel = document.createElement("div");
@@ -123,26 +124,6 @@ export function initNavigation() {
   window.addEventListener("motofix:notifications-updated", renderCustomerNotifications);
 
   // --- View Switching Logic ---
-  function switchToServicePage() {
-    navLinks.forEach((l) => {
-      if (
-        l.textContent.includes("Book") ||
-        l.textContent.includes("Appointments")
-      ) {
-        // Keep relevant nav highlighted if needed
-      }
-    });
-
-    if (dashView) dashView.style.display = "none";
-    if (serviceView) serviceView.style.display = "block";
-    if (motorcyclesView) motorcyclesView.style.display = "none";
-    if (partsView) partsView.style.display = "none";
-    if (transactionsView) transactionsView.style.display = "none";
-    if (middleHeaderLabel) middleHeaderLabel.textContent = "Book a Service";
-    if (middleHeaderSub)
-      middleHeaderSub.textContent = "Schedule your next visit";
-  }
-
   function switchToDashboardPage() {
     if (serviceView) serviceView.style.display = "none";
     if (dashView) dashView.style.display = "flex";
@@ -186,16 +167,24 @@ export function initNavigation() {
   }
 
   renderCustomerProfile();
-  function switchToAppointmentsPage() {
+  function switchToAppointmentsPage(pageTitle = "My Appointments") {
     if (dashView) dashView.style.display = "none";
     if (serviceView) serviceView.style.display = "block";
     if (motorcyclesView) motorcyclesView.style.display = "none";
     if (partsView) partsView.style.display = "none";
     if (transactionsView) transactionsView.style.display = "none";
-    if (middleHeaderLabel) middleHeaderLabel.textContent = "Appointments";
+    if (middleHeaderLabel) middleHeaderLabel.textContent = pageTitle;
     if (middleHeaderSub)
-      middleHeaderSub.textContent = "Manage service scheduling";
+      middleHeaderSub.textContent = pageTitle === "Book a Services"
+        ? "Explore services and manage appointments"
+        : "Manage your service appointments";
   }
+
+  window.addEventListener("motofix:book-service", () => {
+    navLinks.forEach((link) => link.classList.remove("active"));
+    document.querySelector('[data-page="appointments"]')?.classList.add("active");
+    switchToAppointmentsPage("Book a Services");
+  });
 
   customerBellButton?.parentElement?.addEventListener("click", (event) => {
     const item = event.target.closest(".customer-notification-link[data-notification-id]");
@@ -236,6 +225,7 @@ export function initNavigation() {
     const destinationIndex = {
       dashboard: 0,
       profile: 0,
+      services: 1,
       appointments: 1,
       motorcycles: 2,
       parts: 3,
@@ -255,6 +245,8 @@ export function initNavigation() {
       }
     } else if (destination === "parts") {
       switchToPartsPage();
+    } else if (destination === "services") {
+      switchToAppointmentsPage("Book a Services");
     } else if (destination === "transactions") {
       switchToTransactionsPage();
       if (appointmentId) {
@@ -298,6 +290,13 @@ export function initNavigation() {
       middleHeaderSub.textContent = "Parts catalog and stock shop";
   }
 
+  window.addEventListener("motofix:open-parts-for-appointment", switchToPartsPage);
+  window.addEventListener("motofix:return-to-booking-draft", () => {
+    switchToAppointmentsPage("Book a Services");
+    const bookingModal = document.getElementById("sc-modal-overlay");
+    if (bookingModal) bookingModal.style.display = "flex";
+  });
+
   function switchToTransactionsPage() {
     if (dashView) dashView.style.display = "none";
     if (serviceView) serviceView.style.display = "none";
@@ -317,16 +316,17 @@ export function initNavigation() {
       navLinks.forEach((l) => l.classList.remove("active"));
       link.classList.add("active");
 
-      // Handle page view switches based on index or text
+      // Handle page view switches based on the stable data-page identifier.
+      const page = link.dataset.page;
       if (index === 0) {
         switchToDashboardPage(); // Customer Dashboard page
-      } else if (index === 1) {
+      } else if (page === "appointments") {
         switchToAppointmentsPage(); // My Appointments
-      } else if (index === 2) {
+      } else if (page === "motorcycles") {
         switchToMotorcyclesPage(); // My motorcycle page
-      } else if (index === 3) {
+      } else if (page === "parts") {
         switchToPartsPage(); // Parts & Shop page
-      } else if (index === 4) {
+      } else if (page === "transactions") {
         switchToTransactionsPage(); // Parts & Shop page
       }
     });
@@ -334,16 +334,16 @@ export function initNavigation() {
 
   if (dashBookBtn) {
     dashBookBtn.addEventListener("click", () => {
-      navLinks.forEach((l) => l.classList.remove("active"));
-      if (navLinks[1]) navLinks[1].classList.add("active"); // Index 2 is Service
-      switchToServicePage();
+      navLinks.forEach((link) => link.classList.remove("active"));
+      document.querySelector('[data-page="appointments"]')?.classList.add("active");
+      switchToAppointmentsPage("Book a Services");
     });
   }
 
   if (dashPartsBtn) {
     dashPartsBtn.addEventListener("click", () => {
       navLinks.forEach((l) => l.classList.remove("active"));
-      if (navLinks[4]) navLinks[4].classList.add("active"); // Index 4 is Parts & Shop
+      document.querySelector('[data-page="parts"]')?.classList.add("active");
       switchToPartsPage();
     });
   }
@@ -351,7 +351,7 @@ export function initNavigation() {
   if (dashTransactionsBtn) {
     dashTransactionsBtn.addEventListener("click", () => {
       navLinks.forEach((l) => l.classList.remove("active"));
-      if (navLinks[5]) navLinks[5].classList.add("active"); // Index 5 is Transactions
+      document.querySelector('[data-page="transactions"]')?.classList.add("active");
       switchToTransactionsPage();
     });
   }
@@ -417,13 +417,13 @@ export function initNavigation() {
       localStorage.removeItem("isLoggedIn");
       localStorage.removeItem("userEmail");
       localStorage.removeItem("userRole");
-      window.location.href = "../../login.html";
+      window.location.href = "../../index.html";
     });
   }
 
   dashboardAppointmentsBtn?.addEventListener("click", () => {
     navLinks.forEach((link) => link.classList.remove("active"));
-    navLinks[1]?.classList.add("active");
+    document.querySelector('[data-page="appointments"]')?.classList.add("active");
     switchToAppointmentsPage();
   });
 }

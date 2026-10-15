@@ -169,47 +169,8 @@
           </svg>
         </button>
 <!--  -->
-        <!-- SERVICE BUTTON -->
-        <!-- <button class="nav-link">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            class="lucide lucide-calendar"
-            aria-hidden="true"
-          >
-            <path d="M8 2v4"></path>
-            <path d="M16 2v4"></path>
-            <rect width="18" height="18" x="3" y="4" rx="2"></rect>
-            <path d="M3 10h18"></path>
-          </svg>
-          Book a Service
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            class="lucide lucide-chevron-right nav-arrow"
-            aria-hidden="true"
-            style="margin-left: auto"
-          >
-            <path d="m9 18 6-6-6-6"></path>
-          </svg>
-        </button> -->
-
         <!-- APPOINTMENTS BUTTON -->
-        <button class="nav-link">
+        <button class="nav-link" data-page="appointments">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="16"
@@ -252,7 +213,7 @@
         </button>
 
         <!-- MOTORCYCLE BUTTON -->
-        <button class="nav-link">
+        <button class="nav-link" data-page="motorcycles">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="16"
@@ -291,7 +252,7 @@
         </button>
 
         <!-- SHOP PARTS BUTTON -->
-        <button class="nav-link">
+        <button class="nav-link" data-page="parts">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="16"
@@ -332,7 +293,7 @@
         </button>
 
         <!-- TRANSACTION BUTTON -->
-        <button class="nav-link">
+        <button class="nav-link" data-page="transactions">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="16"
@@ -619,8 +580,8 @@
                 <path d="M3 10h18"></path>
               </svg>
             </div>
-            <div class="service_label">Book a Service</div>
-            <div class="service_sub_label">Schedule a new appointment</div>
+            <div class="service_label">Book a Services</div>
+            <div class="service_sub_label">Explore services and pricing</div>
           </button>
 
           <!-- DASHBOARD PARTS BUTTON -->
@@ -748,8 +709,8 @@
             <button class="sc-filter-btn" data-filter="Completed">
               Completed
             </button>
-            <button class="sc-filter-btn" data-filter="Cancelled">
-              Cancelled
+            <button class="sc-filter-btn" data-filter="Canceled">
+              Canceled
             </button>
           </div>
           <button class="sc-new-appointment-btn" id="sc-open-modal-btn">
@@ -773,6 +734,16 @@
         </div>
 
         <!-- APPOINTMENTS TABLE DATA VIEW -->
+        <section class="customer-services-page appointments-services-catalog">
+          <div class="customer-services-heading">
+            <h2>Book a Services</h2>
+            <p>Choose a service to start an appointment booking.</p>
+          </div>
+          <div id="customer-services-grid" class="customer-services-grid" aria-live="polite">
+            <p class="customer-services-message">Loading available services...</p>
+          </div>
+        </section>
+
         <div class="sc-table-container">
           <table class="sc-appointments-table">
             <thead>
@@ -837,79 +808,8 @@
               <!-- SERVICES SELECTION CHECKBOXES -->
               <div class="sc-form-group">
                 <label>SERVICES</label>
-                <div class="sc-services-box">
-                  <label class="sc-service-item">
-                    <div class="sc-service-info">
-                      <input
-                        type="checkbox"
-                        name="service"
-                        value="Checkup"
-                        data-price="250.00"
-                      />
-                      <span>Checkup</span>
-                      <span class="sc-price">₱250.00</span>
-                    </div>
-                  </label>
-                  <label class="sc-service-item">
-                    <div class="sc-service-info">
-                      <input
-                        type="checkbox"
-                        name="service"
-                        value="Tire Replacement"
-                        data-price="600.00"
-                      />
-                      <span>Tire Replacement</span>
-                      <span class="sc-price">₱600.00</span>
-                    </div>
-                  </label>
-                  <label class="sc-service-item">
-                    <div class="sc-service-info">
-                      <input
-                        type="checkbox"
-                        name="service"
-                        value="Engine Overhaul"
-                        data-price="8500.00"
-                      />
-                      <span>Engine Overhaul</span>
-                      <span class="sc-price">₱8,500.00</span>
-                    </div>
-                  </label>
-                  <label class="sc-service-item">
-                    <div class="sc-service-info">
-                      <input
-                        type="checkbox"
-                        name="service"
-                        value="Electrical Diagnostics"
-                        data-price="500.00"
-                      />
-                      <span>Electrical Diagnostics</span>
-                      <span class="sc-price">₱500.00</span>
-                    </div>
-                  </label>
-                  <label class="sc-service-item">
-                    <div class="sc-service-info">
-                      <input
-                        type="checkbox"
-                        name="service"
-                        value="Suspension Setup"
-                        data-price="1500.00"
-                      />
-                      <span>Suspension Setup</span>
-                      <span class="sc-price">₱1,500.00</span>
-                    </div>
-                  </label>
-                  <label class="sc-service-item">
-                    <div class="sc-service-info">
-                      <input
-                        type="checkbox"
-                        name="service"
-                        value="Chain & Sprocket Kit"
-                        data-price="950.00"
-                      />
-                      <span>Chain & Sprocket Kit</span>
-                      <span class="sc-price">₱950.00</span>
-                    </div>
-                  </label>
+                <div class="sc-services-box" id="sc-services-options" aria-live="polite">
+                  <span>Loading available services...</span>
                 </div>
               </div>
 
@@ -932,13 +832,44 @@
               <!-- DATE & TIME -->
               <div class="sc-form-row">
                 <div class="sc-form-group half">
-                  <label for="sc-date-input">DATE</label>
-                  <input
-                    type="date"
-                    id="sc-date-input"
-                    class="sc-input-field"
-                    required
-                  />
+                  <label for="sc-date-picker-trigger">DATE</label>
+                  <div class="sc-customer-date-picker" id="sc-customer-date-picker">
+                    <input
+                      type="date"
+                      id="sc-date-input"
+                      class="sc-date-value-input"
+                      required
+                      aria-hidden="true"
+                      tabindex="-1"
+                    />
+                    <button
+                      type="button"
+                      id="sc-date-picker-trigger"
+                      class="sc-input-field sc-date-picker-trigger"
+                      aria-haspopup="dialog"
+                      aria-expanded="false"
+                    >
+                      <span id="sc-date-picker-value">Select appointment date</span>
+                      <span aria-hidden="true">▦</span>
+                    </button>
+                    <div
+                      class="sc-date-picker-popover"
+                      id="sc-date-picker-popover"
+                      role="dialog"
+                      aria-label="Choose appointment date"
+                      hidden
+                    >
+                      <div class="sc-date-picker-nav">
+                        <button type="button" id="sc-date-picker-prev" aria-label="Previous month">‹</button>
+                        <input type="month" id="sc-date-picker-month" aria-label="Select appointment month">
+                        <button type="button" id="sc-date-picker-next" aria-label="Next month">›</button>
+                      </div>
+                      <div class="sc-date-picker-grid sc-date-picker-weekdays" aria-hidden="true">
+                        <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
+                      </div>
+                      <div class="sc-date-picker-grid" id="sc-date-picker-days" role="group" aria-label="Select appointment day"></div>
+                    </div>
+                  </div>
                 </div>
                 <div class="sc-form-group half">
                   <label>TIME</label>
@@ -969,6 +900,13 @@
               </div>
 
               <!-- SUBMIT BUTTON -->
+              <button
+                type="button"
+                id="sc-browse-parts-btn"
+                class="sc-secondary-btn sc-browse-parts-btn"
+              >
+                Browse Parts &amp; Shop
+              </button>
               <button
                 type="button"
                 id="sc-submit-appointment"
@@ -1169,7 +1107,7 @@
             </div>
             <div class="mc-modal-body">
                    <div class="sc-form-group">
-        <label>MAKE</label>
+        <label>BRAND</label>
         <input type="text" id="bike-make" class="sc-input-field" placeholder="e.g. Honda" />
       </div>
       <div class="sc-form-group">
@@ -1215,6 +1153,9 @@
             <div class="parts-section-title">Parts & Shop</div>
             <div class="parts-section-sub">Parts catalog and stock shop</div>
           </div>
+          <button type="button" id="parts-return-to-appointment" class="sc-secondary-btn" hidden>
+            Return to Appointment
+          </button>
         </div>
 
         <!-- Controls Bar: Search & Category Chips (Wraps gracefully on smaller screens) -->
@@ -1319,6 +1260,7 @@
                   <span class="subtotal-val" id="cart-subtotal">₱0.00</span>
                 </div>
                 <p class="subtotal-note">Excludes customer-supplied parts</p>
+                <p class="parts-add-status" id="parts-add-status" role="status" aria-live="polite"></p>
                 <button class="parts-submit-btn" id="add-to-appointment-btn">
                   Add to Appointment
                 </button>
